@@ -36,7 +36,8 @@ async function proxyRequest(req: NextRequest, path: string[]) {
     const headers: Record<string, string> = {};
     req.headers.forEach((value, key) => {
       const lowerKey = key.toLowerCase();
-      if (!["host", "connection"].includes(lowerKey)) {
+      // Skip compression-related headers to avoid double-encoding
+      if (!["host", "connection", "accept-encoding"].includes(lowerKey)) {
         headers[key] = value;
       }
     });
@@ -53,7 +54,11 @@ async function proxyRequest(req: NextRequest, path: string[]) {
     const responseHeaders = new Headers();
     
     response.headers.forEach((value, key) => {
-      responseHeaders.set(key, value);
+      const lowerKey = key.toLowerCase();
+      // Remove compression headers since we already decompressed
+      if (!["content-encoding", "transfer-encoding"].includes(lowerKey)) {
+        responseHeaders.set(key, value);
+      }
     });
 
     return new NextResponse(data, {
