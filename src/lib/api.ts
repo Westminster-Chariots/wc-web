@@ -2,9 +2,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 
-const BASE_URL = "/api";
 
-// Rate limiting configuration
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 100;
 const requestTimestamps: number[] = [];
@@ -48,7 +46,7 @@ async function processQueue() {
 }
 
 export const api = axios.create({
-  baseURL: `${BASE_URL}/api/v1`,
+  baseURL: `/api/v1`,
   timeout: 30000,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
@@ -85,7 +83,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && !isRefreshEndpoint) {
       original._retry = 1;
       try {
-        await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true });
+        await axios.post(`/api/v1/auth/refresh`, {}, { withCredentials: true });
         return api(original);
       } catch {
         // Only redirect if not already on auth pages
