@@ -5,6 +5,10 @@ import type { Booking, Driver, FleetVehicle, User, Profile, Invoice } from "@/ty
 export const authService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post("/auth/login", { email, password });
+    if (data.accessToken) {
+      localStorage.setItem("access_token", data.accessToken);
+      localStorage.setItem("refresh_token", data.refreshToken);
+    }
     return data;
   },
   
@@ -15,6 +19,8 @@ export const authService = {
   
   logout: async () => {
     await api.post("/auth/logout");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
   },
   
   me: async (): Promise<User> => {

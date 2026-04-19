@@ -46,15 +46,20 @@ async function processQueue() {
 }
 
 export const api = axios.create({
-  baseURL: `/api/v1`,
+  baseURL: `https://wc-backend-ayx0.onrender.com/api/v1`,
   timeout: 60000,
-  withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
 // Request interceptor for rate limiting and logging
 api.interceptors.request.use(
   async (config) => {
+    // Add auth token from localStorage
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     // Add request ID for tracking
     config.headers['X-Request-ID'] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -83,9 +88,23 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && !isRefreshEndpoint) {
       original._retry = 1;
       try {
-        await axios.post(`/api/v1/auth/refresh`, {}, { withCredentials: true });
-        return api(original);
+        const refreshToken = localStorage.getItem("refresh_token");
+        if (!refreshToken) throw new Error("No refresh token");
+        
+        const { data } = await axios.post(`https://wc-backend-ayx0.onrender.com/api/v1/auth/refresh`, 
+          { refreshToken },
+          { headers: { Authorization: `Bearer ${refreshToken}` } }
+        );
+        
+        if (data.accessToken) {
+          localStorage.setItem("access_token", data.accessToken);
+          original.headers.Authorization = `Bearer ${data.accessToken}`;
+          return api(original);
+        }
       } catch {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        
         // Only redirect if not already on auth pages
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
