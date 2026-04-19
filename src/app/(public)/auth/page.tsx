@@ -38,9 +38,26 @@ export default function AuthPage() {
         await login(email, password);
         router.push("/");
       }
-    } catch (err: unknown) {
-      const error = err as Error;
-      notify.error(error.message || "An error occurred");
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.error || err.message || "An error occurred";
+      const errorCode = err?.response?.data?.code;
+      
+      if (errorCode === "EMAIL_EXISTS") {
+        notify.error(
+          <div>
+            <p className="font-semibold">This email is already registered.</p>
+            <button 
+              onClick={() => setMode("login")} 
+              className="text-primary underline mt-1 text-sm"
+            >
+              Click here to log in instead
+            </button>
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        notify.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
