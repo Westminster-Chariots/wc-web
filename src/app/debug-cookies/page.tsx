@@ -21,8 +21,8 @@ export default function CookieDebugPage() {
     console.log("Calling: /api/v1/auth/login");
     try {
       const response = await axios.post("/api/v1/auth/login", {
-        email: "test@example.com",
-        password: "password123",
+        email: "admin@westminsterchariots.com",
+        password: "admin123",
       }, { withCredentials: true });
       console.log("Response:", response);
       setLoginResponse(response.data);

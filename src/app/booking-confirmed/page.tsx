@@ -42,11 +42,9 @@ function BookingConfirmedContent() {
       try {
         if (bookingId) {
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/bookings/${bookingId}`,
+            `/api/v1/bookings/${bookingId}`,
             {
-              headers: {
-                "Authorization": `Bearer ${localStorage.getItem("auth_token") || ""}`,
-              },
+              credentials: "include",
             }
           );
 
