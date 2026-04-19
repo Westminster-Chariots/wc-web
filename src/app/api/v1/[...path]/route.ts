@@ -35,7 +35,8 @@ async function proxyRequest(req: NextRequest, path: string[]) {
   try {
     const headers = new Headers();
     req.headers.forEach((value, key) => {
-      if (!["host", "connection", "content-length"].includes(key.toLowerCase())) {
+      const lowerKey = key.toLowerCase();
+      if (!["host", "connection", "content-length", "accept-encoding"].includes(lowerKey)) {
         headers.set(key, value);
       }
     });
@@ -48,11 +49,25 @@ async function proxyRequest(req: NextRequest, path: string[]) {
       body,
     });
 
-    const responseHeaders = new Headers(response.headers);
-    responseHeaders.delete("connection");
-    responseHeaders.delete("transfer-encoding");
+    // Read response as text/json to avoid compression issues
+    const contentType = response.headers.get("content-type") || "";
+    let responseBody;
+    
+    if (contentType.includes("application/json")) {
+      responseBody = await response.text();
+    } else {
+      responseBody = response.body;
+    }
 
-    return new NextResponse(response.body, {
+    const responseHeaders = new Headers();
+    response.headers.forEach((value, key) => {
+      const lowerKey = key.toLowerCase();
+      if (!["connection", "transfer-encoding", "content-encoding"].includes(lowerKey)) {
+        responseHeaders.set(key, value);
+      }
+    });
+
+    return new NextResponse(responseBody, {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
