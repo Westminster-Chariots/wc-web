@@ -2,7 +2,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const BASE_URL = "/api";
 
 // Rate limiting configuration
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
