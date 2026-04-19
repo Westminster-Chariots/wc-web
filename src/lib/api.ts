@@ -60,14 +60,6 @@ api.interceptors.request.use(
     // Add request ID for tracking
     config.headers['X-Request-ID'] = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    // Add JWT token from localStorage if available
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
-    
     // Rate limiting check
     if (!checkRateLimit()) {
       return new Promise((resolve) => {

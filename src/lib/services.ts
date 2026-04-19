@@ -5,24 +5,15 @@ import type { Booking, Driver, FleetVehicle, User, Profile, Invoice } from "@/ty
 export const authService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post("/auth/login", { email, password });
-    // Store JWT token if provided
-    if (data.token) {
-      localStorage.setItem("auth_token", data.token);
-    }
     return data;
   },
   
   register: async (email: string, password: string, fullName: string, phone?: string) => {
     const { data } = await api.post("/auth/register", { email, password, name: fullName, phone });
-    // Store JWT token if provided
-    if (data.token) {
-      localStorage.setItem("auth_token", data.token);
-    }
     return data;
   },
   
   logout: async () => {
-    localStorage.removeItem("auth_token");
     await api.post("/auth/logout");
   },
   
