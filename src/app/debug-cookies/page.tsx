@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import axios from "axios";
 
 export default function CookieDebugPage() {
-  const [cookies, setCookies] = useState<string>("");
+  const [tokens, setTokens] = useState<string>("");
   const [loginResponse, setLoginResponse] = useState<any>(null);
   const [meResponse, setMeResponse] = useState<any>(null);
   const [error, setError] = useState<string>("");
@@ -13,8 +13,14 @@ export default function CookieDebugPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setCookies(document.cookie);
+    checkTokens();
   }, []);
+
+  const checkTokens = () => {
+    const accessToken = localStorage.getItem("access_token");
+    const refreshToken = localStorage.getItem("refresh_token");
+    setTokens(JSON.stringify({ accessToken: accessToken ? "***" + accessToken.slice(-10) : null, refreshToken: refreshToken ? "***" + refreshToken.slice(-10) : null }, null, 2));
+  };
 
   const testLogin = async () => {
     setError("");
@@ -22,20 +28,25 @@ export default function CookieDebugPage() {
     setLoading(true);
     console.log("Calling: /api/v1/auth/login");
     try {
-      const response = await axios.post("/api/v1/auth/login", {
+      const response = await axios.post("https://wc-backend-ayx0.onrender.com/api/v1/auth/login", {
         email: "admin@westminsterchariots.com",
         password: "admin123",
       }, { 
-        withCredentials: true,
-        timeout: 60000 // 60 second timeout for Render cold start
+        timeout: 60000
       });
       console.log("Response:", response);
       setLoginResponse(response.data);
       setHeaders({
-        'set-cookie': response.headers['set-cookie'],
         'all': Object.keys(response.headers)
       });
-      setTimeout(() => setCookies(document.cookie), 100);
+      
+      // Store tokens
+      if (response.data.accessToken) {
+        localStorage.setItem("access_token", response.data.accessToken);
+        localStorage.setItem("refresh_token", response.data.refreshToken);
+      }
+      
+      setTimeout(checkTokens, 100);
     } catch (err: any) {
       console.error("Error:", err);
       setError(err.response?.data?.error || err.message);
@@ -57,16 +68,16 @@ export default function CookieDebugPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Cookie Debug</h1>
+      <h1 className="text-2xl font-bold mb-6">Auth Debug (localStorage)</h1>
       <div className="space-y-4">
         <div className="p-4 bg-card border rounded">
-          <h2 className="font-semibold mb-2">Cookies:</h2>
-          <pre className="text-xs bg-secondary p-2 rounded">{cookies || "None"}</pre>
+          <h2 className="font-semibold mb-2">Tokens in localStorage:</h2>
+          <pre className="text-xs bg-secondary p-2 rounded">{tokens || "None"}</pre>
         </div>
         <div className="p-4 bg-card border rounded">
           <h2 className="font-semibold mb-2">Config:</h2>
           <pre className="text-xs bg-secondary p-2 rounded">
-            API_URL: {process.env.NEXT_PUBLIC_API_URL || "(empty)"}
+            Backend: https://wc-backend-ayx0.onrender.com
             {"\n"}Current: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}
           </pre>
         </div>
@@ -75,7 +86,7 @@ export default function CookieDebugPage() {
             {loading ? "Loading..." : "Test Login"}
           </button>
           <button onClick={testMe} className="px-4 py-2 bg-secondary rounded">Test /auth/me</button>
-          <button onClick={() => setCookies(document.cookie)} className="px-4 py-2 bg-secondary rounded">Refresh</button>
+          <button onClick={checkTokens} className="px-4 py-2 bg-secondary rounded">Refresh</button>
         </div>
         {headers && (
           <div className="p-4 bg-card border rounded">
