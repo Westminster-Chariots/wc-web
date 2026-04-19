@@ -10,6 +10,7 @@ export default function CookieDebugPage() {
   const [meResponse, setMeResponse] = useState<any>(null);
   const [error, setError] = useState<string>("");
   const [headers, setHeaders] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setCookies(document.cookie);
@@ -18,12 +19,16 @@ export default function CookieDebugPage() {
   const testLogin = async () => {
     setError("");
     setHeaders(null);
+    setLoading(true);
     console.log("Calling: /api/v1/auth/login");
     try {
       const response = await axios.post("/api/v1/auth/login", {
         email: "admin@westminsterchariots.com",
         password: "admin123",
-      }, { withCredentials: true });
+      }, { 
+        withCredentials: true,
+        timeout: 60000 // 60 second timeout for Render cold start
+      });
       console.log("Response:", response);
       setLoginResponse(response.data);
       setHeaders({
@@ -35,6 +40,8 @@ export default function CookieDebugPage() {
       console.error("Error:", err);
       setError(err.response?.data?.error || err.message);
       setHeaders(err.response?.headers || null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,7 +71,9 @@ export default function CookieDebugPage() {
           </pre>
         </div>
         <div className="flex gap-4">
-          <button onClick={testLogin} className="px-4 py-2 bg-primary text-primary-foreground rounded">Test Login</button>
+          <button onClick={testLogin} disabled={loading} className="px-4 py-2 bg-primary text-primary-foreground rounded disabled:opacity-50">
+            {loading ? "Loading..." : "Test Login"}
+          </button>
           <button onClick={testMe} className="px-4 py-2 bg-secondary rounded">Test /auth/me</button>
           <button onClick={() => setCookies(document.cookie)} className="px-4 py-2 bg-secondary rounded">Refresh</button>
         </div>

@@ -47,7 +47,7 @@ async function processQueue() {
 
 export const api = axios.create({
   baseURL: `/api/v1`,
-  timeout: 30000,
+  timeout: 60000,
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
@@ -107,6 +107,12 @@ api.interceptors.response.use(
       
       await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
       return api(original);
+    }
+    
+    // Handle timeout errors with user-friendly message
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      toast.error("Request timed out. The server may be starting up, please try again.");
+      return Promise.reject(error);
     }
     
     // Retry logic for network errors and 5xx errors

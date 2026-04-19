@@ -30,28 +30,50 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ p
 async function proxyRequest(req: NextRequest, path: string[]) {
   const url = `${BACKEND_URL}/${path.join("/")}${req.nextUrl.search}`;
   
-  const headers = new Headers();
-  req.headers.forEach((value, key) => {
-    if (!["host", "connection"].includes(key.toLowerCase())) {
-      headers.set(key, value);
+  try {
+    const headers = new Headers();
+    req.headers.forEach((value, key) => {
+      if (!["host", "connection", "content-length"].includes(key.toLowerCase())) {
+        headers.set(key, value);
+      }
+    });
+
+    const body = req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
+    const response = await fetch(url, {
+      method: req.method,
+      headers,
+      body,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.delete("connection");
+    responseHeaders.delete("transfer-encoding");
+
+    return new NextResponse(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error: any) {
+    console.error("Proxy error:", error);
+    
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "Request timeout - backend may be starting up" },
+        { status: 504 }
+      );
     }
-  });
-
-  const body = req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
-
-  const response = await fetch(url, {
-    method: req.method,
-    headers,
-    body,
-  });
-
-  const responseHeaders = new Headers(response.headers);
-  responseHeaders.delete("connection");
-  responseHeaders.delete("transfer-encoding");
-
-  return new NextResponse(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: responseHeaders,
-  });
+    
+    return NextResponse.json(
+      { error: error.message || "Proxy request failed" },
+      { status: 502 }
+    );
+  }
 }
