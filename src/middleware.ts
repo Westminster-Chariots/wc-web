@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
+// Allow public paths
   // Protect /account and /admin/*
   if (pathname.startsWith("/account") || pathname.startsWith("/admin")) {
     // Check if access_token cookie exists
