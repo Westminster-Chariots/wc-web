@@ -89,14 +89,14 @@ export default function ManifestsPage() {
       spotTime: spotTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       billTo: booking.clientName,
       address: "18519 Kerill Rd, Triangle, VA 22172",
-      phone: booking.clientPhone || "(571) 435-1832",
+      phone: "(571) 435-1832",
       passenger: booking.clientName,
       bookedOn: bookedOnDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + bookedOnDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      pax: booking.paxCount || 1,
+      pax: booking.paxCount,
       vehicleType: `${booking.vehicleType.toUpperCase()}${booking.vehicleNumber ? ` (${booking.vehicleNumber})` : ''}`,
       affiliateName: "",
       legs,
-      driverNotes: booking.dispatcherNotes || "",
+      driverNotes: "",
       specialRequests: booking.specialRequests || "",
     });
     setSelectedBookingId(bookingId);

@@ -7,32 +7,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useDrivers } from "@/hooks/useDrivers";
-
-interface Driver {
-  id: string;
-  userId: string | null;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  status: string;
-  vehicleId: string | null;
-  photoUrl: string | null;
-  notes: string | null;
-  createdAt: string;
-}
+import type { Driver } from "@/types";
 
 export default function DriversPage() {
   const { drivers, loading, addDriver, updateDriver, deleteDriver, refetch } = useDrivers();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    status: "available" | "unavailable" | "on_trip";
+    notes: string;
+    photoUrl: string;
+    vehicleId: string | null;
+  }>({
     name: "",
     email: "",
     phone: "",
     status: "available",
     notes: "",
     photoUrl: "",
+    vehicleId: null,
   });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,9 +47,10 @@ export default function DriversPage() {
         name: driver.name,
         email: driver.email || "",
         phone: driver.phone || "",
-        status: driver.status,
+        status: driver.status as "available" | "unavailable" | "on_trip",
         notes: driver.notes || "",
         photoUrl: driver.photoUrl || "",
+        vehicleId: driver.vehicleId,
       });
     } else {
       setEditingDriver(null);
@@ -63,6 +61,7 @@ export default function DriversPage() {
         status: "available",
         notes: "",
         photoUrl: "",
+        vehicleId: null,
       });
     }
     setDialogOpen(true);
@@ -78,7 +77,7 @@ export default function DriversPage() {
       formData.append("file", file);
       formData.append("type", "driver_photo");
 
-      const response = await fetch("http://localhost:3001/api/v1/uploads", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/uploads", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -291,7 +290,7 @@ export default function DriversPage() {
               <label className="block text-sm font-body font-medium text-foreground mb-1.5">Status</label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as "available" | "unavailable" | "on_trip" })}
                 className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm font-body focus:outline-none focus:ring-1 focus:ring-primary/40"
               >
                 <option value="available">Available</option>

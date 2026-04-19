@@ -71,7 +71,7 @@ export default function CalendarListView({ bookings, filterStatus, onFilterChang
                     {b.status.replace(/_/g, " ")}
                   </span>
                 </div>
-                <span className="text-sm font-semibold text-foreground">${b.totalPrice?.toFixed(0) || "0"}</span>
+                <span className="text-sm font-semibold text-foreground">${b.price?.toFixed(0) || "0"}</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">

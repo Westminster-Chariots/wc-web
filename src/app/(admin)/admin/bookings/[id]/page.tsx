@@ -110,7 +110,7 @@ export default function BookingDetailPage() {
                   <SelectContent className="z-50 bg-popover border-border">
                     <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
                     {drivers.map((d) => (
-                      <SelectItem key={d.id} value={d.id} className="text-xs">{d.fullName}</SelectItem>
+                      <SelectItem key={d.id} value={d.id} className="text-xs">{d.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -244,8 +244,8 @@ export default function BookingDetailPage() {
             booking={{
               id: booking.id,
               reservationNumber: booking.reservationNumber,
-              clientName: booking.clientName,
-              clientEmail: booking.clientEmail,
+              clientName: booking.clientName ?? null,
+              clientEmail: booking.clientEmail ?? null,
               price: booking.price,
               pickupDate: booking.pickupDate,
               pickupTime: booking.pickupTime,

@@ -37,8 +37,8 @@ export interface UIBooking {
 export interface Driver {
   id: string;
   name: string;
-  phone?: string;
-  email?: string;
+  phone?: string | null;
+  email?: string | null;
   status?: string;
 }
 

@@ -59,7 +59,7 @@ export default function CalendarDriverTimeline({ selectedDate, bookingsByDate, d
     return map;
   }, [dayBookings, drivers]);
 
-  const activeDrivers = drivers.filter((d) => d.status !== "off_duty");
+  const activeDrivers = drivers.filter((d) => d.status !== "unavailable");
 
   return (
     <div className="space-y-4">

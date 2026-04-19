@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Car, Plus, Search, MoreVertical, Pencil, Trash2, Loader2, Hash, Upload, ImageIcon, Users, Briefcase,
 } from "lucide-react";
-import { useFleet, type Vehicle, type VehicleClass } from "@/hooks/useFleet";
+import { useFleet, type VehicleClass } from "@/hooks/useFleet";
+import type { FleetVehicle } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,8 +46,8 @@ export default function AdminFleetPage() {
   const { vehicles, loading, addVehicle, updateVehicle, deleteVehicle } = useFleet();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FleetVehicle | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -54,7 +55,7 @@ export default function AdminFleetPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = vehicles.filter((v) =>
-    `${v.make} ${v.model} ${v.plate}`.toLowerCase().includes(search.toLowerCase())
+    `${v.make} ${v.model} ${v.licensePlate}`.toLowerCase().includes(search.toLowerCase())
   );
 
   const openAdd = () => {
@@ -65,12 +66,12 @@ export default function AdminFleetPage() {
     setDialogOpen(true);
   };
 
-  const openEdit = (v: Vehicle) => {
+  const openEdit = (v: FleetVehicle) => {
     setEditingVehicle(v);
     setForm({
       make: v.make,
       model: v.model,
-      plate: v.plate,
+      plate: v.licensePlate || "",
       year: v.year?.toString() || "",
       color: v.color || "",
       vehicleType: v.vehicleType,
@@ -98,7 +99,7 @@ export default function AdminFleetPage() {
       formData.append("file", file);
       formData.append("type", "vehicle_image");
 
-      const response = await fetch("http://localhost:3001/api/v1/uploads", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/uploads", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -263,7 +264,7 @@ export default function AdminFleetPage() {
                   <div className="space-y-1.5 text-xs text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Hash className="h-3.5 w-3.5 text-primary/60" />
-                      <span className="font-mono tracking-wider">{vehicle.plate}</span>
+                      <span className="font-mono tracking-wider">{vehicle.licensePlate}</span>
                     </div>
                     <div className="flex items-center gap-4">
                       {vehicle.year && <span>{vehicle.year}</span>}
@@ -404,7 +405,7 @@ export default function AdminFleetPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="font-display">Remove Vehicle</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <strong>{deleteTarget?.make} {deleteTarget?.model}</strong> ({deleteTarget?.plate})? This cannot be undone.
+              Are you sure you want to remove <strong>{deleteTarget?.make} {deleteTarget?.model}</strong> ({deleteTarget?.licensePlate})? This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

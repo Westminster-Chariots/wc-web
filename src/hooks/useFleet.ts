@@ -1,27 +1,12 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import { fleetService } from "@/lib/services";
+import type { FleetVehicle } from "@/types";
 
 export type VehicleClass = "sedan" | "suv";
 
-export interface Vehicle {
-  id: string;
-  vehicleType: VehicleClass;
-  make: string;
-  model: string;
-  plate: string;
-  year: number | null;
-  color: string | null;
-  status: string;
-  notes: string | null;
-  imageUrl: string | null;
-  passengerCapacity: number | null;
-  luggageCapacity: number | null;
-  createdAt: string;
-}
-
 export function useFleet() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchVehicles = useCallback(async () => {
@@ -40,12 +25,12 @@ export function useFleet() {
     fetchVehicles();
   }, [fetchVehicles]);
 
-  const addVehicle = useCallback(async (v: Omit<Vehicle, "id" | "createdAt">) => {
+  const addVehicle = useCallback(async (v: Omit<FleetVehicle, "id" | "createdAt">) => {
     await fleetService.create(v);
     await fetchVehicles();
   }, [fetchVehicles]);
 
-  const updateVehicle = useCallback(async (id: string, updates: Partial<Vehicle>) => {
+  const updateVehicle = useCallback(async (id: string, updates: Partial<FleetVehicle>) => {
     await fleetService.update(id, updates);
     await fetchVehicles();
   }, [fetchVehicles]);

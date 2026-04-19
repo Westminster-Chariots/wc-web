@@ -4,6 +4,8 @@ import { bookingService } from "@/lib/services";
 import { toast } from "sonner";
 import type { UIBooking } from "@/components/dashboard/BookingCard";
 
+export type { UIBooking };
+
 export function useAdminBookings() {
   const [bookings, setBookings] = useState<UIBooking[]>([]);
   const [loading, setLoading] = useState(true);

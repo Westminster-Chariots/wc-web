@@ -12,7 +12,7 @@ import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { format } from "date-fns";
 import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
-import type { Vehicle } from "@/hooks/useFleet";
+import type { FleetVehicle } from "@/types";
 
 const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] as const;
 
@@ -25,7 +25,7 @@ export default function BookingPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
   const [expandedVehicle, setExpandedVehicle] = useState<"sedan" | "suv" | null>(null);
   const [showTerms, setShowTerms] = useState(false);
-  const [fleetVehicles, setFleetVehicles] = useState<Vehicle[]>([]);
+  const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
   const [loadingFleet, setLoadingFleet] = useState(true);
 
   const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
@@ -33,12 +33,12 @@ export default function BookingPage() {
   useEffect(() => {
     const fetchFleet = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/v1/fleet", {
+        const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/fleet", {
           credentials: "include"
         });
         if (response.ok) {
           const data = await response.json();
-          setFleetVehicles(data.filter((v: Vehicle) => v.status === "available"));
+          setFleetVehicles(data.filter((v: FleetVehicle) => v.status === "available"));
         }
       } catch (error) {
         console.error("Error fetching fleet:", error);
@@ -50,7 +50,7 @@ export default function BookingPage() {
   }, []);
 
   const vehiclesByType = useMemo(() => {
-    const grouped: Record<string, Vehicle[]> = { sedan: [], suv: [] };
+    const grouped: Record<string, FleetVehicle[]> = { sedan: [], suv: [] };
     fleetVehicles.forEach((v) => {
       if (grouped[v.vehicleType]) {
         grouped[v.vehicleType].push(v);

@@ -1,19 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { driverService } from "@/lib/services";
+import type { Driver } from "@/types";
 
-export interface Driver {
-  id: string;
-  userId: string | null;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  status: string;
-  vehicleId: string | null;
-  photoUrl: string | null;
-  notes: string | null;
-  createdAt: string;
-}
+export type { Driver };
 
 export function useDrivers() {
   const [drivers, setDrivers] = useState<Driver[]>([]);

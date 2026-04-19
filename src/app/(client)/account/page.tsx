@@ -45,7 +45,7 @@ export default function ClientAccountPage() {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/profile", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -80,7 +80,7 @@ export default function ClientAccountPage() {
     if (!user || !profile) return;
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/profile", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export default function ClientAccountPage() {
     try {
       const token = localStorage.getItem("accessToken");
       const response = await fetch(
-        `http://localhost:3001/api/bookings/${bookingId}`,
+        `https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`,
         {
           method: "PATCH",
           headers: {
@@ -129,7 +129,7 @@ export default function ClientAccountPage() {
   const handleCancelBooking = async (bookingId: string, reservationNumber: string) => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`http://localhost:3001/api/bookings/${bookingId}`, {
+      const response = await fetch(`https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -156,7 +156,7 @@ export default function ClientAccountPage() {
 
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/auth/change-password", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -190,7 +190,7 @@ export default function ClientAccountPage() {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      const response = await fetch("http://localhost:3001/api/profile/avatar", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile/avatar", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`

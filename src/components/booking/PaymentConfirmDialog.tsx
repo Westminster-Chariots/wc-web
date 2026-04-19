@@ -12,8 +12,8 @@ interface PaymentConfirmDialogProps {
   booking: {
     id: string;
     reservationNumber: string;
-    clientName: string;
-    clientEmail: string;
+    clientName: string | null;
+    clientEmail: string | null;
     price: number;
     pickupDate: string;
     pickupTime: string;
@@ -49,8 +49,8 @@ export default function PaymentConfirmDialog({ open, onClose, booking, onConfirm
         <div className="space-y-4 py-4">
           <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
             <p className="text-xs text-muted-foreground font-body">Booking #{booking.reservationNumber}</p>
-            <p className="text-sm font-body text-foreground">{booking.clientName}</p>
-            <p className="text-xs text-muted-foreground font-body">{booking.clientEmail}</p>
+            <p className="text-sm font-body text-foreground">{booking.clientName || "N/A"}</p>
+            <p className="text-xs text-muted-foreground font-body">{booking.clientEmail || "N/A"}</p>
             <p className="text-xs text-muted-foreground font-body mt-2">
               {booking.pickupDate} at {booking.pickupTime}
             </p>

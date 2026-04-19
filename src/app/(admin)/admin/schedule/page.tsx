@@ -27,7 +27,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AdminSchedulePage() {
-  const { bookings, loading, assignDriver, unassignDriver } = useAdminBookings();
+  const { bookings, loading, assignDriver } = useAdminBookings();
   const { drivers } = useDrivers();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("month");
@@ -165,7 +165,7 @@ export default function AdminSchedulePage() {
             {viewMode === "month" && <CalendarMonthView currentMonth={currentDate} bookingsByDate={bookingsByDate} />}
             {viewMode === "week" && <CalendarWeekView selectedDate={currentDate} bookingsByDate={bookingsByDate} />}
             {viewMode === "day" && <CalendarDayView selectedDate={currentDate} bookingsByDate={bookingsByDate} />}
-            {viewMode === "timeline" && <CalendarDriverTimeline selectedDate={currentDate} bookingsByDate={bookingsByDate} drivers={drivers} onAssignDriver={assignDriver} onUnassignDriver={unassignDriver} />}
+            {viewMode === "timeline" && <CalendarDriverTimeline selectedDate={currentDate} bookingsByDate={bookingsByDate} drivers={drivers} onAssignDriver={assignDriver} onUnassignDriver={(bookingId) => assignDriver(bookingId, null)} />}
             {viewMode === "list" && <CalendarListView bookings={bookings} filterStatus={listFilter} onFilterChange={setListFilter} />}
           </div>
 
