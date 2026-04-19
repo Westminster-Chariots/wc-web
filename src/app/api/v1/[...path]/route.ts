@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = "https://wc-backend-ayx0.onrender.com";
+const BACKEND_URL = "https://wc-backend-ayx0.onrender.com/api/v1";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
