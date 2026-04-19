@@ -18,11 +18,13 @@ export default function CookieDebugPage() {
   const testLogin = async () => {
     setError("");
     setHeaders(null);
+    console.log("Calling: /api/v1/auth/login");
     try {
       const response = await axios.post("/api/v1/auth/login", {
         email: "test@example.com",
         password: "password123",
       }, { withCredentials: true });
+      console.log("Response:", response);
       setLoginResponse(response.data);
       setHeaders({
         'set-cookie': response.headers['set-cookie'],
@@ -30,6 +32,7 @@ export default function CookieDebugPage() {
       });
       setTimeout(() => setCookies(document.cookie), 100);
     } catch (err: any) {
+      console.error("Error:", err);
       setError(err.response?.data?.error || err.message);
       setHeaders(err.response?.headers || null);
     }
