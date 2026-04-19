@@ -98,7 +98,9 @@ api.interceptors.response.use(
         
         if (data.accessToken) {
           localStorage.setItem("access_token", data.accessToken);
-          original.headers.Authorization = `Bearer ${data.accessToken}`;
+          if (original.headers) {
+            original.headers.Authorization = `Bearer ${data.accessToken}`;
+          }
           return api(original);
         }
       } catch {
