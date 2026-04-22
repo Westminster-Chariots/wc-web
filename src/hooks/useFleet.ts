@@ -8,13 +8,19 @@ export type VehicleClass = "sedan" | "suv";
 export function useFleet() {
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchVehicles = useCallback(async () => {
+    setError(null);
+    const token = localStorage.getItem("access_token");
+    console.log("[useFleet] Fetching with token:", token ? `${token.substring(0, 20)}...` : "NO TOKEN");
     try {
       const data = await fleetService.getAll();
       setVehicles(data);
-    } catch (error) {
-      console.error("Error fetching fleet:", error);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || "Failed to load vehicles";
+      console.error("[useFleet] Error:", err?.response?.status, msg);
+      setError(msg);
       setVehicles([]);
     } finally {
       setLoading(false);
@@ -40,5 +46,5 @@ export function useFleet() {
     await fetchVehicles();
   }, [fetchVehicles]);
 
-  return { vehicles, loading, addVehicle, updateVehicle, deleteVehicle, refetch: fetchVehicles };
+  return { vehicles, loading, error, addVehicle, updateVehicle, deleteVehicle, refetch: fetchVehicles };
 }

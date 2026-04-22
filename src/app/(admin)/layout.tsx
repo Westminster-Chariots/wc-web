@@ -1,6 +1,6 @@
 "use client";
 import { LayoutDashboard, Calendar, Car, Users, FileText, Map, DollarSign, Settings, Shield, ChevronLeft, Menu, Megaphone, User, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -113,19 +113,36 @@ function MobileMenu() {
   const router = useRouter();
   const isActive = (path: string) => pathname === path;
 
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  const handleClose = () => {
+    setOpen(false);
+    document.body.style.overflow = '';
+  };
+
   return (
     <div className="md:hidden">
       <button onClick={() => setOpen(!open)} className="p-2 rounded-md hover:bg-muted transition-colors">
         <Menu className="h-5 w-5 text-foreground" />
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="fixed left-0 top-0 h-full w-[260px] glass-heavy border-r border-white/[0.06] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={handleClose}>
+          <div className="fixed left-0 top-0 h-full w-[260px] glass-heavy border-r border-white/[0.06] flex flex-col overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
-              <Link href="/" onClick={() => setOpen(false)}>
+              <Link href="/" onClick={handleClose}>
                 <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} className="rounded-md object-contain" />
               </Link>
-              <Link href="/" onClick={() => setOpen(false)}>
+              <Link href="/" onClick={handleClose}>
                 <h1 className="text-sm font-display font-semibold text-foreground tracking-wide">Westminster</h1>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body">Chariots</p>
               </Link>
@@ -134,7 +151,7 @@ function MobileMenu() {
               {navItems.map((item) => (
                 <button 
                   key={item.label} 
-                  onClick={() => { router.push(item.path); setOpen(false); }} 
+                  onClick={() => { router.push(item.path); handleClose(); }} 
                   className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
                     isActive(item.path)
                       ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'
@@ -152,7 +169,7 @@ function MobileMenu() {
               {bottomItems.map((item) => (
                 <button 
                   key={item.label} 
-                  onClick={() => { router.push(item.path); setOpen(false); }} 
+                  onClick={() => { router.push(item.path); handleClose(); }} 
                   className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
                     isActive(item.path)
                       ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'

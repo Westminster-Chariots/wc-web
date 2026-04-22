@@ -33,7 +33,7 @@ export default function BookingPage() {
   useEffect(() => {
     const fetchFleet = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/v1/fleet", {
+        const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/fleet", {
           credentials: "include"
         });
         if (response.ok) {
@@ -159,9 +159,12 @@ export default function BookingPage() {
               exit={{ opacity: 0, height: 0 }}
               className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 sm:px-5 py-3 sm:py-4 mb-6 sm:mb-8"
             >
-              <p className="text-xs sm:text-sm text-destructive font-body font-semibold">🚨 Under 4 hours — please call dispatch directly</p>
+              <p className="text-xs sm:text-sm text-destructive font-body font-semibold mb-2">🚨 Under 4 hours — please call dispatch directly</p>
+              <p className="text-[11px] text-destructive/80 font-body mb-3">
+                For bookings within 4 hours, we require direct coordination with our dispatch team to ensure availability and timely service.
+              </p>
               <a href="tel:+15714351832">
-                <Button variant="destructive" size="sm" className="mt-3 gap-2">
+                <Button variant="destructive" size="sm" className="gap-2">
                   <Phone className="h-3.5 w-3.5" />
                   Call (571) 435-1832
                 </Button>
@@ -193,7 +196,7 @@ export default function BookingPage() {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {currentStep === 0 && (
+          {currentStep === 0 && gatekeeperStatus !== "emergency" && (
             <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
               <div className="mb-4 sm:mb-6">
                 <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Select a vehicle class</h2>
@@ -297,7 +300,7 @@ export default function BookingPage() {
           )}
         </AnimatePresence>
 
-      {currentStep === 0 && (
+      {currentStep === 0 && gatekeeperStatus !== "emergency" && (
         <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/90 backdrop-blur-md z-40">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
             <button onClick={() => setShowTerms(true)} className="text-[11px] sm:text-xs text-muted-foreground font-body hover:text-foreground transition-colors underline underline-offset-4" type="button">

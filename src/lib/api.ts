@@ -139,10 +139,9 @@ api.interceptors.response.use(
     // Retry logic for network errors and 5xx errors
     if (
       (!error.response || (error.response.status >= 500 && error.response.status < 600)) &&
-      original._retry !== undefined &&
-      original._retry < 3
+      (original._retry ?? 0) < 3
     ) {
-      original._retry = (original._retry || 0) + 1;
+      original._retry = (original._retry ?? 0) + 1;
       const delay = Math.min(1000 * Math.pow(2, original._retry), 10000); // Exponential backoff
       
       await new Promise(resolve => setTimeout(resolve, delay));

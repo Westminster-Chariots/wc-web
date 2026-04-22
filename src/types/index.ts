@@ -74,7 +74,7 @@ export interface FleetVehicle {
   year: number | null;
   vehicleType: VehicleType;
   color: string | null;
-  licensePlate: string | null;
+  plate: string | null;
   status: "available" | "in_service" | "maintenance";
   passengerCapacity: number | null;
   luggageCapacity: number | null;

@@ -77,7 +77,7 @@ export default function DriversPage() {
       formData.append("file", file);
       formData.append("type", "driver_photo");
 
-      const response = await fetch("http://localhost:3001/api/v1/uploads", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/uploads", {
         method: "POST",
         credentials: "include",
         body: formData,

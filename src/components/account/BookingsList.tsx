@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { Booking } from "@/types";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInHours } from "date-fns";
 import { useState, useMemo } from "react";
 
 const statusColors: Record<string, string> = {
@@ -201,6 +201,9 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                     <Clock className="h-3.5 w-3.5 shrink-0 ml-2" />
                     {booking.pickupTime?.slice(0, 5) || "00:00"}
                   </div>
+                  <div className="text-[11px] text-muted-foreground/70 mb-2">
+                    Booked: {booking.createdAt ? format(parseISO(booking.createdAt), "MMM d, yyyy 'at' h:mm a") : "—"}
+                  </div>
                   <div className="flex items-start gap-2 text-sm text-foreground">
                     <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-primary" />
                     <span className="truncate">{booking.pickupLocation}</span>
@@ -215,106 +218,114 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                   <p className="text-xs text-muted-foreground capitalize">
                     {booking.vehicleType}
                   </p>
-                  {booking.status === "pending" && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Dialog open={!!rescheduleBooking} onOpenChange={(open) => !open && setRescheduleBooking(null)}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10 gap-1 text-xs"
-                          onClick={() => {
-                            setRescheduleBooking(booking);
-                            setRescheduleDate(booking.pickupDate);
-                            setRescheduleTime(booking.pickupTime || "");
-                          }}
-                        >
-                          <CalendarDays className="h-3.5 w-3.5" /> Reschedule
-                        </Button>
+                  {booking.status === "pending" && (() => {
+                    const pickupDateTime = new Date(`${booking.pickupDate}T${booking.pickupTime}`);
+                    const hoursUntilPickup = differenceInHours(pickupDateTime, new Date());
+                    const canReschedule = hoursUntilPickup >= 24;
 
-                        <DialogContent className="glass-heavy border-border">
-                          <DialogHeader>
-                            <DialogTitle>Reschedule Ride</DialogTitle>
-                            <DialogDescription>
-                              Change the date and time for {rescheduleBooking?.reservationNumber}
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label className="text-xs">Date</Label>
-                              <Input
-                                type="date"
-                                value={rescheduleDate}
-                                onChange={(e) => setRescheduleDate(e.target.value)}
-                                className="bg-secondary/50 border-border"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-xs">Time</Label>
-                              <Input
-                                type="time"
-                                value={rescheduleTime}
-                                onChange={(e) => setRescheduleTime(e.target.value)}
-                                className="bg-secondary/50 border-border"
-                              />
-                            </div>
-                          </div>
-                          <DialogFooter className="gap-2">
+                    return (
+                      <div className="flex items-center gap-1 mt-2">
+                        {canReschedule && (
+                          <Dialog open={!!rescheduleBooking} onOpenChange={(open) => !open && setRescheduleBooking(null)}>
                             <Button
                               variant="ghost"
-                              onClick={() => setRescheduleBooking(null)}
+                              size="sm"
+                              className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10 gap-1 text-xs"
+                              onClick={() => {
+                                setRescheduleBooking(booking);
+                                setRescheduleDate(booking.pickupDate);
+                                setRescheduleTime(booking.pickupTime || "");
+                              }}
                             >
-                              Cancel
+                              <CalendarDays className="h-3.5 w-3.5" /> Reschedule
                             </Button>
-                            <Button
-                              variant="hero"
-                              onClick={handleReschedule}
-                              disabled={rescheduling}
-                            >
-                              {rescheduling ? "Rescheduling..." : "Reschedule"}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
-                          >
-                            <XCircle className="h-3.5 w-3.5" /> Cancel
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="glass-heavy border-border">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Cancel Ride?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will cancel{" "}
-                              <span className="text-primary font-mono font-medium">
-                                {booking.reservationNumber}
-                              </span>
-                              .
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Keep</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              onClick={() =>
-                                onCancel(
-                                  booking.id,
-                                  booking.reservationNumber
-                                )
-                              }
+                            <DialogContent className="glass-heavy border-border">
+                              <DialogHeader>
+                                <DialogTitle>Reschedule Ride</DialogTitle>
+                                <DialogDescription>
+                                  Change the date and time for {rescheduleBooking?.reservationNumber}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Date</Label>
+                                  <Input
+                                    type="date"
+                                    value={rescheduleDate}
+                                    onChange={(e) => setRescheduleDate(e.target.value)}
+                                    className="bg-secondary/50 border-border"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-xs">Time</Label>
+                                  <Input
+                                    type="time"
+                                    value={rescheduleTime}
+                                    onChange={(e) => setRescheduleTime(e.target.value)}
+                                    className="bg-secondary/50 border-border"
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter className="gap-2">
+                                <Button
+                                  variant="ghost"
+                                  onClick={() => setRescheduleBooking(null)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  variant="hero"
+                                  onClick={handleReschedule}
+                                  disabled={rescheduling}
+                                >
+                                  {rescheduling ? "Rescheduling..." : "Reschedule"}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        )}
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 text-xs"
                             >
-                              Cancel Ride
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  )}
+                              <XCircle className="h-3.5 w-3.5" /> Cancel
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="glass-heavy border-border">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Cancel Ride?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will cancel{" "}
+                                <span className="text-primary font-mono font-medium">
+                                  {booking.reservationNumber}
+                                </span>
+                                .
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Keep</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() =>
+                                  onCancel(
+                                    booking.id,
+                                    booking.reservationNumber
+                                  )
+                                }
+                              >
+                                Cancel Ride
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

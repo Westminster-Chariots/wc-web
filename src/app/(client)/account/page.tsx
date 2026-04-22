@@ -44,8 +44,8 @@ export default function ClientAccountPage() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/profile", {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -79,8 +79,8 @@ export default function ClientAccountPage() {
   const handleSaveProfile = async (data: Omit<UserProfile, 'email' | 'clientCode'>) => {
     if (!user || !profile) return;
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/profile", {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -99,9 +99,9 @@ export default function ClientAccountPage() {
 
   const handleReschedule = async (bookingId: string, date: string, time: string) => {
     try {
-      const token = localStorage.getItem("accessToken");
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
-        `http://localhost:3001/api/bookings/${bookingId}`,
+        `https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`,
         {
           method: "PATCH",
           headers: {
@@ -128,8 +128,8 @@ export default function ClientAccountPage() {
 
   const handleCancelBooking = async (bookingId: string, reservationNumber: string) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch(`http://localhost:3001/api/bookings/${bookingId}`, {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -155,8 +155,8 @@ export default function ClientAccountPage() {
     }
 
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:3001/api/auth/change-password", {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -186,11 +186,12 @@ export default function ClientAccountPage() {
     }
 
     try {
-      const token = localStorage.getItem("accessToken");
+      const token = localStorage.getItem("access_token");
       const formData = new FormData();
-      formData.append("avatar", file);
+      formData.append("file", file);
+      formData.append("type", "avatar");
 
-      const response = await fetch("http://localhost:3001/api/profile/avatar", {
+      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/uploads", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -201,7 +202,7 @@ export default function ClientAccountPage() {
       if (!response.ok) throw new Error("Failed to upload avatar");
       
       const data = await response.json();
-      setProfile((prev) => (prev ? { ...prev, avatarUrl: data.avatarUrl } : null));
+      setProfile((prev) => (prev ? { ...prev, avatarUrl: data.url } : null));
       notify.success("Profile picture updated successfully");
     } catch (error: any) {
       notify.error(error.message || "Failed to upload profile picture");

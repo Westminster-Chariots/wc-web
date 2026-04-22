@@ -32,6 +32,17 @@ export default function Home() {
   const [headlightFlash, setHeadlightFlash] = useState(0);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
 
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   const displayName = user?.fullName || user?.email?.split("@")[0] || "User";
   const isDarkMode = theme === "dark";
 
@@ -217,34 +228,44 @@ export default function Home() {
         </div>
 
         {mobileMenuOpen && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl">
-            <div className="px-4 py-4 space-y-3">
-              <a href="#services" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-muted-foreground hover:text-foreground">{t("nav.services")}</a>
-              <a href="#fleet" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-muted-foreground hover:text-foreground">{t("nav.fleet")}</a>
-              <a href="tel:+15714351832" className="flex items-center gap-2 text-sm font-body text-primary">
-                <Phone className="h-4 w-4" />
-                (571) 435-1832
-              </a>
-              {user ? (
-                <>
-                  {isAdmin && (
-                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-primary font-semibold">{t("nav.dashboard")}</Link>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-body text-muted-foreground flex items-center gap-1.5">
-                      <UserCircle className="h-4 w-4" />
-                      {displayName}
-                    </span>
-                    <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="text-sm font-body text-muted-foreground hover:text-destructive flex items-center gap-1">
-                      <LogOut className="h-4 w-4" /> {t("nav.signOut")}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body font-semibold text-primary-foreground bg-primary hover:bg-primary/90 px-3 py-2 rounded-md transition-colors uppercase tracking-wider">{t("nav.signIn")}</Link>
-              )}
-            </div>
-          </motion.div>
+          <>
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: 'auto' }} 
+              className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl relative z-50"
+            >
+              <div className="px-4 py-4 space-y-3">
+                <a href="#services" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-muted-foreground hover:text-foreground">{t("nav.services")}</a>
+                <a href="#fleet" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-muted-foreground hover:text-foreground">{t("nav.fleet")}</a>
+                <a href="tel:+15714351832" className="flex items-center gap-2 text-sm font-body text-primary">
+                  <Phone className="h-4 w-4" />
+                  (571) 435-1832
+                </a>
+                {user ? (
+                  <>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body text-primary font-semibold">{t("nav.dashboard")}</Link>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="text-sm font-body text-muted-foreground hover:text-foreground flex items-center gap-1.5">
+                        <UserCircle className="h-4 w-4" />
+                        {displayName}
+                      </Link>
+                      <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="text-sm font-body text-muted-foreground hover:text-destructive flex items-center gap-1">
+                        <LogOut className="h-4 w-4" /> {t("nav.signOut")}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-body font-semibold text-primary-foreground bg-primary hover:bg-primary/90 px-3 py-2 rounded-md transition-colors uppercase tracking-wider">{t("nav.signIn")}</Link>
+                )}
+              </div>
+            </motion.div>
+          </>
         )}
       </header>
 
