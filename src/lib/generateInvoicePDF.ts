@@ -22,7 +22,8 @@ export interface InvoiceItem {
   pickupDate: string;
   pickupTime: string;
   passengerName: string;
-  routingInfo: string;
+  pickup: string;
+  dropoff: string;
   price: number;
 }
 
@@ -42,222 +43,325 @@ export interface InvoiceData {
   total: number;
 }
 
-export async function generateInvoicePDF(invoice: InvoiceData, logoSrc: string): Promise<jsPDF> {
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  const w = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  let y = 20;
+export type InvoiceVariant = "dark" | "light";
+
+type RGB = [number, number, number];
+
+interface Palette {
+  bg: RGB;
+  card: RGB;
+  accent: RGB;
+  text: RGB;
+  muted: RGB;
+  border: RGB;
+  tableHeader: RGB;
+  tableRow: RGB;
+}
+
+const DARK_PALETTE: Palette = {
+  bg: [10, 10, 10],
+  card: [26, 26, 26],
+  accent: [228, 214, 182],
+  text: [240, 240, 240],
+  muted: [140, 140, 140],
+  border: [50, 50, 50],
+  tableHeader: [10, 10, 10],
+  tableRow: [26, 26, 26],
+};
+
+const LIGHT_PALETTE: Palette = {
+  bg: [245, 245, 245],
+  card: [255, 255, 255],
+  accent: [140, 120, 70],
+  text: [30, 30, 30],
+  muted: [110, 110, 110],
+  border: [210, 210, 210],
+  tableHeader: [40, 40, 40],
+  tableRow: [255, 255, 255],
+};
+
+export async function generateInvoicePDF(
+  invoice: InvoiceData,
+  logoSrc: string,
+  variant: InvoiceVariant = "dark"
+): Promise<jsPDF> {
+  const P = variant === "light" ? LIGHT_PALETTE : DARK_PALETTE;
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  let y = 0;
+
+  doc.setFillColor(...P.bg);
+  doc.rect(0, 0, pw, ph, "F");
+
+  const cardMargin = 30;
+  const cardW = pw - cardMargin * 2;
+  const cardH = ph - cardMargin * 2;
+  doc.setFillColor(...P.card);
+  doc.roundedRect(cardMargin, cardMargin, cardW, cardH, 6, 6, "F");
+  doc.setDrawColor(...P.border);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(cardMargin, cardMargin, cardW, cardH, 6, 6, "S");
+
+  y = cardMargin + 40;
+  const innerMargin = cardMargin + 30;
+  const innerW = cardW - 60;
+  const rightX = innerMargin + innerW;
 
   let logoBase64: string | null = null;
   try { logoBase64 = await loadImageAsBase64(logoSrc); } catch { /* skip */ }
   if (logoBase64) {
-    doc.addImage(logoBase64, "PNG", margin, y - 5, 35, 35);
+    const logoH = 60;
+    const logoW = logoH * 1.2;
+    doc.addImage(logoBase64, "PNG", innerMargin, y - 10, logoW, logoH);
   }
 
-  const textX = margin + 40;
-  doc.setTextColor(40, 40, 40);
-  doc.setFontSize(9);
+  // Company contact info below logo
+  const contactX = innerMargin;
+  const contactY = y + 55;
+  doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text("18519 Kerill Rd, Triangle, VA 22172", textX, y + 5);
-  doc.text("Phone: +1 (571) 426-6338", textX, y + 10);
-  doc.text("Email: book@westminsterchariots.com", textX, y + 15);
-  doc.setTextColor(200, 164, 94);
-  doc.text("www.westminsterchariots.com", textX, y + 20);
+  doc.setTextColor(...P.muted);
+  doc.text("18519 Kerill Rd, Triangle, VA 22172", contactX, contactY);
+  doc.text("Phone: +1 (571) 426-6338", contactX, contactY + 9);
+  doc.text("Email: book@westminsterchariots.com", contactX, contactY + 18);
+  doc.setTextColor(...P.accent);
+  doc.text("www.westminsterchariots.com", contactX, contactY + 27);
 
-  const rightX = w - margin - 50;
-  doc.setTextColor(40, 40, 40);
-  doc.setFontSize(28);
+  doc.setFontSize(32);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(...P.text);
   doc.text("INVOICE", rightX, y + 10, { align: "right" });
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text(`#${invoice.invoiceNumber}`, rightX, y + 18, { align: "right" });
+  doc.setTextColor(...P.muted);
+  doc.text(`#${invoice.invoiceNumber}`, rightX, y + 25, { align: "right" });
+  y += 90;
 
-  y += 35;
+  doc.setDrawColor(...P.accent);
+  doc.setLineWidth(0.8);
+  doc.line(innerMargin, y, rightX, y);
+  y += 20;
 
-  doc.setDrawColor(200, 164, 94);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, w - margin, y);
-  y += 10;
+  const col2X = innerMargin + innerW / 2 + 20;
 
-  const col2X = w / 2 + 5;
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(200, 164, 94);
-  doc.text("BILL TO", margin, y);
-  doc.text("INVOICE DETAILS", col2X, y);
-  y += 6;
-
-  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(120, 120, 120);
-  doc.text("Client Name", margin, y);
-  doc.setTextColor(40, 40, 40);
   doc.setFont("helvetica", "bold");
-  doc.text(invoice.clientName, margin + 30, y);
-  
+  doc.setTextColor(...P.accent);
+  doc.text("BILL TO", innerMargin, y);
+  doc.text("INVOICE DETAILS", col2X, y);
+  y += 18;
+
+  const labelValue = (label: string, value: string, lx: number, bold = false) => {
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...P.muted);
+    doc.text(label, lx, y);
+    doc.setTextColor(...P.text);
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.text(value || "—", lx, y + 11);
+    y += 20;
+  };
+
+  const savedY = y;
+  labelValue("Client Name", invoice.clientName, innerMargin, true);
+  labelValue("Account Number", invoice.accountNumber, innerMargin);
+  labelValue("Address", invoice.clientAddress, innerMargin);
+  labelValue("Phone", invoice.clientPhone || "N/A", innerMargin);
+  labelValue("Email", invoice.clientEmail || "N/A", innerMargin);
+  const leftEndY = y;
+
+  y = savedY;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...P.muted);
+  doc.text("Invoice Number", col2X, y);
+  doc.setTextColor(...P.text);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Invoice Number:", col2X, y);
-  doc.setTextColor(40, 40, 40);
-  doc.text(invoice.invoiceNumber, col2X + 35, y);
-  y += 5;
+  doc.text(invoice.invoiceNumber, col2X, y + 11);
+  y += 20;
 
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Account Number", margin, y);
-  doc.setTextColor(40, 40, 40);
-  doc.setFont("helvetica", "normal");
-  doc.text(invoice.accountNumber, margin + 30, y);
-  
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Invoice Date:", col2X, y);
-  doc.setTextColor(40, 40, 40);
-  doc.setFont("helvetica", "normal");
-  doc.text(invoice.invoiceDate, col2X + 35, y);
-  y += 5;
+  doc.setTextColor(...P.muted);
+  doc.text("Invoice Date", col2X, y);
+  doc.setTextColor(...P.text);
+  doc.text(invoice.invoiceDate, col2X, y + 11);
+  y += 20;
 
-  doc.setTextColor(120, 120, 120);
-  doc.text("Address", margin, y);
-  doc.setTextColor(40, 40, 40);
-  const addressLines = doc.splitTextToSize(invoice.clientAddress, 60);
-  doc.text(addressLines, margin + 30, y);
-  
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Due Date:", col2X, y);
-  doc.setTextColor(40, 40, 40);
-  doc.setFont("helvetica", "normal");
-  doc.text(invoice.dueDate, col2X + 35, y);
-  y += Math.max(5, addressLines.length * 5);
+  doc.setTextColor(...P.muted);
+  doc.text("Due Date", col2X, y);
+  doc.setTextColor(...P.text);
+  doc.text(invoice.dueDate, col2X, y + 11);
+  y += 20;
 
-  doc.setTextColor(120, 120, 120);
-  doc.text("Phone", margin, y);
-  doc.setTextColor(40, 40, 40);
-  doc.text(invoice.clientPhone || "N/A", margin + 30, y);
-  
+  doc.setTextColor(...P.muted);
+  doc.text("Payment Terms", col2X, y);
+  doc.setTextColor(...P.accent);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Payment Terms:", col2X, y);
-  doc.setTextColor(200, 164, 94);
-  doc.text(invoice.paymentTerms, col2X + 35, y);
-  y += 5;
+  doc.text(invoice.paymentTerms, col2X, y + 11);
+  y = Math.max(leftEndY, y + 20) + 12;
 
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Email", margin, y);
-  doc.setTextColor(40, 40, 40);
-  doc.text(invoice.clientEmail || "N/A", margin + 30, y);
-  y += 12;
+  doc.setDrawColor(...P.border);
+  doc.setLineWidth(0.3);
+  doc.line(innerMargin, y, rightX, y);
+  y += 20;
 
   const tableY = y;
-  const tableWidth = w - 2 * margin;
-  const col1W = 30;
-  const col2W = 35;
-  const col3W = tableWidth - col1W - col2W - 25;
-  const col4W = 25;
+  const tableW = innerW;
+  const col1W = 80;
+  const col2W = 100;
+  const col4W = 70;
+  const col3W = tableW - col1W - col2W - col4W;
 
-  doc.setFillColor(40, 40, 40);
-  doc.rect(margin, tableY, tableWidth, 8, "F");
-  doc.setTextColor(255, 255, 255);
+  doc.setFillColor(...P.tableHeader);
+  doc.rect(innerMargin, tableY, tableW, 24, "F");
+  doc.setTextColor(variant === "light" ? 255 : 228, variant === "light" ? 255 : 214, variant === "light" ? 255 : 182);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.text("TIME & DATE", margin + 2, tableY + 5.5);
-  doc.text("PASSENGER", margin + col1W + 2, tableY + 5.5);
-  doc.text("ROUTING INFORMATION", margin + col1W + col2W + 2, tableY + 5.5);
-  doc.text("PRICE", w - margin - 2, tableY + 5.5, { align: "right" });
-  y = tableY + 8;
+  doc.text("TIME & DATE", innerMargin + 8, tableY + 15);
+  doc.text("PASSENGER", innerMargin + col1W + 8, tableY + 15);
+  doc.text("ROUTING INFORMATION", innerMargin + col1W + col2W + 8, tableY + 15);
+  doc.text("PRICE", rightX - 8, tableY + 15, { align: "right" });
+  y = tableY + 24;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.setTextColor(50, 50, 50);
+  doc.setTextColor(...P.text);
 
   invoice.items.forEach((item, index) => {
-    if (y > 250) {
+    if (y > ph - 150) {
       doc.addPage();
-      y = 20;
+      doc.setFillColor(...P.bg);
+      doc.rect(0, 0, pw, ph, "F");
+      doc.setFillColor(...P.card);
+      doc.roundedRect(cardMargin, cardMargin, cardW, cardH, 6, 6, "F");
+      y = cardMargin + 40;
     }
 
-    const startY = y;
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.3);
-
+    const rowStartY = y;
     const timeDate = `${item.pickupDate}\n${item.pickupTime}`;
-    const timeDateLines = doc.splitTextToSize(timeDate, col1W - 4);
-    doc.text(timeDateLines, margin + 2, y + 4);
+    const timeDateLines = doc.splitTextToSize(timeDate, col1W - 16);
+    const passengerLines = doc.splitTextToSize(item.passengerName, col2W - 16);
+    
+    // Format routing with pickup and dropoff
+    const pickupLines = doc.splitTextToSize(item.pickup, col3W - 16);
+    const dropoffLines = doc.splitTextToSize(item.dropoff, col3W - 16);
+    const routingTotalLines = pickupLines.length + dropoffLines.length + 2; // +2 for labels and arrow
+    
+    const maxLines = Math.max(timeDateLines.length, passengerLines.length, routingTotalLines);
+    const rowHeight = Math.max(55, maxLines * 11 + 20);
 
-    const passengerLines = doc.splitTextToSize(item.passengerName, col2W - 4);
-    doc.text(passengerLines, margin + col1W + 2, y + 4);
+    if (index % 2 === 0) {
+      doc.setFillColor(...P.tableRow);
+      doc.rect(innerMargin, y, tableW, rowHeight, "F");
+    }
 
-    const routingLines = doc.splitTextToSize(item.routingInfo, col3W - 4);
-    doc.text(routingLines, margin + col1W + col2W + 2, y + 4);
-
+    doc.setTextColor(...P.text);
+    doc.text(timeDateLines, innerMargin + 8, y + 16);
+    doc.text(passengerLines, innerMargin + col1W + 8, y + 16);
+    
+    // Render routing with pickup and dropoff
+    let routingY = y + 16;
+    doc.setTextColor(...P.text);
     doc.setFont("helvetica", "bold");
-    doc.text(`$${item.price.toFixed(2)}`, w - margin - 2, y + 4, { align: "right" });
+    doc.setFontSize(7);
+    doc.text("PICKUP:", innerMargin + col1W + col2W + 8, routingY);
+    routingY += 10;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...P.muted);
+    doc.text(pickupLines, innerMargin + col1W + col2W + 8, routingY, { maxWidth: col3W - 16 });
+    routingY += pickupLines.length * 10 + 6;
+    
+    doc.setTextColor(...P.accent);
+    doc.setFontSize(9);
+    doc.text("↓", innerMargin + col1W + col2W + 8, routingY);
+    routingY += 10;
+    
+    doc.setTextColor(...P.text);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("DROPOFF:", innerMargin + col1W + col2W + 8, routingY);
+    routingY += 10;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(...P.muted);
+    doc.text(dropoffLines, innerMargin + col1W + col2W + 8, routingY, { maxWidth: col3W - 16 });
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...P.text);
+    doc.text(`$${item.price.toFixed(2)}`, rightX - 8, y + 16, { align: "right" });
     doc.setFont("helvetica", "normal");
 
-    const rowHeight = Math.max(10, Math.max(timeDateLines.length, passengerLines.length, routingLines.length) * 4 + 4);
     y += rowHeight;
-    doc.line(margin, y, w - margin, y);
+    doc.setDrawColor(...P.border);
+    doc.setLineWidth(0.3);
+    doc.line(innerMargin, y, rightX, y);
   });
 
-  y += 10;
+  y += 20;
 
-  const totalsX = w - margin - 70;
-  const totalsValueX = w - margin - 2;
+  const totalsX = rightX - 200;
+  const totalsValueX = rightX - 8;
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(...P.muted);
   doc.text("Subtotal:", totalsX, y);
-  doc.setTextColor(40, 40, 40);
+  doc.setTextColor(...P.text);
   doc.setFont("helvetica", "bold");
   doc.text(`$${invoice.subtotal.toFixed(2)}`, totalsValueX, y, { align: "right" });
-  y += 6;
+  y += 15;
 
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
+  doc.setTextColor(...P.muted);
   doc.text("Tax (if applicable):", totalsX, y);
-  doc.setTextColor(40, 40, 40);
+  doc.setTextColor(...P.text);
   doc.setFont("helvetica", "bold");
   doc.text(`$${invoice.tax.toFixed(2)}`, totalsValueX, y, { align: "right" });
-  y += 8;
+  y += 20;
 
-  doc.setDrawColor(200, 164, 94);
-  doc.setLineWidth(0.5);
-  doc.line(totalsX, y - 2, w - margin, y - 2);
+  doc.setDrawColor(...P.accent);
+  doc.setLineWidth(0.8);
+  doc.line(totalsX, y - 5, rightX, y - 5);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(40, 40, 40);
-  doc.text("Total Amount Due:", totalsX, y + 4);
-  doc.setTextColor(200, 164, 94);
-  doc.setFontSize(14);
-  doc.text(`$${invoice.total.toFixed(2)}`, totalsValueX, y + 4, { align: "right" });
+  doc.setTextColor(...P.text);
+  doc.text("Total Amount Due:", totalsX, y + 8);
+  doc.setTextColor(...P.accent);
+  doc.setFontSize(16);
+  doc.text(`$${invoice.total.toFixed(2)}`, totalsValueX, y + 8, { align: "right" });
+  y += 30;
+
+  doc.setDrawColor(...P.accent);
+  doc.setLineWidth(0.8);
+  doc.line(innerMargin, y, rightX, y);
   y += 15;
 
-  doc.setDrawColor(200, 164, 94);
-  doc.setLineWidth(0.5);
-  doc.line(margin, y, w - margin, y);
-  y += 8;
-
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(80, 80, 80);
+  doc.setTextColor(...P.muted);
   const footer = "Thank you for choosing Westminster Chariots. We truly value your trust and the opportunity to serve you. It is our privilege to provide refined, seamless transportation delivered with punctuality, discretion, and professionalism. We look forward to serving you again.";
-  const footerLines = doc.splitTextToSize(footer, w - 2 * margin);
-  doc.text(footerLines, margin, y);
-  y += footerLines.length * 5 + 6;
+  const footerLines = doc.splitTextToSize(footer, innerW);
+  doc.text(footerLines, innerMargin, y);
+  y += footerLines.length * 10 + 15;
 
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(40, 40, 40);
-  doc.text("Sincerely,", margin, y);
-  y += 5;
-  doc.text("The Westminster Chariots Team", margin, y);
+  doc.setTextColor(...P.text);
+  doc.text("Sincerely,", innerMargin, y);
+  y += 12;
+  doc.text("The Westminster Chariots Team", innerMargin, y);
+
+  const footerY = cardMargin + cardH - 25;
+  doc.setDrawColor(...P.accent);
+  doc.setLineWidth(0.5);
+  doc.line(innerMargin, footerY - 8, rightX, footerY - 8);
+  doc.setFontSize(6.5);
+  doc.setTextColor(...P.muted);
+  doc.text("Westminster Chariots — Travel in Luxury, Arrive in Style", pw / 2, footerY, { align: "center" });
+  doc.text("Confidential — For authorized use only", pw / 2, footerY + 10, { align: "center" });
 
   return doc;
 }

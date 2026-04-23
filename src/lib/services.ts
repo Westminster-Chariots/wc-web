@@ -12,6 +12,23 @@ export const authService = {
     return data;
   },
   
+  loginWithGoogle: async (idToken: string) => {
+    const { data } = await api.post("/auth/google/mobile", { 
+      idToken, 
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID 
+    });
+    if (data.accessToken) {
+      localStorage.setItem("access_token", data.accessToken);
+      localStorage.setItem("refresh_token", data.refreshToken);
+    }
+    return data;
+  },
+  
+  initiateGoogleOAuth: () => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    window.location.href = `${backendUrl}/api/v1/auth/google`;
+  },
+  
   register: async (email: string, password: string, fullName: string, phone?: string) => {
     const { data } = await api.post("/auth/register", { email, password, name: fullName, phone });
     return data;

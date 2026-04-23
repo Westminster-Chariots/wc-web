@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = "https://wc-backend-ayx0.onrender.com/api/v1";
+const BACKEND_URL = "http://localhost:3001/api/v1";
 
 export const maxDuration = 60; // Vercel Pro: 60s, Hobby: 10s
 

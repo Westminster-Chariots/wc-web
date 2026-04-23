@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FileText, Download, Eye, FileType, Edit2, Save, Send, Search, Loader2, Plus, X, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { generateManifestPDF, type ManifestData, type ManifestVariant, type ManifestLeg } from "@/lib/generateManifestPDF";
 import { generateManifestDocx } from "@/lib/generateManifestDocx";
-import { generateInvoicePDF, type InvoiceData, type InvoiceItem } from "@/lib/generateInvoicePDF";
+import { generateInvoicePDF, type InvoiceData, type InvoiceItem, type InvoiceVariant } from "@/lib/generateInvoicePDF";
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
 import { bookingService } from "@/lib/services";
+import { useLoadScript } from "@react-google-maps/api";
+
+const libraries: ("places")[] = ["places"];
 
 export default function ManifestsPage() {
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
+    libraries,
+  });
+  
   const [variant, setVariant] = useState<ManifestVariant>("dark");
   const [editing, setEditing] = useState(false);
   const [sending, setSending] = useState(false);
@@ -23,6 +31,9 @@ export default function ManifestsPage() {
   const [documentId, setDocumentId] = useState("");
   const { bookings, loading } = useAdminBookings();
   const { drivers } = useDrivers();
+  
+  const pickupRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const dropoffRefs = useRef<(HTMLInputElement | null)[]>([]);
   
   const [manifestData, setManifestData] = useState<ManifestData>({
     reservationNumber: "",
@@ -116,7 +127,8 @@ export default function ManifestsPage() {
       pickupDate: b.pickupDate,
       pickupTime: b.pickupTime,
       passengerName: b.clientName,
-      routingInfo: `${b.pickupLocation} → ${b.dropoffLocation}`,
+      pickup: b.pickupLocation,
+      dropoff: b.dropoffLocation,
       price: parseFloat(b.price.toString()),
     }));
 
@@ -175,6 +187,24 @@ export default function ManifestsPage() {
     }));
   };
 
+  const addInvoiceItem = () => {
+    setInvoiceData(prev => ({
+      ...prev,
+      items: [...prev.items, { pickupDate: "", pickupTime: "", passengerName: "", pickup: "", dropoff: "", price: 0 }]
+    }));
+  };
+
+  const removeInvoiceItem = (index: number) => {
+    if (invoiceData.items.length <= 1) {
+      toast.error("Must have at least one item");
+      return;
+    }
+    setInvoiceData(prev => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index)
+    }));
+  };
+
   const recalculateInvoiceTotals = () => {
     const subtotal = invoiceData.items.reduce((sum, item) => sum + item.price, 0);
     const tax = invoiceData.tax;
@@ -185,6 +215,51 @@ export default function ManifestsPage() {
   useEffect(() => {
     recalculateInvoiceTotals();
   }, [invoiceData.items, invoiceData.tax]);
+
+  useEffect(() => {
+    if (!isLoaded || !editing) return;
+
+    const setupAutocomplete = (input: HTMLInputElement | null, index: number, type: 'pickup' | 'dropoff') => {
+      if (!input || !window.google) return;
+      
+      const autocomplete = new window.google.maps.places.Autocomplete(input, {
+        fields: ["formatted_address"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (place.formatted_address) {
+          updateInvoiceItem(index, type, place.formatted_address);
+          // Clear the autocomplete dropdown
+          const pacContainer = document.querySelector('.pac-container');
+          if (pacContainer) {
+            (pacContainer as HTMLElement).style.display = 'none';
+          }
+        }
+      });
+
+      // Hide autocomplete on blur
+      input.addEventListener('blur', () => {
+        setTimeout(() => {
+          const pacContainer = document.querySelector('.pac-container');
+          if (pacContainer) {
+            (pacContainer as HTMLElement).style.display = 'none';
+          }
+        }, 200);
+      });
+
+      // Show autocomplete on focus
+      input.addEventListener('focus', () => {
+        const pacContainer = document.querySelector('.pac-container');
+        if (pacContainer) {
+          (pacContainer as HTMLElement).style.display = 'block';
+        }
+      });
+    };
+
+    pickupRefs.current.forEach((ref, index) => setupAutocomplete(ref, index, 'pickup'));
+    dropoffRefs.current.forEach((ref, index) => setupAutocomplete(ref, index, 'dropoff'));
+  }, [isLoaded, editing, invoiceData.items.length]);
 
   const removeLeg = (index: number) => {
     if (manifestData.legs.length <= 1) {
@@ -205,8 +280,9 @@ export default function ManifestsPage() {
         doc.save(`${documentId}-Manifest-${suffix}.pdf`);
         toast.success("Manifest PDF downloaded");
       } else {
-        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png");
-        doc.save(`${documentId}-Invoice.pdf`);
+        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
+        const suffix = variant === "light" ? "White" : "Black";
+        doc.save(`${documentId}-Invoice-${suffix}.pdf`);
         toast.success("Invoice PDF downloaded");
       }
     } catch {
@@ -232,7 +308,7 @@ export default function ManifestsPage() {
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
       } else {
-        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png");
+        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
@@ -862,6 +938,16 @@ export default function ManifestsPage() {
 
                 {/* Invoice Items Table */}
                 <div className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={`text-sm font-semibold ${
+                      variant === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}>Invoice Items</h3>
+                    {editing && (
+                      <Button onClick={addInvoiceItem} size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                        <Plus className="h-3 w-3" /> Add Item
+                      </Button>
+                    )}
+                  </div>
                   <div className={`overflow-hidden border rounded-lg ${
                     variant === "dark" ? "border-gray-700" : "border-gray-300"
                   }`}>
@@ -886,7 +972,7 @@ export default function ManifestsPage() {
                         ) : (
                           invoiceData.items.map((item, index) => (
                             <tr key={index} className={variant === "dark" ? "hover:bg-[#2a2a2a]" : "hover:bg-gray-50"}>
-                              <td className="py-3 px-4">
+                              <td className="py-8 px-4">
                                 {editing ? (
                                   <div className="space-y-1">
                                     <Input value={item.pickupDate} onChange={(e) => updateInvoiceItem(index, 'pickupDate', e.target.value)} className={`h-7 text-xs ${
@@ -905,7 +991,7 @@ export default function ManifestsPage() {
                                   </div>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-8 px-4">
                                 {editing ? (
                                   <Input value={item.passengerName} onChange={(e) => updateInvoiceItem(index, 'passengerName', e.target.value)} className={`h-7 text-xs ${
                                     variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
@@ -916,18 +1002,68 @@ export default function ManifestsPage() {
                                   }`}>{item.passengerName}</span>
                                 )}
                               </td>
-                              <td className="py-3 px-4">
+                              <td className="py-8 px-4">
                                 {editing ? (
-                                  <Textarea value={item.routingInfo} onChange={(e) => updateInvoiceItem(index, 'routingInfo', e.target.value)} className={`text-xs ${
-                                    variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                                  }`} rows={2} />
+                                  <div className="space-y-2">
+                                    <div className="flex items-start gap-2">
+                                      <button onClick={() => removeInvoiceItem(index)} className="text-destructive hover:text-destructive/80 transition-colors shrink-0 mt-1">
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                      <div className="flex-1 space-y-3">
+                                        <div>
+                                          <span className={`text-[10px] font-semibold uppercase block mb-1 ${
+                                            variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                          }`}>Pickup:</span>
+                                          <Input 
+                                            ref={(el) => { pickupRefs.current[index] = el; }}
+                                            value={item.pickup} 
+                                            onChange={(e) => updateInvoiceItem(index, 'pickup', e.target.value)} 
+                                            className={`h-7 text-xs ${
+                                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                            }`}
+                                            placeholder="Enter pickup location"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className={`text-[10px] font-semibold uppercase block mb-1 ${
+                                            variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                          }`}>Dropoff:</span>
+                                          <Input 
+                                            ref={(el) => { dropoffRefs.current[index] = el; }}
+                                            value={item.dropoff} 
+                                            onChange={(e) => updateInvoiceItem(index, 'dropoff', e.target.value)} 
+                                            className={`h-7 text-xs ${
+                                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                            }`}
+                                            placeholder="Enter dropoff location"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <span className={`text-sm leading-relaxed ${
-                                    variant === "dark" ? "text-gray-300" : "text-gray-700"
-                                  }`}>{item.routingInfo}</span>
+                                  <div className="text-sm space-y-2">
+                                    <div>
+                                      <span className={`text-[10px] font-semibold uppercase block mb-0.5 ${
+                                        variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                      }`}>Pickup:</span>
+                                      <span className={`leading-relaxed block text-xs ${
+                                        variant === "dark" ? "text-gray-300" : "text-gray-700"
+                                      }`}>{item.pickup}</span>
+                                    </div>
+                                    <div className={`text-primary text-sm`}>↓</div>
+                                    <div>
+                                      <span className={`text-[10px] font-semibold uppercase block mb-0.5 ${
+                                        variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                      }`}>Dropoff:</span>
+                                      <span className={`leading-relaxed block text-xs ${
+                                        variant === "dark" ? "text-gray-300" : "text-gray-700"
+                                      }`}>{item.dropoff}</span>
+                                    </div>
+                                  </div>
                                 )}
                               </td>
-                              <td className="py-3 px-4 text-right">
+                              <td className="py-8 px-4 text-right">
                                 {editing ? (
                                   <Input type="number" step="0.01" value={item.price} onChange={(e) => updateInvoiceItem(index, 'price', parseFloat(e.target.value) || 0)} className={`h-7 text-xs text-right ${
                                     variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"

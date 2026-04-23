@@ -11,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (email: string, password: string, fullName: string, phone?: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string) => Promise<void>;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   isAuthenticated: false,
   login: async () => {},
+  loginWithGoogle: async () => {},
   register: async () => {},
   forgotPassword: async () => {},
   resetPassword: async () => {},
@@ -65,6 +67,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success("Welcome back!");
     } catch (error: any) {
       const message = error.response?.data?.message || "Invalid credentials";
+      toast.error(message);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      await authService.loginWithGoogle(idToken);
+      await refreshUser();
+      toast.success("Welcome back!");
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Google sign-in failed";
       toast.error(message);
       throw error;
     }
@@ -128,6 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isAuthenticated,
         login,
+        loginWithGoogle,
         register,
         forgotPassword,
         resetPassword,

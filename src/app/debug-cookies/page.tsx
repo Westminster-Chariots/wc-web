@@ -28,7 +28,7 @@ export default function CookieDebugPage() {
     setLoading(true);
     console.log("Calling: /api/v1/auth/login");
     try {
-      const response = await axios.post("https://wc-backend-ayx0.onrender.com/api/v1/auth/login", {
+      const response = await axios.post("http://localhost:3001/api/v1/auth/login", {
         email: "admin@westminsterchariots.com",
         password: "admin123",
       }, { 
@@ -77,7 +77,7 @@ export default function CookieDebugPage() {
         <div className="p-4 bg-card border rounded">
           <h2 className="font-semibold mb-2">Config:</h2>
           <pre className="text-xs bg-secondary p-2 rounded">
-            Backend: https://wc-backend-ayx0.onrender.com
+            Backend: http://localhost:3001
             {"\n"}Current: {typeof window !== 'undefined' ? window.location.origin : 'N/A'}
           </pre>
         </div>
