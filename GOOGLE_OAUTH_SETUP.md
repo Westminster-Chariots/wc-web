@@ -17,7 +17,7 @@ Add this to your `wc-web/.env` file:
 
 ```env
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
-NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=https://wc-backend-ayx0.onrender.com
 ```
 
 ---

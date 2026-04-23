@@ -25,7 +25,7 @@ export const authService = {
   },
   
   initiateGoogleOAuth: () => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com";
     window.location.href = `${backendUrl}/api/v1/auth/google`;
   },
   

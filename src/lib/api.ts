@@ -46,7 +46,7 @@ async function processQueue() {
 }
 
 export const api = axios.create({
-  baseURL: `http://localhost:3001/api/v1`,
+  baseURL: `https://wc-backend-ayx0.onrender.com/api/v1`,
   timeout: 60000,
   headers: { "Content-Type": "application/json" },
 });
@@ -91,7 +91,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem("refresh_token");
         if (!refreshToken) throw new Error("No refresh token");
         
-        const { data } = await axios.post(`http://localhost:3001/api/v1/auth/refresh`, 
+        const { data } = await axios.post(`https://wc-backend-ayx0.onrender.com/api/v1/auth/refresh`, 
           { refreshToken },
           { headers: { Authorization: `Bearer ${refreshToken}` } }
         );
