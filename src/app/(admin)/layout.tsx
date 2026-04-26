@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import SystemHealth from "@/components/dashboard/SystemHealth";
 import AdminNotificationBell from "@/components/dashboard/AdminNotificationBell";
 import RouteLoadingBar from "@/components/ui/RouteLoadingBar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -193,6 +194,17 @@ function MobileMenu() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "admin")) {
+      router.replace("/auth");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user || user.role !== "admin") {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
