@@ -9,7 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import SystemHealth from "@/components/dashboard/SystemHealth";
 import AdminNotificationBell from "@/components/dashboard/AdminNotificationBell";
 import RouteLoadingBar from "@/components/ui/RouteLoadingBar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
+
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
@@ -198,12 +199,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "admin")) {
-      router.replace("/auth");
+      // Don't redirect, just show access denied
     }
-  }, [user, loading, router]);
+  }, [user, loading]);
 
-  if (loading || !user || user.role !== "admin") {
+  if (loading) {
     return null;
+  }
+
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center">
+              <Shield className="h-10 w-10 text-destructive" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-display font-bold text-foreground">Access Denied</h1>
+            <p className="text-sm text-muted-foreground font-body">
+              You do not have permission to access the admin panel. This area is restricted to administrators only.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => router.push("/")}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-primary text-primary-foreground font-body text-sm font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Go to Homepage
+            </button>
+            {user && (
+              <button
+                onClick={() => router.push("/account")}
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md border border-border text-foreground font-body text-sm font-semibold hover:bg-muted transition-colors"
+              >
+                Go to Account
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

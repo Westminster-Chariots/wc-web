@@ -17,6 +17,7 @@ import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { seedBookingStore } from "@/hooks/useBookingStore";
+import { structuredData } from "@/lib/metadata";
 
 export default function Home() {
   const { user, isAdmin, logout } = useAuth();
@@ -144,6 +145,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData.organization) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData.localBusiness) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData.website) }}
+      />
       <header className="fixed top-0 w-full z-50 glass-frosted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between">
           <div className="md:hidden flex items-center min-w-[100px]">
@@ -279,19 +292,22 @@ export default function Home() {
             }}
           />
           <div 
-    className="absolute inset-0" 
-    style={{
-      background: 'linear-gradient(to right, hsla(0, 0%, 4%, 1), hsla(0, 0%, 4%, 0.85), hsla(0, 0%, 4%, 0.4))'
-    }} 
-  />
+            className="absolute inset-0" 
+            style={{
+              background: isDarkMode 
+                ? 'linear-gradient(to right, hsla(0, 0%, 4%, 1), hsla(0, 0%, 4%, 0.85), hsla(0, 0%, 4%, 0.4))'
+                : 'linear-gradient(to right, hsla(0, 0%, 98%, 0.95), hsla(0, 0%, 98%, 0.8), hsla(0, 0%, 98%, 0.3))'
+            }} 
+          />
 
-  {/* Vertical: from-background (100%) via-transparent to-background/30 */}
-  <div 
-    className="absolute inset-0" 
-    style={{
-      background: 'linear-gradient(to top, hsla(0, 0%, 4%, 1), transparent, hsla(0, 0%, 4%, 0.3))'
-    }} 
-  />  
+          <div 
+            className="absolute inset-0" 
+            style={{
+              background: isDarkMode
+                ? 'linear-gradient(to top, hsla(0, 0%, 4%, 1), transparent, hsla(0, 0%, 4%, 0.3))'
+                : 'linear-gradient(to top, hsla(0, 0%, 98%, 0.95), transparent, hsla(0, 0%, 98%, 0.2))'
+            }} 
+          />  
   </motion.div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 w-full grid lg:grid-cols-2 gap-8 lg:gap-12 items-center py-8 lg:py-0">
@@ -666,7 +682,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative z-10 border-t border-border py-6 sm:py-12 bg-background">
+      <footer className="relative z-10 border-t border-border py-6 sm:py-12 pb-32 sm:pb-12 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
