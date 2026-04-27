@@ -160,7 +160,12 @@ export default function Home() {
       <header className="fixed top-0 w-full z-50 glass-frosted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between">
           <div className="md:hidden flex items-center min-w-[100px]">
-            <button className="text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button 
+              className="text-muted-foreground hover:text-foreground transition-colors p-2 -ml-2" 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+            >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
@@ -210,6 +215,7 @@ export default function Home() {
               onClick={toggleLang}
               className="glass-pill px-2.5 py-1.5 flex items-center gap-1.5 text-xs font-body text-muted-foreground hover:text-foreground transition-colors"
               title={lang === "en" ? "Cambiar a español" : "Switch to English"}
+              aria-label={lang === "en" ? "Switch to Spanish" : "Switch to English"}
             >
               <Globe className="h-3.5 w-3.5" />
               {lang === "en" ? "ES" : "EN"}
@@ -218,6 +224,7 @@ export default function Home() {
               onClick={() => setTheme(isDarkMode ? "light" : "dark")}
               className="glass-pill p-2 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
@@ -227,6 +234,7 @@ export default function Home() {
             <button
               onClick={toggleLang}
               className="glass-pill px-2 py-1.5 flex items-center gap-1 text-[10px] font-body text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={lang === "en" ? "Switch to Spanish" : "Switch to English"}
             >
               <Globe className="h-3 w-3" />
               {lang === "en" ? "ES" : "EN"}
@@ -234,6 +242,7 @@ export default function Home() {
             <button
               onClick={() => setTheme(isDarkMode ? "light" : "dark")}
               className="glass-pill p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDarkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
@@ -282,7 +291,7 @@ export default function Home() {
         )}
       </header>
 
-      <section ref={heroRef} className="relative min-h-[90vh] sm:min-h-[100vh] lg:min-h-[90vh] flex items-center pt-14 sm:pt-16 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[90vh] sm:min-h-[100vh] lg:min-h-[90vh] flex items-center pt-14 sm:pt-16 overflow-hidden" id="main-content">
         <motion.div className="absolute inset-0" style={{ y: heroY, opacity: heroOpacity }}>
           <Image src="/assets/hero-mercedes.jpg" alt="Westminster Chariots luxury sedan" fill className="object-cover" style={{ objectFit: 'cover' }} priority sizes="100vw" />
           <div

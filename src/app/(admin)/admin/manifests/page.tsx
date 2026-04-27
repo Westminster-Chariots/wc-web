@@ -1,18 +1,23 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { FileText, Download, Eye, FileType, Edit2, Save, Send, Search, Loader2, Plus, X, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { generateManifestPDF, type ManifestData, type ManifestVariant, type ManifestLeg } from "@/lib/generateManifestPDF";
-import { generateManifestDocx } from "@/lib/generateManifestDocx";
-import { generateInvoicePDF, type InvoiceData, type InvoiceItem, type InvoiceVariant } from "@/lib/generateInvoicePDF";
+import type { ManifestData, ManifestVariant, ManifestLeg } from "@/lib/generateManifestPDF";
+import type { InvoiceData, InvoiceItem, InvoiceVariant } from "@/lib/generateInvoicePDF";
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
 import { bookingService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
+
+// Lazy load heavy PDF/DOCX generation functions
+const generateManifestPDF = dynamic(() => import("@/lib/generateManifestPDF").then(mod => ({ default: mod.generateManifestPDF })), { ssr: false });
+const generateManifestDocx = dynamic(() => import("@/lib/generateManifestDocx").then(mod => ({ default: mod.generateManifestDocx })), { ssr: false });
+const generateInvoicePDF = dynamic(() => import("@/lib/generateInvoicePDF").then(mod => ({ default: mod.generateInvoicePDF })), { ssr: false });
 
 const libraries: ("places")[] = ["places"];
 
