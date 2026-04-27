@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
 import { FileText, Download, Eye, FileType, Edit2, Save, Send, Search, Loader2, Plus, X, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +12,6 @@ import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
 import { bookingService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
-
-// Lazy load heavy PDF/DOCX generation functions
-const generateManifestPDF = dynamic(() => import("@/lib/generateManifestPDF").then(mod => ({ default: mod.generateManifestPDF })), { ssr: false });
-const generateManifestDocx = dynamic(() => import("@/lib/generateManifestDocx").then(mod => ({ default: mod.generateManifestDocx })), { ssr: false });
-const generateInvoicePDF = dynamic(() => import("@/lib/generateInvoicePDF").then(mod => ({ default: mod.generateInvoicePDF })), { ssr: false });
 
 const libraries: ("places")[] = ["places"];
 
@@ -280,11 +274,15 @@ export default function ManifestsPage() {
   const handleDownloadPDF = async () => {
     try {
       if (activeTab === "manifest") {
+        // Lazy load PDF generation
+        const { generateManifestPDF } = await import("@/lib/generateManifestPDF");
         const doc = await generateManifestPDF(manifestData, "/assets/wc-logo-no-motto.png", variant);
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${documentId}-Manifest-${suffix}.pdf`);
         toast.success("Manifest PDF downloaded");
       } else {
+        // Lazy load invoice PDF generation
+        const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
         const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${documentId}-Invoice-${suffix}.pdf`);
@@ -297,6 +295,8 @@ export default function ManifestsPage() {
 
   const handleDownloadDocx = async () => {
     try {
+      // Lazy load DOCX generation
+      const { generateManifestDocx } = await import("@/lib/generateManifestDocx");
       await generateManifestDocx(manifestData, "/assets/wc-logo-no-motto.png", variant);
       toast.success("Word document downloaded");
     } catch (e) {
@@ -308,11 +308,15 @@ export default function ManifestsPage() {
   const handlePreview = async () => {
     try {
       if (activeTab === "manifest") {
+        // Lazy load PDF generation
+        const { generateManifestPDF } = await import("@/lib/generateManifestPDF");
         const doc = await generateManifestPDF(manifestData, "/assets/wc-logo-no-motto.png", variant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
       } else {
+        // Lazy load invoice PDF generation
+        const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
         const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
