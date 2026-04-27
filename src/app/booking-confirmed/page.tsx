@@ -42,7 +42,7 @@ function BookingConfirmedContent() {
       try {
         if (bookingId) {
           const response = await fetch(
-            `/api/v1/bookings/${bookingId}`,
+            `/bookings/${bookingId}`,
             {
               credentials: "include",
             }
