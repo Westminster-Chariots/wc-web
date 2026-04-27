@@ -26,7 +26,7 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     // Redirect to backend OAuth flow
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com";
-    window.location.href = `${backendUrl}/api/v1/auth/google`;
+    window.location.href = `${backendUrl}/auth/google`;
   };
 
   const handleEmailAuth = async () => {
