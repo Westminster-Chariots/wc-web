@@ -42,12 +42,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const refreshUser = useCallback(async () => {
+    // Only try to refresh if we have a token
+    const token = typeof window !== 'undefined' ? localStorage.getItem("access_token") : null;
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    
     try {
       const userData = await authService.me();
       setUser(userData);
     } catch (error) {
       // Silently fail if user is not authenticated - they may be on login/signup page
       setUser(null);
+      // Clear invalid tokens
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+      }
     } finally {
       setLoading(false);
     }
