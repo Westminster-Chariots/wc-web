@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui";
 import { notify } from "@/lib/notify";
 import { useAuth } from "@/hooks/useAuth";
+import { loginRateLimiter } from "@/lib/security";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -34,6 +35,14 @@ export default function AuthPage() {
       notify.error("Please enter your full name.");
       return;
     }
+    
+    // Rate limiting for login attempts
+    if (mode === "login" && !loginRateLimiter.canAttempt(email)) {
+      const remaining = loginRateLimiter.getRemainingAttempts(email);
+      notify.error(`Too many login attempts. Please try again in 15 minutes.`);
+      return;
+    }
+    
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -42,6 +51,7 @@ export default function AuthPage() {
         setMode("login");
       } else {
         await login(email, password);
+        loginRateLimiter.reset(email); // Reset on successful login
         router.push("/");
       }
     } catch (err: any) {

@@ -4,6 +4,7 @@ import { authService } from "@/lib/services";
 import type { User } from "@/types";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { sessionManager } from "@/lib/security";
 
 interface AuthContextType {
   user: User | null;
@@ -55,10 +56,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshUser();
     
-    // Refresh user data every 5 minutes
-    const interval = setInterval(refreshUser, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [refreshUser]);
+    // Refresh user data every 5 minutes (only if authenticated)
+    const interval = setInterval(() => {
+      if (user) refreshUser();
+    }, 5 * 60 * 1000);
+    
+    // Start session timeout tracking
+    const cleanup = sessionManager.startActivityTracking(() => {
+      if (user) {
+        toast.error("Session expired due to inactivity");
+        logout();
+      }
+    });
+    
+    return () => {
+      clearInterval(interval);
+      cleanup();
+    };
+  }, [refreshUser, user]);
 
   const login = async (email: string, password: string) => {
     try {

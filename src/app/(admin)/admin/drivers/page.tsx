@@ -5,6 +5,7 @@ import { Plus, Search, MoreVertical, Pencil, Trash2, Phone, Mail, Car, Upload, U
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { useDrivers } from "@/hooks/useDrivers";
 import type { Driver } from "@/types";
@@ -33,6 +34,11 @@ export default function DriversPage() {
   });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; driverId: string | null; driverName: string }>({ 
+    open: false, 
+    driverId: null, 
+    driverName: "" 
+  });
 
   const filtered = drivers.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -109,13 +115,19 @@ export default function DriversPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this driver?")) return;
+  const handleDelete = async (id: string, name: string) => {
+    setDeleteConfirm({ open: true, driverId: id, driverName: name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.driverId) return;
     try {
-      await deleteDriver(id);
+      await deleteDriver(deleteConfirm.driverId);
       toast.success("Driver deleted");
     } catch (error) {
       toast.error("Failed to delete driver");
+    } finally {
+      setDeleteConfirm({ open: false, driverId: null, driverName: "" });
     }
   };
 
@@ -209,7 +221,7 @@ export default function DriversPage() {
                       <Pencil className="h-3.5 w-3.5 mr-2" />
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDelete(driver.id)} className="text-destructive">
+                    <DropdownMenuItem onClick={() => handleDelete(driver.id, driver.name)} className="text-destructive">
                       <Trash2 className="h-3.5 w-3.5 mr-2" />
                       Delete
                     </DropdownMenuItem>
@@ -318,6 +330,17 @@ export default function DriversPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ open, driverId: null, driverName: "" })}
+        title="Delete Driver"
+        description={`Are you sure you want to delete ${deleteConfirm.driverName}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        variant="destructive"
+      />
     </div>
   );
 }

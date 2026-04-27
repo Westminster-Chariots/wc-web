@@ -1,8 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Westminster Chariots — Web Frontend
+
+Premium chauffeur service platform serving the Washington DC Metropolitan Area.
+
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS 4
+- **UI Components:** Radix UI + shadcn/ui
+- **Animations:** Framer Motion
+- **State Management:** Zustand
+- **Data Fetching:** TanStack Query (React Query)
+- **Forms:** React Hook Form
+- **Maps:** Google Maps API
+- **Real-time:** Pusher
+- **Payments:** Stripe
+- **PDF Generation:** jsPDF
+- **Document Generation:** docx
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ and npm/yarn/pnpm
+- Backend API running (wc-backend)
+
+### Environment Setup
+
+1. Copy the example environment file:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Fill in your environment variables in `.env.local`:
+
+```env
+# Required
+NEXT_PUBLIC_API_URL=https://wc-backend-ayx0.onrender.com/api/v1
+NEXT_PUBLIC_GOOGLE_MAPS_KEY=your_google_maps_api_key
+NEXT_PUBLIC_STRIPE_PK=your_stripe_publishable_key
+
+# Optional
+NEXT_PUBLIC_PUSHER_KEY=your_pusher_key
+NEXT_PUBLIC_PUSHER_CLUSTER=us2
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+### Installation
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+### Development
+
+Run the development server:
 
 ```bash
 npm run dev
@@ -10,27 +68,127 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [https://westminsterchariots.vercel.app/](https://westminsterchariots.vercel.app/) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+wc-web/
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── (public)/          # Public routes (landing, booking, auth)
+│   │   ├── (client)/          # Client dashboard routes
+│   │   ├── (admin)/           # Admin panel routes
+│   │   └── api/               # API route handlers
+│   ├── components/            # React components
+│   │   ├── ui/               # Reusable UI components
+│   │   ├── booking/          # Booking flow components
+│   │   ├── dashboard/        # Admin dashboard components
+│   │   └── account/          # Client account components
+│   ├── hooks/                # Custom React hooks
+│   ├── lib/                  # Utility functions
+│   │   ├── api.ts           # Axios instance with interceptors
+│   │   ├── services.ts      # API service functions
+│   │   ├── validation.ts    # Form validation
+│   │   └── security.ts      # Security utilities
+│   └── types/               # TypeScript type definitions
+├── public/                   # Static assets
+└── package.json
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Key Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Public Routes
+- **Landing Page** (`/`) - Hero, services, fleet showcase
+- **Booking Flow** (`/book`) - Multi-step booking with Google Maps integration
+- **Authentication** (`/auth`) - Login, register, Google OAuth
+- **Password Reset** (`/reset-password`)
 
-## Deploy on Vercel
+### Client Routes
+- **Account Dashboard** (`/account`) - View bookings, manage profile
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Admin Routes
+- **Dashboard** (`/admin`) - KPIs, active rides, dispatch grid
+- **Schedule** (`/admin/schedule`) - Calendar view (day/week/month)
+- **Bookings** (`/admin/bookings`) - Manage all bookings
+- **Clients** (`/admin/clients`) - Client management
+- **Drivers** (`/admin/drivers`) - Driver management
+- **Fleet** (`/admin/fleet`) - Vehicle inventory
+- **Manifests** (`/admin/manifests`) - Generate trip manifests & invoices
+- **Live Map** (`/admin/map`) - Real-time driver tracking
+- **Pricing** (`/admin/pricing`) - Rate configuration
+- **Campaigns** (`/admin/campaigns`) - Email marketing
+- **Settings** (`/admin/settings`) - System configuration
+- **Audit Log** (`/admin/audit`) - Admin action history
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Backend API base URL |
+| `NEXT_PUBLIC_GOOGLE_MAPS_KEY` | Yes | Google Maps API key |
+| `NEXT_PUBLIC_STRIPE_PK` | Yes | Stripe publishable key |
+| `NEXT_PUBLIC_PUSHER_KEY` | No | Pusher app key (for real-time) |
+| `NEXT_PUBLIC_PUSHER_CLUSTER` | No | Pusher cluster (e.g., us2) |
+| `NEXT_PUBLIC_SITE_URL` | No | Site URL for metadata |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
+
+## Authentication
+
+The app uses JWT-based authentication with tokens stored in localStorage (will migrate to httpOnly cookies).
+
+- **Login:** Email/password or Google OAuth
+- **Registration:** Email verification required
+- **Password Reset:** Email-based token flow
+- **Session:** Auto-refresh every 5 minutes
+
+## API Integration
+
+All API calls go through `src/lib/api.ts` which includes:
+
+- Automatic token injection
+- Token refresh on 401
+- Rate limiting
+- Retry logic with exponential backoff
+- Error handling with user-friendly messages
+
+## Deployment
+
+### Vercel (Recommended)
+
+1. Push code to GitHub
+2. Import project in Vercel
+3. Add environment variables
+4. Deploy
+
+### Manual
+
+```bash
+npm run build
+npm run start
+```
+
+## Testing
+
+Currently no tests implemented. See `TEST_REPORT.md` for testing recommendations.
+
+## Contributing
+
+This is a private project for Westminster Chariots.
+
+## License
+
+Proprietary - Westminster Chariots LLC
+
+## Support
+
+For issues or questions, contact: book@westminsterchariots.com

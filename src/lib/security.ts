@@ -14,15 +14,17 @@ export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "");
 }
 
-// ─── Secure Storage ──────────────────────────────────────────────────────────
+// ─── Simple Storage Wrapper ─────────────────────────────────────────────────
+// Note: Uses base64 encoding for basic obfuscation (NOT encryption).
+// This provides minimal protection against casual inspection but is NOT secure against XSS.
+// For true security, tokens should be in httpOnly cookies (requires same-domain backend).
 const STORAGE_PREFIX = "wc_";
-const ENCRYPTION_KEY = "wc-secure-key"; // In production, use env variable
 
-export const secureStorage = {
+export const storage = {
   set: (key: string, value: any) => {
     try {
       const serialized = JSON.stringify(value);
-      const encoded = btoa(serialized); // Basic encoding (use crypto in production)
+      const encoded = btoa(serialized); // Base64 encoding for obfuscation
       localStorage.setItem(`${STORAGE_PREFIX}${key}`, encoded);
     } catch (error) {
       console.error("Storage error:", error);
@@ -58,17 +60,17 @@ const ACTIVITY_KEY = "last_activity";
 
 export const sessionManager = {
   updateActivity: () => {
-    secureStorage.set(ACTIVITY_KEY, Date.now());
+    storage.set(ACTIVITY_KEY, Date.now());
   },
 
   isSessionValid: (): boolean => {
-    const lastActivity = secureStorage.get<number>(ACTIVITY_KEY);
+    const lastActivity = storage.get<number>(ACTIVITY_KEY);
     if (!lastActivity) return false;
     return Date.now() - lastActivity < SESSION_TIMEOUT;
   },
 
   clearSession: () => {
-    secureStorage.clear();
+    storage.clear();
   },
 
   startActivityTracking: (onTimeout: () => void) => {
@@ -106,10 +108,10 @@ export function generateCSRFToken(): string {
 }
 
 export function getCSRFToken(): string {
-  let token = secureStorage.get<string>("csrf_token");
+  let token = storage.get<string>("csrf_token");
   if (!token) {
     token = generateCSRFToken();
-    secureStorage.set("csrf_token", token);
+    storage.set("csrf_token", token);
   }
   return token;
 }

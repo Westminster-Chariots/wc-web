@@ -1,6 +1,7 @@
 "use client";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
+import { getCSRFToken } from "./security";
 
 
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
@@ -46,7 +47,7 @@ async function processQueue() {
 }
 
 export const api = axios.create({
-  baseURL: `https://wc-backend-ayx0.onrender.com/api/v1`,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1",
   timeout: 60000,
   headers: { "Content-Type": "application/json" },
 });
@@ -54,10 +55,16 @@ export const api = axios.create({
 // Request interceptor for rate limiting and logging
 api.interceptors.request.use(
   async (config) => {
-    // Add auth token from localStorage
+    // SECURITY NOTE: Tokens stored in localStorage are vulnerable to XSS attacks.
+    // TODO: Migrate to httpOnly cookies (requires backend changes)
     const token = localStorage.getItem("access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Add CSRF token for state-changing operations
+    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      config.headers['X-CSRF-Token'] = getCSRFToken();
     }
     
     // Add request ID for tracking
@@ -91,7 +98,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem("refresh_token");
         if (!refreshToken) throw new Error("No refresh token");
         
-        const { data } = await axios.post(`https://wc-backend-ayx0.onrender.com/api/v1/auth/refresh`, 
+        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/auth/refresh`, 
           { refreshToken },
           { headers: { Authorization: `Bearer ${refreshToken}` } }
         );
