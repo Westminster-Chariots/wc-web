@@ -273,11 +273,6 @@ export async function generateInvoicePDF(
     doc.text(pickupLines, innerMargin + col1W + col2W + 8, routingY, { maxWidth: col3W - 16 });
     routingY += pickupLines.length * 10 + 6;
     
-    doc.setTextColor(...P.accent);
-    doc.setFontSize(9);
-    doc.text("↓", innerMargin + col1W + col2W + 8, routingY);
-    routingY += 10;
-    
     doc.setTextColor(...P.text);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
@@ -320,11 +315,11 @@ export async function generateInvoicePDF(
   doc.setTextColor(...P.text);
   doc.setFont("helvetica", "bold");
   doc.text(`$${invoice.tax.toFixed(2)}`, totalsValueX, y, { align: "right" });
-  y += 20;
+  y += 25;
 
   doc.setDrawColor(...P.accent);
   doc.setLineWidth(0.8);
-  doc.line(totalsX, y - 5, rightX, y - 5);
+  doc.line(totalsX, y - 15, rightX, y - 15);
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");

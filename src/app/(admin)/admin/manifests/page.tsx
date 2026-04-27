@@ -1112,7 +1112,7 @@ export default function ManifestsPage() {
                           }`}>${invoiceData.tax.toFixed(2)}</span>
                         )}
                       </div>
-                      <div className={`flex justify-between items-center py-3 px-4 rounded-lg border-2 ${
+                      <div className={`flex justify-between items-center py-3 px-4 rounded-lg border-2 mt-4 ${
                         variant === "dark" ? "bg-primary/10 border-primary/30" : "bg-primary/5 border-primary/20"
                       }`}>
                         <span className={`text-base font-bold ${

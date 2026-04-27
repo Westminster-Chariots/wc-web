@@ -152,10 +152,14 @@ api.interceptors.response.use(
     if (typeof window !== "undefined") {
       const status = error.response?.status;
       const message = (error.response?.data as any)?.message || error.message;
+      const url = original.url || '';
+      
+      // Don't show toast for analytics/dashboard 404s (endpoint may not exist yet)
+      const isSilent404 = status === 404 && (url.includes('/analytics') || url.includes('/dashboard'));
       
       if (status === 403) {
         toast.error("Access denied. You don't have permission.");
-      } else if (status === 404) {
+      } else if (status === 404 && !isSilent404) {
         toast.error("Resource not found.");
       } else if (status === 422) {
         toast.error(message || "Invalid data provided.");
