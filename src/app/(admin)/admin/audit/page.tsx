@@ -164,7 +164,7 @@ export default function AuditPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-8 py-4 flex items-center gap-3">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-8 py-4 flex items-center gap-3">
         <Shield className="h-5 w-5 text-primary" />
         <div className="flex-1">
           <h2 className="text-lg font-semibold">Audit Log</h2>

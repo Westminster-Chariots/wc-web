@@ -33,7 +33,7 @@ export default function BookingPage() {
   useEffect(() => {
     const fetchFleet = async () => {
       try {
-        const response = await fetch("https://wc-backend-ayx0.onrender.com/api/v1/fleet", {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/fleet`, {
           credentials: "include"
         });
         if (response.ok) {

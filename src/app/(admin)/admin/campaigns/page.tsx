@@ -169,7 +169,7 @@ export default function CampaignsPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-8 py-4">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-8 py-4">
         <h2 className="text-lg md:text-xl font-semibold">Email Campaigns</h2>
         <p className="text-xs text-muted-foreground mt-0.5">Send or schedule promotional emails</p>
       </header>

@@ -41,7 +41,7 @@ export default function AdminPricingPage() {
     setSaving(true);
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await fetch(`https://wc-backend-ayx0.onrender.com/api/v1/pricing/${config.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/pricing/${config.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

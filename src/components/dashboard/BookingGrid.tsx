@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import BookingCard, { UIBooking, Driver } from "./BookingCard";
+import { Button } from "@/components/ui/button";
 
 type BookingStatus = UIBooking["status"];
 
@@ -22,27 +23,52 @@ interface BookingGridProps {
   onDriverAssign?: (bookingId: string, driverId: string | null) => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function BookingGrid({ bookings, drivers = [], onStatusChange, onDriverAssign }: BookingGridProps) {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
 
-  const filtered = bookings.filter(b => {
-    if (activeFilter === 'urgent') return b.isUrgent && b.status !== 'done';
-    if (activeFilter !== 'all') return b.status === activeFilter;
-    return true;
-  }).filter(b =>
-    searchQuery === '' ||
-    b.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.reservationNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    return bookings.filter(b => {
+      if (activeFilter === 'urgent') return b.isUrgent && b.status !== 'done';
+      if (activeFilter !== 'all') return b.status === activeFilter;
+      return true;
+    }).filter(b =>
+      searchQuery === '' ||
+      b.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.reservationNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [bookings, activeFilter, searchQuery]);
+
+  // Reset to page 0 when filters change
+  const handleFilterChange = (filter: string) => {
+    setActiveFilter(filter);
+    setCurrentPage(0);
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(0);
+  };
 
   // Group by groupId
-  const grouped = filtered.reduce<Record<string, UIBooking[]>>((acc, b) => {
-    const key = b.groupId || b.id;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(b);
-    return acc;
-  }, {});
+  const grouped = useMemo(() => {
+    return filtered.reduce<Record<string, UIBooking[]>>((acc, b) => {
+      const key = b.groupId || b.id;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(b);
+      return acc;
+    }, {});
+  }, [filtered]);
+
+  const groupedEntries = Object.entries(grouped);
+  const totalPages = Math.ceil(groupedEntries.length / ITEMS_PER_PAGE);
+  const paginatedGroups = groupedEntries.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE
+  );
 
   return (
     <div className="space-y-4">
@@ -54,7 +80,7 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
             type="text"
             placeholder="Search client or reservation..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full rounded-md border border-border bg-secondary pl-10 pr-4 py-2 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
           />
         </div>
@@ -62,7 +88,7 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
           {filters.map(f => (
             <button
               key={f.value}
-              onClick={() => setActiveFilter(f.value)}
+              onClick={() => handleFilterChange(f.value)}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold font-body transition-all cursor-pointer ${
                 activeFilter === f.value
                   ? 'bg-primary text-primary-foreground'
@@ -77,7 +103,7 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
 
       {/* Grid */}
       <div className="space-y-3">
-        {Object.entries(grouped).map(([groupKey, groupBookings]) => (
+        {paginatedGroups.map(([groupKey, groupBookings]) => (
           <div key={groupKey}>
             {groupBookings.length > 1 && (
               <div className="flex items-center gap-2 mb-2 px-1">
@@ -110,6 +136,52 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
             No bookings match your current filters
           </p>
         </motion.div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground font-body">
+            Showing {currentPage * ITEMS_PER_PAGE + 1}-{Math.min((currentPage + 1) * ITEMS_PER_PAGE, groupedEntries.length)} of {groupedEntries.length} bookings
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  className={`h-8 w-8 rounded-md text-xs font-semibold transition-colors ${
+                    currentPage === i
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={currentPage === totalPages - 1}
+              className="gap-1"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

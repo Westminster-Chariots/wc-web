@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "westminsterchariots.com" },
       { protocol: "https", hostname: "*.googleusercontent.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "*.cloudinary.com" },
     ],
   },
 
@@ -18,11 +20,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://js.stripe.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://js.stripe.com https://accounts.google.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https: https://westminsterchariots.com https://*.googleusercontent.com",
+              "img-src 'self' data: blob: https: https://westminsterchariots.com https://*.googleusercontent.com https://res.cloudinary.com https://*.cloudinary.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://wc-backend-ayx0.onrender.com https://maps.googleapis.com https://api.stripe.com wss://ws-*.pusher.com",
+              "connect-src 'self' https://wc-backend-ayx0.onrender.com https://maps.googleapis.com https://api.stripe.com https://accounts.google.com wss://ws-*.pusher.com",
               "frame-src 'self' https://js.stripe.com https://accounts.google.com",
               "object-src 'none'",
               "base-uri 'self'",

@@ -28,7 +28,7 @@ export default function CookieDebugPage() {
     setLoading(true);
     console.log("Calling: /api/v1/auth/login");
     try {
-      const response = await axios.post("https://wc-backend-ayx0.onrender.com/api/v1/auth/login", {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/auth/login`, {
         email: "admin@westminsterchariots.com",
         password: "admin123",
       }, { 

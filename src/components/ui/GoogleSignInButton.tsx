@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void;
@@ -28,15 +29,25 @@ export function GoogleSignInButton({
   text = "signin_with" 
 }: GoogleSignInButtonProps) {
   const buttonRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     if (!clientId) {
       console.error("Google Client ID not configured");
+      setHasError(true);
+      setIsLoading(false);
       return;
     }
 
-    // Load Google Sign-In script
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    
+    if (existingScript) {
+      initializeGoogleButton();
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -44,7 +55,25 @@ export function GoogleSignInButton({
     document.body.appendChild(script);
 
     script.onload = () => {
-      if (window.google && buttonRef.current) {
+      initializeGoogleButton();
+    };
+
+    script.onerror = () => {
+      console.error("Failed to load Google Sign-In script");
+      setHasError(true);
+      setIsLoading(false);
+    };
+
+    return () => {
+      if (!existingScript && script.parentNode) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [clientId]);
+
+  const initializeGoogleButton = () => {
+    if (window.google && buttonRef.current) {
+      try {
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: (response: any) => {
@@ -57,23 +86,42 @@ export function GoogleSignInButton({
         });
 
         window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: "filled_black",
+          theme: "outline",
           size: "large",
           text,
-          width: buttonRef.current.offsetWidth,
+          width: buttonRef.current.offsetWidth || 320,
           logo_alignment: "left",
         });
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error initializing Google button:", error);
+        setHasError(true);
+        setIsLoading(false);
       }
-    };
+    }
+  };
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [clientId, onSuccess, onError, text]);
-
-  if (!clientId) {
-    return null;
+  if (!clientId || hasError) {
+    return (
+      <div className="w-full h-11 rounded-md border border-border bg-muted flex items-center justify-center text-sm text-muted-foreground">
+        Google Sign-In unavailable
+      </div>
+    );
   }
 
-  return <div ref={buttonRef} className="w-full" />;
+  return (
+    <div className="relative w-full">
+      {isLoading && (
+        <div className="w-full h-11 rounded-md border border-border bg-secondary flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      )}
+      <div 
+        ref={buttonRef} 
+        className="w-full [&>div]:!w-full [&>div>div]:!w-full [&_iframe]:!w-full" 
+        style={{ minHeight: '44px', display: isLoading ? 'none' : 'block' }} 
+      />
+    </div>
+  );
 }
