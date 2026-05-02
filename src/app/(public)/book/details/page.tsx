@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plane, MessageSquare, ArrowRight, User, Users, Check, Phone } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +14,24 @@ const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] 
 export default function BookingDetailsPage() {
   const router = useRouter();
   const { data, update } = useBookingStore();
+
+  // Redirect if no vehicle selected
+  useEffect(() => {
+    if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+      router.push("/book");
+    }
+  }, [data.pickup, data.dropoff, data.selectedVehicle, router]);
+
+  if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   const [flightNumber, setFlightNumber] = useState(data.flightNumber);
   const [specialRequests, setSpecialRequests] = useState(data.specialRequests);

@@ -21,6 +21,13 @@ export default function BookingPage() {
   const { data, update } = useBookingStore();
   const { pickup, dropoff, isPickupAirport, pickupDate, pickupTime } = data;
 
+  // Redirect to homepage if no pickup/dropoff selected
+  useEffect(() => {
+    if (!pickup || !dropoff) {
+      router.push("/");
+    }
+  }, [pickup, dropoff, router]);
+
   const [currentStep] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
   const [expandedVehicle, setExpandedVehicle] = useState<"sedan" | "suv" | null>(null);
@@ -29,6 +36,18 @@ export default function BookingPage() {
   const [loadingFleet, setLoadingFleet] = useState(true);
 
   const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
+
+  // Show loading state while redirecting
+  if (!pickup || !dropoff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const fetchFleet = async () => {

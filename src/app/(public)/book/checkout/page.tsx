@@ -61,8 +61,10 @@ export default function BookingCheckoutPage() {
   useEffect(() => {
     if (!user) {
       router.push("/book/login");
+    } else if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+      router.push("/book");
     }
-  }, [user, router]);
+  }, [user, data.pickup, data.dropoff, data.selectedVehicle, router]);
 
   const handlePay = async () => {
     if (!route || !data.selectedVehicle || !user) {
@@ -138,7 +140,16 @@ export default function BookingCheckoutPage() {
     updateLeg(index, leg);
   };
 
-  if (!user || !route) return null;
+  if (!user || !data.pickup || !data.dropoff || !data.selectedVehicle || !route) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
