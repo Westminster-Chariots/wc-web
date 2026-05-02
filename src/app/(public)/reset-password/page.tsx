@@ -21,15 +21,25 @@ function ResetPasswordContent() {
   const { resetPassword } = useAuth();
 
   useEffect(() => {
-    // Check for token in URL params
-    const token = searchParams.get("token");
-    if (token) {
-      setReady(true);
+    // Check for token in URL hash (e.g., #token=xxx)
+    const hash = window.location.hash;
+    if (hash.startsWith("#token=")) {
+      const token = hash.substring(7); // Remove "#token="
+      if (token) {
+        setReady(true);
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   const handleReset = async () => {
-    const token = searchParams.get("token");
+    // Get token from URL hash
+    const hash = window.location.hash;
+    if (!hash.startsWith("#token=")) {
+      notify.error("Invalid reset link");
+      return;
+    }
+    const token = hash.substring(7); // Remove "#token="
+    
     if (!token) {
       notify.error("Invalid reset link");
       return;
