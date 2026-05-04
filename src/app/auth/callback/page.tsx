@@ -15,6 +15,7 @@ function AuthCallbackContent() {
     const handleCallback = async () => {
       const accessToken = searchParams.get("access_token");
       const refreshToken = searchParams.get("refresh_token");
+      const redirect = searchParams.get("redirect") || "/";
 
       if (!accessToken || !refreshToken) {
         setError("Authentication failed. Missing tokens.");
@@ -30,8 +31,8 @@ function AuthCallbackContent() {
         // Refresh user data
         await refreshUser();
 
-        // Redirect to home
-        router.push("/");
+        // Redirect to specified path or home
+        router.push(redirect);
       } catch (err) {
         console.error("Callback error:", err);
         setError("Failed to complete authentication.");
