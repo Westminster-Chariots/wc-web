@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https: https://westminsterchariots.com https://*.googleusercontent.com https://res.cloudinary.com https://*.cloudinary.com",
               "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://wc-backend-ayx0.onrender.com https://maps.googleapis.com https://api.stripe.com https://accounts.google.com wss://ws-*.pusher.com",
-              "frame-src 'self' https://js.stripe.com https://accounts.google.com",
+              "frame-src 'self' https://js.stripe.com https://accounts.google.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",

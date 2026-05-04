@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone, MapPin, Clock, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export default function BookingPage() {
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
   const [expandedVehicle, setExpandedVehicle] = useState<"sedan" | "suv" | null>(null);
   const [showTerms, setShowTerms] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
   const [loadingFleet, setLoadingFleet] = useState(true);
 
@@ -160,8 +161,33 @@ export default function BookingPage() {
             <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs text-muted-foreground font-body">
               {estimatedArrival && <span>Est. arrival {estimatedArrival}</span>}
               <span>•</span>
-              <span>{route.distance.toFixed(1)} mi</span>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                <span>{route.distance.toFixed(1)} mi</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-primary" />
+                <span>{route.duration} min</span>
+              </div>
             </div>
+            <button
+              onClick={() => setShowMapModal(true)}
+              className="mt-3 w-full rounded-lg overflow-hidden border border-border bg-secondary/30 h-32 relative group cursor-pointer hover:border-primary/40 transition-colors"
+            >
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0, pointerEvents: 'none' }}
+                loading="lazy"
+                src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&mode=driving`}
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <span className="text-xs font-body text-white bg-black/60 px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  Click to view larger
+                </span>
+              </div>
+            </button>
           </motion.div>
         )}
 
@@ -340,6 +366,52 @@ export default function BookingPage() {
       {showTerms && (
         <TermsModal onClose={() => setShowTerms(false)} />
       )}
+
+      <AnimatePresence>
+        {showMapModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setShowMapModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-4xl h-[80vh] rounded-xl overflow-hidden border border-border bg-background shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0 z-10 glass-frosted border-b border-border p-4 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-display font-semibold text-foreground mb-1">Route Preview</h3>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground font-body">
+                    <span className="truncate">{pickup}</span>
+                    <ArrowRight className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{dropoff}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMapModal(false)}
+                  className="ml-4 p-2 rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+              <iframe
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&mode=driving`}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
