@@ -12,6 +12,7 @@ import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { format } from "date-fns";
 import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
+import { notify } from "@/lib/notify";
 import type { FleetVehicle } from "@/types";
 
 const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] as const;
@@ -128,6 +129,10 @@ export default function BookingPage() {
 
   const handleVehicleContinue = () => {
     if (!selectedVehicle) return;
+    if (route && route.distance < 0.1) {
+      notify.error("Pickup and dropoff locations are too close or identical. Please select different locations.");
+      return;
+    }
     update({ selectedVehicle });
     router.push("/book/details");
   };

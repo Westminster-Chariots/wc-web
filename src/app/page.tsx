@@ -121,6 +121,10 @@ export default function Home() {
       else notify.error("Dropoff location is required");
       return;
     }
+    if (pickup.toLowerCase().trim() === dropoff.toLowerCase().trim()) {
+      notify.error("Pickup and dropoff locations must be different");
+      return;
+    }
     if (!pickupDate) {
       notify.error("Pickup date is required");
       return;
@@ -345,12 +349,6 @@ export default function Home() {
                 {t("hero.bookRide")}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
-              <a href="tel:+15714351832" className="w-full sm:w-auto">
-                <Button variant="heroOutline" size="lg" className="gap-2 w-full sm:w-auto">
-                  <Phone className="h-4 w-4" />
-                  {t("hero.callDispatch")}
-                </Button>
-              </a>
             </motion.div>
             <motion.div style={{ y: trustY }} className="flex items-center gap-4 sm:gap-6 pt-2 sm:pt-4">
               {[
@@ -400,24 +398,24 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 overflow-hidden">
                   <div className="min-w-0 overflow-hidden">
                     <label className="block text-xs uppercase tracking-widest text-muted-foreground font-body font-medium mb-2">{t("search.date")}</label>
-                    <div className="relative overflow-hidden rounded-lg">
-                      <Calendar className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary pointer-events-none z-10" />
+                    <div className="relative overflow-hidden rounded-lg group">
+                      <Calendar className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary pointer-events-none z-10 transition-transform group-hover:scale-110" />
                       <input type="date" value={pickupDate}
                         min={todayIso}
                         onChange={(e) => setPickupDate(e.target.value)}
                         style={{ maxWidth: '100%', boxSizing: 'border-box' }}
-                        className="w-full min-w-0 block rounded-lg border border-border bg-secondary/50 pl-3 sm:pl-4 pr-10 sm:pr-12 py-2.5 sm:py-3 text-[11px] sm:text-sm font-body text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none" />
+                        className="w-full min-w-0 block rounded-lg border border-border bg-secondary/50 pl-3 sm:pl-4 pr-10 sm:pr-12 py-2.5 sm:py-3 text-[11px] sm:text-sm font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 hover:border-primary/30 transition-all appearance-none cursor-pointer" />
                     </div>
                   </div>
                   <div className="min-w-0 overflow-hidden">
                     <label className="block text-xs uppercase tracking-widest text-muted-foreground font-body font-medium mb-2">{t("search.time")}</label>
-                    <div className="relative overflow-hidden rounded-lg">
-                      <Clock className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary pointer-events-none z-10" />
+                    <div className="relative overflow-hidden rounded-lg group">
+                      <Clock className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary pointer-events-none z-10 transition-transform group-hover:scale-110" />
                       <input type="time" value={pickupTime}
                         min={pickupDate === todayIso ? currentTime : "00:00"}
                         onChange={(e) => setPickupTime(e.target.value)}
                         style={{ maxWidth: '100%', boxSizing: 'border-box' }}
-                        className="w-full min-w-0 block rounded-lg border border-border bg-secondary/50 pl-3 sm:pl-4 pr-10 sm:pr-12 py-2.5 sm:py-3 text-[11px] sm:text-sm font-body text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none" />
+                        className="w-full min-w-0 block rounded-lg border border-border bg-secondary/50 pl-3 sm:pl-4 pr-10 sm:pr-12 py-2.5 sm:py-3 text-[11px] sm:text-sm font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40 hover:border-primary/30 transition-all appearance-none cursor-pointer" />
                     </div>
                   </div>
                 </div>
@@ -427,10 +425,23 @@ export default function Home() {
                   </div>
                 )}
                 {!isLoadingRoute && route && (
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground font-body pt-1">
-                    <span>{route.distance.toFixed(1)} mi</span>
-                    <span>·</span>
-                    <span>{route.duration} min</span>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground font-body">
+                      <span>{route.distance.toFixed(1)} mi</span>
+                      <span>·</span>
+                      <span>{route.duration} min</span>
+                    </div>
+                    <div className="rounded-lg overflow-hidden border border-border bg-secondary/30 h-32 relative">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        allowFullScreen
+                        referrerPolicy="no-referrer-when-downgrade"
+                        src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&mode=driving`}
+                      />
+                    </div>
                   </div>
                 )}
                 {!isLoadingRoute && routeError && (
@@ -692,19 +703,28 @@ export default function Home() {
       </section>
 
       <footer className="relative z-10 border-t border-border py-6 sm:py-12 pb-32 sm:pb-12 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} loading="eager" className="object-contain" style={{ width: "auto", height: "auto" }} />
-              <div className="flex flex-col text-left">
-                <span className="text-[10px] sm:text-xs font-display font-semibold text-foreground leading-none uppercase tracking-[0.15em]">Westminster</span>
-                <span className="text-[8px] sm:text-[9px] text-primary font-body uppercase tracking-[0.2em] leading-tight mt-0.5">Chariots</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6 sm:gap-8 mb-6">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2">
+                <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} loading="eager" className="object-contain" style={{ width: "auto", height: "auto" }} />
+                <div className="flex flex-col text-left">
+                  <span className="text-[10px] sm:text-xs font-display font-semibold text-foreground leading-none uppercase tracking-[0.15em]">Westminster</span>
+                  <span className="text-[8px] sm:text-[9px] text-primary font-body uppercase tracking-[0.2em] leading-tight mt-0.5">Chariots</span>
+                </div>
               </div>
+              <p className="text-[10px] text-muted-foreground font-body sm:border-l border-border sm:pl-4 pl-0 text-center sm:text-left">{t("footer.location")}</p>
             </div>
-            <p className="text-[10px] text-muted-foreground font-body sm:border-l border-border sm:pl-4 pl-0 text-center sm:text-left">{t("footer.location")}</p>
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-[10px] sm:text-xs text-muted-foreground font-body">
+              <Link href="/about" className="hover:text-primary transition-colors">About</Link>
+              <Link href="/privacy" className="hover:text-primary transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-primary transition-colors">Terms</Link>
+              <Link href="/careers" className="hover:text-primary transition-colors">Careers</Link>
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-8 text-[10px] sm:text-xs text-muted-foreground font-body">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-8 text-[10px] sm:text-xs text-muted-foreground font-body border-t border-border pt-6">
             <a href="tel:+15714351832" className="hover:text-primary transition-colors">(571) 435-1832</a>
+            <a href="mailto:book@westminsterchariots.com" className="hover:text-primary transition-colors">book@westminsterchariots.com</a>
             <span>© {new Date().getFullYear()} Westminster Chariots LLC</span>
           </div>
         </div>
