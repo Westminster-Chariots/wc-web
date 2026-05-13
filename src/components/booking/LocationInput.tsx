@@ -20,7 +20,7 @@ interface PlacePrediction {
 }
 
 interface Props {
-  label: string;
+  label?: string;
   placeholder: string;
   value: string;
   onChange: (value: string, isAirport: boolean) => void;
@@ -81,7 +81,7 @@ export default function LocationInput({ label, placeholder, value, onChange, ico
 
   return (
     <div ref={ref} className="relative">
-      <label className="block text-xs uppercase tracking-widest text-muted-foreground font-body font-medium mb-2">{label}</label>
+      {label && <label className="block text-xs uppercase tracking-widest text-muted-foreground font-body font-medium mb-2">{label}</label>}
       <div className="relative">
         <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 ${icon === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
         <input

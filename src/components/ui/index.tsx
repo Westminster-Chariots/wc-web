@@ -142,3 +142,9 @@ export const ScrollArea = React.forwardRef<React.ElementRef<typeof ScrollAreaPri
   )
 );
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;
+
+// ─── DatePicker ──────────────────────────────────────────────────────────────
+export { default as DatePicker } from "./date-picker";
+
+// ─── TimePicker ──────────────────────────────────────────────────────────────
+export { default as TimePicker } from "./time-picker";
