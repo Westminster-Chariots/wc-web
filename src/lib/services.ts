@@ -256,9 +256,28 @@ export const pricingService = {
     return data;
   },
   
-  updateConfig: async (config: any) => {
-    const { data } = await api.patch("/pricing/config", config);
+  updateConfig: async (id: string, config: any) => {
+    const { data } = await api.patch(`/pricing/config/${id}`, config);
     return data;
+  },
+  
+  getZones: async () => {
+    const { data } = await api.get("/pricing/zones");
+    return data;
+  },
+  
+  createZone: async (zoneData: any) => {
+    const { data } = await api.post("/pricing/zones", zoneData);
+    return data;
+  },
+  
+  updateZone: async (id: string, updates: any) => {
+    const { data } = await api.patch(`/pricing/zones/${id}`, updates);
+    return data;
+  },
+  
+  deleteZone: async (id: string) => {
+    await api.delete(`/pricing/zones/${id}`);
   },
 };
 

@@ -10,7 +10,7 @@ import type { InvoiceData, InvoiceItem, InvoiceVariant } from "@/lib/generateInv
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
-import { bookingService, invoiceService } from "@/lib/services";
+import { bookingService, invoiceService, pricingService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
 
 const libraries: ("places")[] = ["places"];
@@ -29,6 +29,7 @@ export default function ManifestsPage() {
   const [activeTab, setActiveTab] = useState<"manifest" | "invoice">("manifest");
   // documentId is now deprecated - use invoiceData.invoiceNumber instead
   const [documentId, setDocumentId] = useState("");
+  const [pricingConfigs, setPricingConfigs] = useState<any[]>([]);
   const { bookings, loading } = useAdminBookings();
   const { drivers } = useDrivers();
   
@@ -105,6 +106,19 @@ export default function ManifestsPage() {
       setDocumentId(generateInvoiceNumber());
     }
   }, [documentId]);
+
+  // Load pricing configs from database
+  useEffect(() => {
+    const loadPricingConfigs = async () => {
+      try {
+        const configs = await pricingService.getConfig();
+        setPricingConfigs(configs);
+      } catch (error) {
+        console.error('Failed to load pricing configs:', error);
+      }
+    };
+    loadPricingConfigs();
+  }, []);
 
   // Enhanced search across multiple fields
   const filteredBookings = bookings.filter(b => {
@@ -235,6 +249,90 @@ export default function ManifestsPage() {
       ...prev,
       items: prev.items.map((item, i) => i === index ? { ...item, [field]: value } : item)
     }));
+  };
+
+  // Auto-calculate price when pickup/dropoff changes
+  const calculatePrice = async (pickup: string, dropoff: string, vehicleType: string = 'sedan') => {
+    if (!pickup || !dropoff) return 0;
+    
+    try {
+      // Use Google Distance Matrix API to calculate distance and duration
+      if (!window.google) return 0;
+      
+      const service = new google.maps.DistanceMatrixService();
+      const result = await new Promise<google.maps.DistanceMatrixResponse>((resolve, reject) => {
+        service.getDistanceMatrix(
+          {
+            origins: [pickup],
+            destinations: [dropoff],
+            travelMode: google.maps.TravelMode.DRIVING,
+            unitSystem: google.maps.UnitSystem.IMPERIAL,
+          },
+          (response, status) => {
+            if (status === 'OK' && response) {
+              resolve(response);
+            } else {
+              reject(status);
+            }
+          }
+        );
+      });
+
+      const element = result.rows[0]?.elements[0];
+      if (element?.status === 'OK') {
+        const distanceMiles = element.distance.value / 1609.34; // Convert meters to miles
+        const durationMinutes = element.duration.value / 60; // Convert seconds to minutes
+        
+        // Get pricing config from database
+        const vehicleTypeNormalized = vehicleType.toLowerCase();
+        const config = pricingConfigs.find(c => c.vehicleType.toLowerCase() === vehicleTypeNormalized);
+        
+        if (!config) {
+          // Fallback to default pricing if config not found
+          console.warn('Pricing config not found, using defaults');
+          let price = 0;
+          if (vehicleTypeNormalized.includes('suv')) {
+            price = 37 + (4.50 * distanceMiles) + (1.55 * durationMinutes);
+          } else {
+            price = 30 + (4.00 * distanceMiles) + (1.25 * durationMinutes);
+          }
+          return Math.round(price * 100) / 100;
+        }
+        
+        // Use database pricing formula:
+        // Price = baseRate + (ratePerMile × miles) + (ratePerMinute × minutes)
+        const baseRate = parseFloat(config.baseRate);
+        const ratePerMile = parseFloat(config.ratePerMile);
+        const ratePerMinute = parseFloat(config.ratePerMinute);
+        
+        const price = baseRate + (ratePerMile * distanceMiles) + (ratePerMinute * durationMinutes);
+        
+        return Math.round(price * 100) / 100; // Round to 2 decimals
+      }
+    } catch (error) {
+      console.error('Price calculation error:', error);
+    }
+    
+    return 0;
+  };
+
+  const updateInvoiceItemWithPriceCalc = async (index: number, field: keyof InvoiceItem, value: string | number) => {
+    updateInvoiceItem(index, field, value);
+    
+    // Auto-calculate price when pickup or dropoff changes
+    if (field === 'pickup' || field === 'dropoff') {
+      const item = invoiceData.items[index];
+      const pickup = field === 'pickup' ? value as string : item.pickup;
+      const dropoff = field === 'dropoff' ? value as string : item.dropoff;
+      
+      if (pickup && dropoff) {
+        const calculatedPrice = await calculatePrice(pickup, dropoff);
+        if (calculatedPrice > 0) {
+          updateInvoiceItem(index, 'price', calculatedPrice);
+          toast.success(`Price auto-calculated: $${calculatedPrice.toFixed(2)}`);
+        }
+      }
+    }
   };
 
   const addInvoiceItem = () => {
@@ -1071,9 +1169,14 @@ export default function ManifestsPage() {
                           variant === "dark" ? "text-gray-400" : "text-gray-600"
                         }`}>Invoice Date:</span>
                         {editing ? (
-                          <Input type="date" value={invoiceData.invoiceDate} onChange={(e) => updateInvoiceField('invoiceDate', e.target.value)} className={`h-7 text-xs max-w-[140px] ${
-                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                          }`} />
+                          <Input 
+                            type="date" 
+                            value={invoiceData.invoiceDate} 
+                            onChange={(e) => updateInvoiceField('invoiceDate', e.target.value)} 
+                            className={`h-7 text-xs max-w-[140px] ${
+                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                            }`} 
+                          />
                         ) : (
                           <span className={`text-sm ${
                             variant === "dark" ? "text-gray-100" : "text-gray-900"
@@ -1087,9 +1190,14 @@ export default function ManifestsPage() {
                           variant === "dark" ? "text-gray-400" : "text-gray-600"
                         }`}>Due Date:</span>
                         {editing ? (
-                          <Input type="date" value={invoiceData.dueDate} onChange={(e) => updateInvoiceField('dueDate', e.target.value)} className={`h-7 text-xs max-w-[140px] ${
-                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                          }`} />
+                          <Input 
+                            type="date" 
+                            value={invoiceData.dueDate} 
+                            onChange={(e) => updateInvoiceField('dueDate', e.target.value)} 
+                            className={`h-7 text-xs max-w-[140px] ${
+                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                            }`} 
+                          />
                         ) : (
                           <span className={`text-sm ${
                             variant === "dark" ? "text-gray-100" : "text-gray-900"
@@ -1151,12 +1259,22 @@ export default function ManifestsPage() {
                               <td className="py-8 px-4">
                                 {editing ? (
                                   <div className="space-y-1">
-                                    <Input value={item.pickupDate} onChange={(e) => updateInvoiceItem(index, 'pickupDate', e.target.value)} className={`h-7 text-xs ${
-                                      variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                                    }`} placeholder="MM/DD/YYYY" />
-                                    <Input value={item.pickupTime} onChange={(e) => updateInvoiceItem(index, 'pickupTime', e.target.value)} className={`h-7 text-xs ${
-                                      variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                                    }`} placeholder="HH:MM AM" />
+                                    <Input 
+                                      type="date" 
+                                      value={item.pickupDate} 
+                                      onChange={(e) => updateInvoiceItem(index, 'pickupDate', e.target.value)} 
+                                      className={`h-7 text-xs ${
+                                        variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                      }`} 
+                                    />
+                                    <Input 
+                                      type="time" 
+                                      value={item.pickupTime} 
+                                      onChange={(e) => updateInvoiceItem(index, 'pickupTime', e.target.value)} 
+                                      className={`h-7 text-xs ${
+                                        variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                      }`} 
+                                    />
                                   </div>
                                 ) : (
                                   <div className="text-sm">
@@ -1193,7 +1311,7 @@ export default function ManifestsPage() {
                                           <Input 
                                             ref={(el) => { pickupRefs.current[index] = el; }}
                                             value={item.pickup} 
-                                            onChange={(e) => updateInvoiceItem(index, 'pickup', e.target.value)} 
+                                            onChange={(e) => updateInvoiceItemWithPriceCalc(index, 'pickup', e.target.value)} 
                                             className={`h-7 text-xs ${
                                               variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
                                             }`}
@@ -1207,12 +1325,13 @@ export default function ManifestsPage() {
                                           <Input 
                                             ref={(el) => { dropoffRefs.current[index] = el; }}
                                             value={item.dropoff} 
-                                            onChange={(e) => updateInvoiceItem(index, 'dropoff', e.target.value)} 
+                                            onChange={(e) => updateInvoiceItemWithPriceCalc(index, 'dropoff', e.target.value)} 
                                             className={`h-7 text-xs ${
                                               variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
                                             }`}
                                             placeholder="Enter dropoff location"
                                           />
+                                        </div>
                                         </div>
                                       </div>
                                     </div>
