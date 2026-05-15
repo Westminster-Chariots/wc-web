@@ -160,8 +160,8 @@ export async function generateManifestDocx(
   }
 
   docChildren.push(
-    darkParagraph([new TextRun({ text: "18519 Kerill Rd, Triangle, VA 22172", font: "Calibri", size: 15, color: P.muted })], P, { alignment: AlignmentType.RIGHT }),
-    darkParagraph([new TextRun({ text: "(571) 435-1832", font: "Calibri", size: 15, color: P.muted })], P, { alignment: AlignmentType.RIGHT }),
+    darkParagraph([new TextRun({ text: "", font: "Calibri", size: 15, color: P.muted })], P, { alignment: AlignmentType.RIGHT }),
+    darkParagraph([new TextRun({ text: "(571) 426-6338", font: "Calibri", size: 15, color: P.muted })], P, { alignment: AlignmentType.RIGHT }),
     darkParagraph([new TextRun({ text: "Travel in Luxury, Arrive in Style", font: "Calibri", size: 15, color: P.accent, italics: true })], P, { alignment: AlignmentType.RIGHT, spacing: { after: 100 } }),
   );
 

@@ -30,8 +30,8 @@ export default function ManifestsPage() {
     pickupTime: "",
     spotTime: "",
     billTo: "Westminster Chariots",
-    address: "18519 Kerill Rd, Triangle, VA 22172",
-    phone: "(571) 435-1832",
+    address: "",
+    phone: "(571) 426-6338",
     passenger: "",
     bookedOn: "",
     pax: 1,
@@ -88,8 +88,8 @@ export default function ManifestsPage() {
       pickupTime: pickupDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       spotTime: spotTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       billTo: booking.clientName,
-      address: "18519 Kerill Rd, Triangle, VA 22172",
-      phone: "(571) 435-1832",
+      address: "",
+      phone: "(571) 426-6338",
       passenger: booking.clientName,
       bookedOn: bookedOnDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + bookedOnDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       pax: booking.paxCount,
@@ -342,8 +342,8 @@ export default function ManifestsPage() {
             <div className="flex items-center justify-between pb-4 border-b border-primary/30">
               <img src="/assets/wc-logo-no-motto.png" alt="Westminster Chariots" className="h-12 object-contain" />
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">18519 Kerill Rd, Triangle, VA 22172</p>
-                <p className="text-xs text-muted-foreground">(571) 435-1832</p>
+                <p className="text-xs text-muted-foreground"></p>
+                <p className="text-xs text-muted-foreground">(571) 426-6338</p>
                 <p className="text-xs text-primary italic">Travel in Luxury, Arrive in Style</p>
               </div>
             </div>

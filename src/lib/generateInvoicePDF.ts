@@ -122,7 +122,7 @@ export async function generateInvoicePDF(
   doc.setFontSize(7);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...P.muted);
-  doc.text("18519 Kerill Rd, Triangle, VA 22172", contactX, contactY);
+  doc.text("", contactX, contactY);
   doc.text("Phone: +1 (571) 426-6338", contactX, contactY + 9);
   doc.text("Email: book@westminsterchariots.com", contactX, contactY + 18);
   doc.setTextColor(...P.accent);

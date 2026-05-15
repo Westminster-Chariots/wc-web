@@ -49,8 +49,8 @@ export const sampleManifestData: ManifestData = {
   pickupTime: "11:40 AM",
   spotTime: "11:25 AM",
   billTo: "Westminster Chariots",
-  address: "18519 Kerill Rd, Triangle, VA 22172",
-  phone: "(571) 435-1832",
+  address: "",
+  phone: "(571) 426-6338",
   passenger: "Jennifer Reyes",
   bookedOn: "02/08/2026 07:45 AM",
   pax: 1,
@@ -140,8 +140,8 @@ export async function generateManifestPDF(
 
   doc.setFontSize(7.5);
   doc.setTextColor(...P.muted);
-  doc.text("18519 Kerill Rd, Triangle, VA 22172", rightX, y + 12, { align: "right" });
-  doc.text("(571) 435-1832", rightX, y + 22, { align: "right" });
+  doc.text("", rightX, y + 12, { align: "right" });
+  doc.text("(571) 426-6338", rightX, y + 22, { align: "right" });
   doc.setTextColor(...P.accent);
   doc.setFont("helvetica", "italic");
   doc.text("Travel in Luxury, Arrive in Style", rightX, y + 32, { align: "right" });
