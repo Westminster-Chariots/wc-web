@@ -2,7 +2,11 @@
 
 import { ChevronDown } from "lucide-react";
 
-export default function ServicesDropdown() {
+interface ServicesDropdownProps {
+  isDark?: boolean;
+}
+
+export default function ServicesDropdown({ isDark = false }: ServicesDropdownProps) {
   const services = [
     { name: "Airport Transfer", href: "/services#airport-transfer" },
     { name: "Corporate Car Service", href: "/services#corporate-car-service" },
@@ -18,7 +22,9 @@ export default function ServicesDropdown() {
 
   return (
     <div className="relative group">
-      <button className="flex items-center gap-1 text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative group">
+      <button className={`flex items-center gap-1 text-sm font-medium transition-all duration-300 relative group ${
+        isDark ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
+      }`}>
         <span className="relative z-10">Services</span>
         <ChevronDown className="h-3 w-3 group-hover:rotate-180 transition-transform duration-300" />
         <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
@@ -32,7 +38,7 @@ export default function ServicesDropdown() {
               <a
                 key={service.name}
                 href={service.href}
-                className="group block text-sm text-foreground/80 hover:text-foreground px-4 py-3 rounded-lg transition-all duration-300 relative overflow-hidden"
+                className="group block text-sm text-white/80 hover:text-white px-4 py-3 rounded-lg transition-all duration-300 relative overflow-hidden"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400/0 group-hover:bg-blue-400 transition-all duration-300 group-hover:scale-125"></span>

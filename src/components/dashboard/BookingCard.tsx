@@ -11,6 +11,10 @@ export interface UIBooking {
   reservationNumber: string;
   clientName: string;
   clientEmail?: string;
+  clientPhone?: string;
+  clientAddress?: string;
+  clientId?: string;
+  clientCode?: string;
   pickupDate: string;
   pickupTime: string;
   spotTime: string;
@@ -21,9 +25,11 @@ export interface UIBooking {
   status: "pending" | "assigned" | "enroute" | "onsite" | "inprogress" | "done" | "cancelled";
   driver?: string;
   driverId?: string;
+  driverName?: string;
   paxCount: number;
   flightTail?: string;
   specialRequests?: string;
+  notes?: string;
   price: number;
   isUrgent: boolean;
   distanceMiles?: number;

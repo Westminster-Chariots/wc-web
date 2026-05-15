@@ -15,6 +15,7 @@ interface Client {
   phone: string | null;
   isCorporate: boolean;
   corporateName: string | null;
+  clientCode: string | null;
   stateAbbrev: string;
   notes: string | null;
   createdAt: string;
@@ -98,7 +99,14 @@ export default function ClientsPage() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{client.displayName}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold truncate">{client.displayName}</p>
+                      {client.clientCode && (
+                        <span className="font-mono text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                          {client.clientCode}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground truncate">{client.email || "No email"}</p>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">

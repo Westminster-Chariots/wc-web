@@ -81,19 +81,19 @@ export default function LocationInput({ label, placeholder, value, onChange, ico
 
   return (
     <div ref={ref} className="relative">
-      {label && <label className="block text-xs uppercase tracking-widest text-muted-foreground font-body font-medium mb-2">{label}</label>}
+      {label && <label className="block text-xs uppercase tracking-widest text-white/70 font-body font-medium mb-2">{label}</label>}
       <div className="relative">
-        <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 ${icon === "pickup" ? "text-primary" : "text-muted-foreground"}`} />
+        <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 ${icon === "pickup" ? "text-blue-400" : "text-white/60"}`} />
         <input
           type="text" value={query}
           onChange={(e) => { setQuery(e.target.value); setSelected(false); onChange(e.target.value, false); }}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-border bg-secondary/50 pl-11 pr-10 py-3.5 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 focus:border-primary/30 transition-all"
+          className="w-full rounded-lg border border-white/20 bg-white/5 pl-11 pr-10 py-3.5 text-sm font-body text-white placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-blue-400/40 focus:border-blue-400/30 transition-all"
         />
-        {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />}
+        {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60 animate-spin" />}
         {query && !isSearching && (
-          <button onClick={handleClear} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" type="button">
+          <button onClick={handleClear} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors" type="button">
             <X className="h-4 w-4" />
           </button>
         )}
@@ -101,18 +101,18 @@ export default function LocationInput({ label, placeholder, value, onChange, ico
       <AnimatePresence>
         {isOpen && suggestions.length > 0 && (
           <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-            className="absolute z-50 w-full mt-1 rounded-lg border border-border bg-black/95 card-shadow overflow-hidden max-h-80 overflow-y-auto">
+            className="absolute z-50 w-full mt-1 rounded-lg border border-white/20 bg-black/95 card-shadow overflow-hidden max-h-80 overflow-y-auto backdrop-blur-xl">
             {suggestions.map((pred) => {
               const isAirport = isAirportPlace(pred.description, pred.types);
               return (
                 <button key={pred.place_id} onMouseDown={(e) => e.preventDefault()} onClick={() => handleSelect(pred)}
-                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-muted border-l-2 border-l-transparent hover:border-l-primary transition-all text-left" type="button">
-                  <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/10 border-l-2 border-l-transparent hover:border-l-blue-400 transition-all text-left" type="button">
+                  <MapPin className="h-4 w-4 text-blue-400 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-body text-foreground truncate">{pred.structured_formatting.main_text}</p>
-                    <p className="text-xs text-muted-foreground font-body truncate">{pred.structured_formatting.secondary_text}</p>
+                    <p className="text-sm font-body text-white truncate">{pred.structured_formatting.main_text}</p>
+                    <p className="text-xs text-white/60 font-body truncate">{pred.structured_formatting.secondary_text}</p>
                   </div>
-                  {isAirport && <span className="ml-auto text-[10px] uppercase tracking-wider text-primary bg-primary/10 rounded-full px-2 py-0.5 font-body shrink-0">Aviation</span>}
+                  {isAirport && <span className="ml-auto text-[10px] uppercase tracking-wider text-blue-400 bg-blue-400/10 rounded-full px-2 py-0.5 font-body shrink-0">Aviation</span>}
                 </button>
               );
             })}

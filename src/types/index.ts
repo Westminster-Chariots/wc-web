@@ -47,6 +47,7 @@ export interface Booking {
   clientName: string | null;
   clientPhone: string | null;
   clientEmail: string | null;
+  clientCode: string | null;
   emailPhase: string | null;
   tripGroupId: string | null;
   legOrder: number | null;

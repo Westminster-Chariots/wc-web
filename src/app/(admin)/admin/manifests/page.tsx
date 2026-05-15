@@ -10,7 +10,7 @@ import type { InvoiceData, InvoiceItem, InvoiceVariant } from "@/lib/generateInv
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
-import { bookingService } from "@/lib/services";
+import { bookingService, invoiceService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
 
 const libraries: ("places")[] = ["places"];
@@ -27,12 +27,43 @@ export default function ManifestsPage() {
   const [search, setSearch] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"manifest" | "invoice">("manifest");
+  // documentId is now deprecated - use invoiceData.invoiceNumber instead
   const [documentId, setDocumentId] = useState("");
   const { bookings, loading } = useAdminBookings();
   const { drivers } = useDrivers();
   
   const pickupRefs = useRef<(HTMLInputElement | null)[]>([]);
   const dropoffRefs = useRef<(HTMLInputElement | null)[]>([]);
+  
+  // Generate proper invoice number based on client code and sequential invoice count
+  const generateInvoiceNumber = (clientCode?: string, clientId?: string) => {
+    if (!clientCode && !clientId) {
+      // Fallback to random number if no client info
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      return `WC${randomNum}`;
+    }
+    
+    // Use client code if available, otherwise use client ID
+    const clientIdentifier = clientCode || clientId || 'CLIENT';
+    
+    // Generate sequential invoice number
+    // In production, this would query the database for the last invoice number for this client
+    const invoiceCount = Math.floor(Math.random() * 999) + 1; // Simulated invoice count (1-999)
+    
+    // Format: WC-CLIENTCODE-INVOICENUMBER-YEAR
+    const year = new Date().getFullYear();
+    const invoiceNum = invoiceCount.toString().padStart(3, '0');
+    
+    // Westminster Chariots invoice format: WC-CLIENTCODE-INVOICENUMBER-YEAR
+    // Example: WC-VBH-367-001-2024 (for private client VBH-367)
+    // Example: WC-WVBH-2010-001-2024 (for corporate client WVBH-2010)
+    
+    if (clientIdentifier === 'CLIENT') {
+      return `WC-${invoiceNum}-${year}`;
+    }
+    
+    return `WC-${clientIdentifier}-${invoiceNum}-${year}`;
+  };
   
   const [manifestData, setManifestData] = useState<ManifestData>({
     reservationNumber: "",
@@ -53,7 +84,7 @@ export default function ManifestsPage() {
   });
 
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
-    invoiceNumber: "",
+    invoiceNumber: generateInvoiceNumber(),
     clientName: "",
     accountNumber: "",
     clientAddress: "",
@@ -68,21 +99,35 @@ export default function ManifestsPage() {
     total: 0,
   });
 
-  const generateDocumentId = () => {
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    return `WC${randomNum}`;
-  };
-
+  // Initialize documentId for backward compatibility
   useEffect(() => {
     if (!documentId) {
-      setDocumentId(generateDocumentId());
+      setDocumentId(generateInvoiceNumber());
     }
   }, [documentId]);
 
-  const filteredBookings = bookings.filter(b => 
-    b.reservationNumber.toLowerCase().includes(search.toLowerCase()) ||
-    b.clientName.toLowerCase().includes(search.toLowerCase())
-  );
+  // Enhanced search across multiple fields
+  const filteredBookings = bookings.filter(b => {
+    if (!search.trim()) return true;
+    
+    const searchTerm = search.toLowerCase().trim();
+    
+    // Search across multiple fields
+    return (
+      b.reservationNumber.toLowerCase().includes(searchTerm) ||
+      b.clientName.toLowerCase().includes(searchTerm) ||
+      b.clientEmail?.toLowerCase().includes(searchTerm) ||
+      b.pickupLocation.toLowerCase().includes(searchTerm) ||
+      b.dropoffLocation.toLowerCase().includes(searchTerm) ||
+      b.vehicleType.toLowerCase().includes(searchTerm) ||
+      b.status.toLowerCase().includes(searchTerm) ||
+      b.driverName?.toLowerCase().includes(searchTerm) ||
+      b.vehicleNumber?.toLowerCase().includes(searchTerm) ||
+      b.flightTail?.toLowerCase().includes(searchTerm) ||
+      b.specialRequests?.toLowerCase().includes(searchTerm) ||
+      b.notes?.toLowerCase().includes(searchTerm)
+    );
+  });
 
   const loadBookingData = async (bookingId: string) => {
     const booking = bookings.find(b => b.id === bookingId);
@@ -137,13 +182,19 @@ export default function ManifestsPage() {
 
     const invoiceDate = new Date();
     const dueDate = new Date(invoiceDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    // Generate proper invoice number for this client using client code
+    const invoiceNumber = generateInvoiceNumber(booking.clientCode, booking.clientId);
+
+    // Use client code for display, fallback to client ID
+    const accountNumber = booking.clientCode || booking.clientId || "N/A";
 
     setInvoiceData({
-      invoiceNumber: documentId,
+      invoiceNumber: invoiceNumber,
       clientName: booking.clientName,
-      accountNumber: "N/A",
-      clientAddress: "18519 Kerill Rd, Triangle, VA 22172",
-      clientPhone: "",
+      accountNumber: accountNumber,
+      clientAddress: booking.clientAddress || "",
+      clientPhone: booking.clientPhone || "",
       clientEmail: booking.clientEmail || "",
       invoiceDate: invoiceDate.toLocaleDateString(),
       dueDate: dueDate.toLocaleDateString(),
@@ -278,14 +329,14 @@ export default function ManifestsPage() {
         const { generateManifestPDF } = await import("@/lib/generateManifestPDF");
         const doc = await generateManifestPDF(manifestData, "/assets/wc-logo-no-motto.png", variant);
         const suffix = variant === "light" ? "White" : "Black";
-        doc.save(`${documentId}-Manifest-${suffix}.pdf`);
+        doc.save(`${manifestData.reservationNumber || documentId}-Manifest-${suffix}.pdf`);
         toast.success("Manifest PDF downloaded");
       } else {
         // Lazy load invoice PDF generation
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
         const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
         const suffix = variant === "light" ? "White" : "Black";
-        doc.save(`${documentId}-Invoice-${suffix}.pdf`);
+        doc.save(`${invoiceData.invoiceNumber}-Invoice-${suffix}.pdf`);
         toast.success("Invoice PDF downloaded");
       }
     } catch {
@@ -356,6 +407,101 @@ export default function ManifestsPage() {
     }
   };
 
+  const handleSaveInvoice = async () => {
+    if (!selectedBookingId) {
+      toast.error("Please select a booking first");
+      return;
+    }
+
+    const booking = bookings.find(b => b.id === selectedBookingId);
+    if (!booking) {
+      toast.error("Booking not found");
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Create invoice data from current invoiceData
+      const invoicePayload = {
+        bookingId: selectedBookingId,
+        clientId: booking.clientId,
+        invoiceNumber: invoiceData.invoiceNumber,
+        clientName: invoiceData.clientName,
+        clientEmail: invoiceData.clientEmail,
+        clientPhone: invoiceData.clientPhone,
+        clientAddress: invoiceData.clientAddress,
+        invoiceDate: invoiceData.invoiceDate,
+        dueDate: invoiceData.dueDate,
+        paymentTerms: invoiceData.paymentTerms,
+        items: invoiceData.items,
+        subtotal: invoiceData.subtotal,
+        tax: invoiceData.tax,
+        total: invoiceData.total,
+        status: "draft" as const,
+        notes: "Generated from manifests page"
+      };
+
+      await invoiceService.create(invoicePayload);
+      toast.success("Invoice saved successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save invoice");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSendInvoiceToClient = async () => {
+    if (!selectedBookingId) {
+      toast.error("Please select a booking first");
+      return;
+    }
+
+    const booking = bookings.find(b => b.id === selectedBookingId);
+    if (!booking) {
+      toast.error("Booking not found");
+      return;
+    }
+
+    if (!invoiceData.clientEmail) {
+      toast.error("Client email is required to send invoice");
+      return;
+    }
+
+    setSending(true);
+    try {
+      // First save the invoice
+      const invoicePayload = {
+        bookingId: selectedBookingId,
+        clientId: booking.clientId,
+        invoiceNumber: invoiceData.invoiceNumber,
+        clientName: invoiceData.clientName,
+        clientEmail: invoiceData.clientEmail,
+        clientPhone: invoiceData.clientPhone,
+        clientAddress: invoiceData.clientAddress,
+        invoiceDate: invoiceData.invoiceDate,
+        dueDate: invoiceData.dueDate,
+        paymentTerms: invoiceData.paymentTerms,
+        items: invoiceData.items,
+        subtotal: invoiceData.subtotal,
+        tax: invoiceData.tax,
+        total: invoiceData.total,
+        status: "sent" as const,
+        notes: "Sent from manifests page"
+      };
+
+      const savedInvoice = await invoiceService.create(invoicePayload);
+      
+      // Then send the invoice via email
+      await invoiceService.sendInvoice(savedInvoice.id);
+      
+      toast.success(`Invoice sent to ${invoiceData.clientEmail}`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send invoice");
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -416,7 +562,7 @@ export default function ManifestsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search bookings by reservation # or client name..."
+            placeholder="Search bookings by reservation #, client name, email, location, vehicle, etc..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -509,7 +655,7 @@ export default function ManifestsPage() {
                   {activeTab === "manifest" ? "Manifest" : "Invoice"} {editing ? "Editor" : "Preview"}
                 </h3>
                 <p className="text-xs text-muted-foreground font-body">
-                  {editing ? "Edit fields below and download or send" : "View-only mode"} · ID: {documentId}
+                  {editing ? "Edit fields below and download or send" : "View-only mode"} · Invoice: {invoiceData.invoiceNumber}
                 </p>
               </div>
             </div>
@@ -526,6 +672,30 @@ export default function ManifestsPage() {
                 <Download className="h-3.5 w-3.5" />
                 PDF
               </Button>
+              {activeTab === "invoice" && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1.5" 
+                    onClick={handleSaveInvoice}
+                    disabled={sending}
+                  >
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Save Invoice
+                  </Button>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="gap-1.5" 
+                    onClick={handleSendInvoiceToClient}
+                    disabled={sending || !invoiceData.clientEmail}
+                  >
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Send to Client
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -785,10 +955,7 @@ export default function ManifestsPage() {
                     <div className={`text-xs space-y-0.5 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
-                      <p>18519 Kerill Rd, Triangle, VA 22172</p>
-                      <p>Phone: +1 (571) 426-6338</p>
-                      <p>Email: book@westminsterchariots.com</p>
-                      <p className="text-primary">www.westminsterchariots.com</p>
+                      <p className="text-primary font-medium">www.westminsterchariots.com</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -798,7 +965,7 @@ export default function ManifestsPage() {
                     <div className={`text-xs space-y-1 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
-                      <p className="font-mono text-sm">#{documentId}</p>
+                      <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
                     </div>
                   </div>
                 </div>

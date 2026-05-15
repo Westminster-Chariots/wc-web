@@ -33,7 +33,7 @@ export default function HeroSection({
   handleSearch,
 }: HeroSectionProps) {
   return (
-    <section ref={heroRef} className="relative min-h-screen flex items-center pt-20">
+    <section ref={heroRef} className="relative min-h-screen flex items-center pt-20" data-theme="dark">
       <div className="absolute inset-0 z-0">
         <Image 
           src="/assets/hero-car.jpg" 
@@ -54,7 +54,7 @@ export default function HeroSection({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-5 text-xs font-medium uppercase tracking-[0.45em] text-foreground/80"
+            className="mb-5 text-xs font-medium uppercase tracking-[0.45em] text-white/90"
           >
             DC's Premier Black Car Service
           </motion.p>
@@ -62,7 +62,7 @@ export default function HeroSection({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-foreground/95 drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
+            className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
           >
             Your chariot awaits.
           </motion.h1>
@@ -70,7 +70,7 @@ export default function HeroSection({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="mt-6 max-w-xl mx-auto text-sm font-medium uppercase tracking-[0.3em] text-foreground/70 h-8"
+            className="mt-6 max-w-xl mx-auto text-sm font-medium uppercase tracking-[0.3em] text-white/80 h-8"
           >
             {typedText}<span className="animate-pulse">|</span>
           </motion.div>
@@ -86,13 +86,13 @@ export default function HeroSection({
           <div className="inline-flex items-center rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md">
             <button 
               onClick={() => setBookingMode("oneway")}
-              className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "oneway" ? 'bg-blue-gradient shadow-blue text-primary-foreground' : 'text-foreground/85 hover:text-foreground'}`}
+              className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "oneway" ? 'bg-blue-gradient shadow-blue text-white' : 'text-white/85 hover:text-white'}`}
             >
               One way
             </button>
             <button 
               onClick={() => setBookingMode("hourly")}
-              className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "hourly" ? 'bg-blue-gradient shadow-blue text-primary-foreground' : 'text-foreground/85 hover:text-foreground'}`}
+              className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "hourly" ? 'bg-blue-gradient shadow-blue text-white' : 'text-white/85 hover:text-white'}`}
             >
               By the hour
             </button>
@@ -114,10 +114,10 @@ export default function HeroSection({
                 onClick={(e) => openModal("pickup", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
               >
-                <div className="text-[12px] font-semibold text-foreground">Pickup location</div>
+                <div className="text-[12px] font-semibold text-white">Pickup location</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
-                  <div className="text-[14px] text-foreground">
-                    {pickup || <span className="text-foreground/45">Address, airport, hotel, …</span>}
+                  <div className="text-[14px] text-white">
+                    {pickup || <span className="text-white/50">Address, airport, hotel, …</span>}
                   </div>
                 </div>
               </button>
@@ -132,10 +132,10 @@ export default function HeroSection({
                     onClick={(e) => openModal("dropoff", e)}
                     className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
                   >
-                    <div className="text-[12px] font-semibold text-foreground">Drop-off location</div>
+                    <div className="text-[12px] font-semibold text-white">Drop-off location</div>
                     <div className="mt-1 border-b border-white/15 pb-1">
-                      <div className="text-[14px] text-foreground">
-                        {dropoff || <span className="text-foreground/45">Address, airport, hotel, …</span>}
+                      <div className="text-[14px] text-white">
+                        {dropoff || <span className="text-white/50">Address, airport, hotel, …</span>}
                       </div>
                     </div>
                   </button>
@@ -149,10 +149,10 @@ export default function HeroSection({
                 onClick={(e) => openModal("date", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
               >
-                <div className="text-[12px] font-semibold text-foreground">Date</div>
+                <div className="text-[12px] font-semibold text-white">Date</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
-                  <div className="text-[14px] text-foreground">
-                    {pickupDate || <span className="text-foreground/45">Select a date</span>}
+                  <div className="text-[14px] text-white">
+                    {pickupDate || <span className="text-white/50">Select a date</span>}
                   </div>
                 </div>
               </button>
@@ -165,10 +165,10 @@ export default function HeroSection({
                 onClick={(e) => openModal("time", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
               >
-                <div className="text-[12px] font-semibold text-foreground">Pickup time</div>
+                <div className="text-[12px] font-semibold text-white">Pickup time</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
-                  <div className="text-[14px] text-foreground">
-                    {pickupTime || <span className="text-foreground/45">Select time</span>}
+                  <div className="text-[14px] text-white">
+                    {pickupTime || <span className="text-white/50">Select time</span>}
                   </div>
                 </div>
               </button>
@@ -177,7 +177,7 @@ export default function HeroSection({
               <div className="p-3 md:p-4">
                 <Button
                   onClick={handleSearch}
-                  className="bg-blue-gradient shadow-blue w-full md:w-auto rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-gradient shadow-blue w-full md:w-auto rounded-full px-8 py-4 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!pickup || (bookingMode === "oneway" && !dropoff) || !pickupDate || !pickupTime}
                 >
                   View options
@@ -188,7 +188,7 @@ export default function HeroSection({
         </motion.div>
 
         {/* Trust Badges */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.4 }}
@@ -206,7 +206,7 @@ export default function HeroSection({
             <Star className="h-5 w-5" />
             <span className="text-sm">5-Star Rated</span>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </section>
   );

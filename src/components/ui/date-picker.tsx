@@ -86,19 +86,19 @@ export default function DatePicker({ value, onChange, minDate, maxDate }: DatePi
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-300 text-foreground/80 hover:text-foreground"
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-300 text-white/80 hover:text-white"
           aria-label="Previous month"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
         
-        <h3 className="text-lg font-semibold text-foreground">
+        <h3 className="text-lg font-semibold text-white">
           {monthNames[currentMonth]} {currentYear}
         </h3>
         
         <button
           onClick={nextMonth}
-          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-300 text-foreground/80 hover:text-foreground"
+          className="p-1.5 rounded-lg hover:bg-white/10 transition-colors duration-300 text-white/80 hover:text-white"
           aria-label="Next month"
         >
           <ChevronRight className="h-4 w-4" />
@@ -108,7 +108,7 @@ export default function DatePicker({ value, onChange, minDate, maxDate }: DatePi
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 gap-0.5 mb-2">
         {weekdays.map((day) => (
-          <div key={day} className="text-center text-xs font-medium text-foreground/60 py-1">
+          <div key={day} className="text-center text-xs font-medium text-white/60 py-1">
             {day}
           </div>
         ))}
@@ -136,12 +136,12 @@ export default function DatePicker({ value, onChange, minDate, maxDate }: DatePi
                 h-8 rounded-md flex items-center justify-center text-xs font-medium
                 transition-all duration-300 relative
                 ${disabled 
-                  ? 'text-foreground/30 cursor-not-allowed' 
+                  ? 'text-white/30 cursor-not-allowed' 
                   : selected
-                    ? 'bg-blue-gradient text-primary-foreground scale-105'
+                    ? 'bg-blue-gradient text-white scale-105'
                     : today
                       ? 'text-blue-400 hover:bg-blue-400/10'
-                      : 'text-foreground/80 hover:text-foreground hover:bg-white/10'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
                 }
               `}
             >
@@ -161,7 +161,7 @@ export default function DatePicker({ value, onChange, minDate, maxDate }: DatePi
             setSelectedDate(today);
             onChange(today.toISOString().split('T')[0]);
           }}
-          className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-foreground/80 hover:text-foreground transition-all duration-300 text-sm font-medium"
+          className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-300 text-sm font-medium"
         >
           Select Today
         </button>

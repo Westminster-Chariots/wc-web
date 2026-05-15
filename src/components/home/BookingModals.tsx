@@ -78,7 +78,14 @@ export default function BookingModals({
           opacity: 0 
         }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="glass-strong rounded-2xl p-4 max-w-md w-full"
+        className="relative rounded-2xl p-6 max-w-md w-full overflow-hidden"
+        style={{
+          background: '#1a1a1a66',
+          backdropFilter: 'blur(80px) saturate(200%)',
+          WebkitBackdropFilter: 'blur(80px) saturate(200%)',
+          border: '1px solid #fff3',
+          boxShadow: '0 32px 100px -20px #000c, inset 0 1px #ffffff1a'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {activeModal === "pickup" && (
@@ -88,8 +95,8 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="text-xl font-serif text-foreground mb-1">Where are we picking you up?</h2>
-              <p className="text-foreground/70 mb-4 text-sm">Set your pickup location.</p>
+              <h2 className="text-xl font-serif text-white mb-1">Where are we picking you up?</h2>
+              <p className="text-white/70 mb-4 text-sm">Set your pickup location.</p>
             </motion.div>
             
             <motion.div
@@ -128,8 +135,8 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="text-xl font-serif text-foreground mb-1">Where to?</h2>
-              <p className="text-foreground/70 mb-4 text-sm">Your destination awaits.</p>
+              <h2 className="text-xl font-serif text-white mb-1">Where to?</h2>
+              <p className="text-white/70 mb-4 text-sm">Your destination awaits.</p>
             </motion.div>
             
             <motion.div
@@ -165,8 +172,8 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="text-xl font-serif text-foreground mb-1">When do you need us?</h2>
-              <p className="text-foreground/70 mb-4 text-sm">Choose your date. We're available 24/7.</p>
+              <h2 className="text-xl font-serif text-white mb-1">When do you need us?</h2>
+              <p className="text-white/70 mb-4 text-sm">Choose your date. We're available 24/7.</p>
             </motion.div>
             
             <motion.div
@@ -201,8 +208,8 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <h2 className="text-xl font-serif text-foreground mb-1">What time?</h2>
-              <p className="text-foreground/70 mb-4 text-sm">Select your pickup time.</p>
+              <h2 className="text-xl font-serif text-white mb-1">What time?</h2>
+              <p className="text-white/70 mb-4 text-sm">Select your pickup time.</p>
             </motion.div>
             
             <motion.div

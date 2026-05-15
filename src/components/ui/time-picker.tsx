@@ -65,17 +65,17 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
     <div className="bg-black/95 rounded-xl border border-white/20 p-4 backdrop-blur-xl shadow-2xl">
       {/* Time Display */}
       <div className="text-center mb-4">
-        <div className="text-2xl font-bold text-foreground mb-1">
+        <div className="text-2xl font-bold text-white mb-1">
           {selectedHour !== null ? selectedHour.toString().padStart(2, '0') : '--'}:{selectedMinute !== null ? selectedMinute.toString().padStart(2, '0') : '--'}
-          <span className="text-base font-normal text-foreground/60 ml-1">{isAM ? 'AM' : 'PM'}</span>
+          <span className="text-base font-normal text-white/60 ml-1">{isAM ? 'AM' : 'PM'}</span>
         </div>
-        <div className="text-xs text-foreground/60">Selected Time</div>
+        <div className="text-xs text-white/60">Selected Time</div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Hours Column */}
         <div>
-          <div className="text-xs font-medium text-foreground/60 mb-2 text-center">Hour</div>
+          <div className="text-xs font-medium text-white/60 mb-2 text-center">Hour</div>
           <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
             {hours.map((hour) => {
               const disabled = isTimeDisabled(hour, selectedMinute || 0, isAM);
@@ -89,10 +89,10 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
                   className={`
                     py-2 rounded-lg text-xs font-medium transition-all duration-300
                     ${disabled 
-                      ? 'text-foreground/30 cursor-not-allowed' 
+                      ? 'text-white/30 cursor-not-allowed' 
                       : selected
-                        ? 'bg-blue-gradient text-primary-foreground scale-105'
-                        : 'text-foreground/80 hover:text-foreground hover:bg-white/10'
+                        ? 'bg-blue-gradient text-white scale-105'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
                     }
                   `}
                 >
@@ -105,7 +105,7 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
 
         {/* Minutes Column */}
         <div>
-          <div className="text-xs font-medium text-foreground/60 mb-2 text-center">Minute</div>
+          <div className="text-xs font-medium text-white/60 mb-2 text-center">Minute</div>
           <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto pr-1">
             {minutes.map((minute) => {
               const disabled = isTimeDisabled(selectedHour || 1, minute, isAM);
@@ -119,10 +119,10 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
                   className={`
                     py-2 rounded-lg text-xs font-medium transition-all duration-300
                     ${disabled 
-                      ? 'text-foreground/30 cursor-not-allowed' 
+                      ? 'text-white/30 cursor-not-allowed' 
                       : selected
-                        ? 'bg-blue-gradient text-primary-foreground scale-105'
-                        : 'text-foreground/80 hover:text-foreground hover:bg-white/10'
+                        ? 'bg-blue-gradient text-white scale-105'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
                     }
                   `}
                 >
@@ -142,8 +142,8 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
             className={`
               flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-300
               ${isAM 
-                ? 'bg-blue-gradient text-primary-foreground' 
-                : 'bg-white/5 text-foreground/80 hover:text-foreground hover:bg-white/10'
+                ? 'bg-blue-gradient text-white' 
+                : 'bg-white/5 text-white/80 hover:text-white hover:bg-white/10'
               }
             `}
           >
@@ -154,8 +154,8 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
             className={`
               flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-300
               ${!isAM 
-                ? 'bg-blue-gradient text-primary-foreground' 
-                : 'bg-white/5 text-foreground/80 hover:text-foreground hover:bg-white/10'
+                ? 'bg-blue-gradient text-white' 
+                : 'bg-white/5 text-white/80 hover:text-white hover:bg-white/10'
               }
             `}
           >
@@ -178,7 +178,7 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
             setIsAM(isAm);
             updateTime(hour, minute, isAm);
           }}
-          className="py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-foreground/80 hover:text-foreground transition-all duration-300 text-xs"
+          className="py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-300 text-xs"
         >
           Now
         </button>
@@ -189,7 +189,7 @@ export default function TimePicker({ value, onChange, minTime, maxTime }: TimePi
             setIsAM(true);
             updateTime(12, 0, true);
           }}
-          className="py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-foreground/80 hover:text-foreground transition-all duration-300 text-xs"
+          className="py-1.5 rounded-md bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-all duration-300 text-xs"
         >
           12:00 PM
         </button>

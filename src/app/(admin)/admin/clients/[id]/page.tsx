@@ -16,6 +16,7 @@ interface Client {
   phone: string | null;
   isCorporate: boolean;
   corporateName: string | null;
+  clientCode: string | null;
   stateAbbrev: string;
   notes: string | null;
   createdAt: string;
@@ -143,6 +144,16 @@ export default function ClientDetailPage() {
             <div>
               <p className="text-muted-foreground text-xs">Type</p>
               <p>{client.isCorporate ? "Corporate" : "Individual"}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Client Code</p>
+              <p className="font-mono font-semibold text-primary">{client.clientCode || "—"}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mt-3 pt-3 border-t border-border">
+            <div>
+              <p className="text-muted-foreground text-xs">State</p>
+              <p>{client.stateAbbrev}</p>
             </div>
             <div>
               <p className="text-muted-foreground text-xs">Since</p>
