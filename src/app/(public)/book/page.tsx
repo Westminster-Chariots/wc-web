@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone, MapPin, Clock, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone, MapPin, Clock, X, Edit2, Save } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
 import { notify } from "@/lib/notify";
 import type { FleetVehicle } from "@/types";
+import { useLoadScript } from "@react-google-maps/api";
+import { Input } from "@/components/ui/input";
+
+const libraries: ("places")[] = ["places"];
 
 const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] as const;
 
@@ -36,8 +40,20 @@ export default function BookingPage() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
   const [loadingFleet, setLoadingFleet] = useState(true);
+  const [isEditingTrip, setIsEditingTrip] = useState(false);
+  const [editPickup, setEditPickup] = useState(pickup);
+  const [editDropoff, setEditDropoff] = useState(dropoff);
+  const [editDate, setEditDate] = useState(pickupDate);
+  const [editTime, setEditTime] = useState(pickupTime);
+  const pickupInputRef = useRef<HTMLInputElement>(null);
+  const dropoffInputRef = useRef<HTMLInputElement>(null);
 
-  const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
+    libraries,
+  });
+
+  const { route, isLoading: isLoadingRoute, error: routeError, refetch: refetchRoute } = useRouteDetails(pickup, dropoff);
 
   // Show loading state while redirecting
   if (!pickup || !dropoff) {
@@ -138,6 +154,51 @@ export default function BookingPage() {
     router.push("/book/details");
   };
 
+  const handleSaveEdit = () => {
+    if (!editPickup || !editDropoff || !editDate || !editTime) {
+      notify.error("Please fill in all fields");
+      return;
+    }
+    update({ 
+      pickup: editPickup, 
+      dropoff: editDropoff, 
+      pickupDate: editDate, 
+      pickupTime: editTime 
+    });
+    setIsEditingTrip(false);
+    notify.success("Trip details updated");
+  };
+
+  const handleCancelEdit = () => {
+    setEditPickup(pickup);
+    setEditDropoff(dropoff);
+    setEditDate(pickupDate);
+    setEditTime(pickupTime);
+    setIsEditingTrip(false);
+  };
+
+  useEffect(() => {
+    if (!isLoaded || !isEditingTrip) return;
+
+    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void) => {
+      if (!input || !window.google) return;
+      
+      const autocomplete = new window.google.maps.places.Autocomplete(input, {
+        fields: ["formatted_address"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (place.formatted_address) {
+          setter(place.formatted_address);
+        }
+      });
+    };
+
+    setupAutocomplete(pickupInputRef.current, setEditPickup);
+    setupAutocomplete(dropoffInputRef.current, setEditDropoff);
+  }, [isLoaded, isEditingTrip]);
+
   const vehiclesWithPrices = vehicles.map((v) => ({
     ...v,
     price: v.type === "sedan" ? sedanPrice : suvPrice,
@@ -147,47 +208,127 @@ export default function BookingPage() {
     <>
       {route && currentStep === 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-4 sm:p-6 mb-6 sm:mb-10">
-            {formattedDate && formattedTime && (
-              <p className="text-sm sm:text-base font-display font-semibold text-foreground mb-2 sm:mb-3">
-                {formattedDate} at {formattedTime} (EST)
-              </p>
+            <div className="flex items-start justify-between mb-2 sm:mb-3">
+              {!isEditingTrip ? (
+                <div className="flex-1">
+                  {formattedDate && formattedTime && (
+                    <p className="text-sm sm:text-base font-display font-semibold text-foreground">
+                      {formattedDate} at {formattedTime} (EST)
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                    <Input
+                      type="time"
+                      value={editTime}
+                      onChange={(e) => setEditTime(e.target.value)}
+                      className="h-9 text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-2 ml-3">
+                {!isEditingTrip ? (
+                  <button
+                    onClick={() => setIsEditingTrip(true)}
+                    className="p-2 rounded-lg hover:bg-secondary transition-colors group"
+                    title="Edit trip details"
+                  >
+                    <Edit2 className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleCancelEdit}
+                      className="p-2 rounded-lg hover:bg-secondary transition-colors"
+                      title="Cancel"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="p-2 rounded-lg bg-primary hover:bg-primary/90 transition-colors"
+                      title="Save changes"
+                    >
+                      <Save className="h-4 w-4 text-white" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {!isEditingTrip ? (
+              <>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm font-body">
+                  <span className="text-primary truncate">{pickup}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
+                  <span className="text-muted-foreground text-xs sm:hidden">→</span>
+                  <span className="text-muted-foreground truncate">{dropoff}</span>
+                </div>
+                <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs text-muted-foreground font-body">
+                  {estimatedArrival && <span>Est. arrival {estimatedArrival}</span>}
+                  <span>•</span>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                    <span>{route.distance.toFixed(1)} mi</span>
+                  </div>
+                  <span>•</span>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
+                    <span>{route.duration} min</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-muted-foreground font-body mb-1 block">Pickup Location</label>
+                  <Input
+                    ref={pickupInputRef}
+                    value={editPickup}
+                    onChange={(e) => setEditPickup(e.target.value)}
+                    placeholder="Enter pickup address"
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-body mb-1 block">Dropoff Location</label>
+                  <Input
+                    ref={dropoffInputRef}
+                    value={editDropoff}
+                    onChange={(e) => setEditDropoff(e.target.value)}
+                    placeholder="Enter dropoff address"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm font-body">
-              <span className="text-primary truncate">{pickup}</span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 hidden sm:block" />
-              <span className="text-muted-foreground text-xs sm:hidden">→</span>
-              <span className="text-muted-foreground truncate">{dropoff}</span>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs text-muted-foreground font-body">
-              {estimatedArrival && <span>Est. arrival {estimatedArrival}</span>}
-              <span>•</span>
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span>{route.distance.toFixed(1)} mi</span>
-              </div>
-              <span>•</span>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-primary" />
-                <span>{route.duration} min</span>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowMapModal(true)}
-              className="mt-3 w-full rounded-lg overflow-hidden border border-border bg-secondary/30 h-32 relative group cursor-pointer hover:border-primary/40 transition-colors"
-            >
-              <iframe
-                width="100%"
-                height="100%"
-                style={{ border: 0, pointerEvents: 'none' }}
-                loading="lazy"
-                src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&mode=driving`}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                <span className="text-xs font-body text-white bg-black/60 px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  Click to view larger
-                </span>
-              </div>
-            </button>
+            {!isEditingTrip && (
+              <button
+                onClick={() => setShowMapModal(true)}
+                className="mt-3 w-full rounded-lg overflow-hidden border border-border bg-secondary/30 h-32 relative group cursor-pointer hover:border-primary/40 transition-colors"
+              >
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0, pointerEvents: 'none' }}
+                  loading="lazy"
+                  src={`https://www.google.com/maps/embed/v1/directions?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&mode=driving`}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <span className="text-xs font-body text-white bg-black/60 px-3 py-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click to view larger
+                  </span>
+                </div>
+              </button>
+            )}
           </motion.div>
         )}
 

@@ -35,11 +35,31 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
       if (activeFilter === 'urgent') return b.isUrgent && b.status !== 'done';
       if (activeFilter !== 'all') return b.status === activeFilter;
       return true;
-    }).filter(b =>
-      searchQuery === '' ||
-      b.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.reservationNumber.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    }).filter(b => {
+      if (searchQuery === '') return true;
+      
+      const query = searchQuery.toLowerCase();
+      
+      // Search across all relevant fields
+      return (
+        b.clientName?.toLowerCase().includes(query) ||
+        b.clientEmail?.toLowerCase().includes(query) ||
+        b.clientPhone?.toLowerCase().includes(query) ||
+        b.reservationNumber?.toLowerCase().includes(query) ||
+        b.pickupLocation?.toLowerCase().includes(query) ||
+        b.dropoffLocation?.toLowerCase().includes(query) ||
+        b.pickupDate?.toLowerCase().includes(query) ||
+        b.pickupTime?.toLowerCase().includes(query) ||
+        b.vehicleType?.toLowerCase().includes(query) ||
+        b.vehicleNumber?.toLowerCase().includes(query) ||
+        b.driverName?.toLowerCase().includes(query) ||
+        b.flightTail?.toLowerCase().includes(query) ||
+        b.specialRequests?.toLowerCase().includes(query) ||
+        b.notes?.toLowerCase().includes(query) ||
+        b.status?.toLowerCase().includes(query) ||
+        b.clientCode?.toLowerCase().includes(query)
+      );
+    });
   }, [bookings, activeFilter, searchQuery]);
 
   // Reset to page 0 when filters change
@@ -78,7 +98,7 @@ export default function BookingGrid({ bookings, drivers = [], onStatusChange, on
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search client or reservation..."
+            placeholder="Search by name, email, phone, address, date, reservation #..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full rounded-md border border-border bg-secondary pl-10 pr-4 py-2 text-sm font-body text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
