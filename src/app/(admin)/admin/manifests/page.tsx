@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { ManifestData, ManifestVariant, ManifestLeg } from "@/lib/generateManifestPDF";
 import type { InvoiceData, InvoiceItem, InvoiceVariant } from "@/lib/generateInvoicePDF";
+import type { ConfirmationData, TripItem, ConfirmationVariant } from "@/lib/generateConfirmationPDF";
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
@@ -429,13 +430,28 @@ export default function ManifestsPage() {
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${manifestData.reservationNumber || documentId}-Manifest-${suffix}.pdf`);
         toast.success("Manifest PDF downloaded");
-      } else {
+      } else if (activeTab === "invoice") {
         // Lazy load invoice PDF generation
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
         const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${invoiceData.invoiceNumber}-Invoice-${suffix}.pdf`);
         toast.success("Invoice PDF downloaded");
+      } else if (activeTab === "confirmation") {
+        // Lazy load confirmation PDF generation
+        const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+        const confirmationData: ConfirmationData = {
+          confirmationNumber: invoiceData.invoiceNumber,
+          clientName: invoiceData.clientName,
+          clientAddress: invoiceData.clientAddress,
+          clientPhone: invoiceData.clientPhone,
+          clientEmail: invoiceData.clientEmail,
+          items: invoiceData.items as TripItem[],
+        };
+        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
+        const suffix = variant === "light" ? "White" : "Black";
+        doc.save(`${invoiceData.invoiceNumber}-Confirmation-${suffix}.pdf`);
+        toast.success("Trip Confirmation PDF downloaded");
       }
     } catch {
       toast.error("Failed to generate PDF");
@@ -444,10 +460,16 @@ export default function ManifestsPage() {
 
   const handleDownloadDocx = async () => {
     try {
-      // Lazy load DOCX generation
-      const { generateManifestDocx } = await import("@/lib/generateManifestDocx");
-      await generateManifestDocx(manifestData, "/assets/wc-logo-no-motto.png", variant);
-      toast.success("Word document downloaded");
+      if (activeTab === "manifest") {
+        // Lazy load DOCX generation
+        const { generateManifestDocx } = await import("@/lib/generateManifestDocx");
+        await generateManifestDocx(manifestData, "/assets/wc-logo-no-motto.png", variant);
+        toast.success("Word document downloaded");
+      } else if (activeTab === "invoice") {
+        toast.error("Word format not available for invoices. Please use PDF.");
+      } else if (activeTab === "confirmation") {
+        toast.error("Word format not available for trip confirmations. Please use PDF.");
+      }
     } catch (e) {
       console.error(e);
       toast.error("Failed to generate Word document");
@@ -463,10 +485,25 @@ export default function ManifestsPage() {
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
-      } else {
+      } else if (activeTab === "invoice") {
         // Lazy load invoice PDF generation
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
         const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
+        const blob = doc.output("blob");
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } else if (activeTab === "confirmation") {
+        // Lazy load confirmation PDF generation
+        const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+        const confirmationData: ConfirmationData = {
+          confirmationNumber: invoiceData.invoiceNumber,
+          clientName: invoiceData.clientName,
+          clientAddress: invoiceData.clientAddress,
+          clientPhone: invoiceData.clientPhone,
+          clientEmail: invoiceData.clientEmail,
+          items: invoiceData.items as TripItem[],
+        };
+        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
