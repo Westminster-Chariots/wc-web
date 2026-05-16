@@ -33,6 +33,9 @@ export interface ConfirmationData {
   clientAddress: string;
   clientPhone: string;
   clientEmail: string;
+  driverName?: string;
+  vehicleType?: string;
+  vehicleTag?: string;
   items: TripItem[];
 }
 
@@ -158,6 +161,23 @@ export async function generateConfirmationPDF(
   labelValue("Address", confirmation.clientAddress, innerMargin);
   labelValue("Phone", confirmation.clientPhone || "N/A", innerMargin);
   labelValue("Email", confirmation.clientEmail || "N/A", innerMargin);
+  y += 12;
+
+  doc.setDrawColor(...P.border);
+  doc.setLineWidth(0.3);
+  doc.line(innerMargin, y, rightX, y);
+  y += 20;
+
+  // Driver Information Section
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...P.accent);
+  doc.text("DRIVER INFORMATION", innerMargin, y);
+  y += 18;
+
+  labelValue("Driver Name", confirmation.driverName || "N/A", innerMargin, true);
+  labelValue("Vehicle", confirmation.vehicleType || "N/A", innerMargin);
+  labelValue("Vehicle Tag", confirmation.vehicleTag || "N/A", innerMargin);
   y += 12;
 
   doc.setDrawColor(...P.border);

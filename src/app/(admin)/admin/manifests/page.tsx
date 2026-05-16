@@ -440,12 +440,16 @@ export default function ManifestsPage() {
       } else if (activeTab === "confirmation") {
         // Lazy load confirmation PDF generation
         const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+        const booking = bookings.find(b => b.id === selectedBookingId);
         const confirmationData: ConfirmationData = {
           confirmationNumber: invoiceData.invoiceNumber,
           clientName: invoiceData.clientName,
           clientAddress: invoiceData.clientAddress,
           clientPhone: invoiceData.clientPhone,
           clientEmail: invoiceData.clientEmail,
+          driverName: booking?.driverName || undefined,
+          vehicleType: booking?.vehicleType || undefined,
+          vehicleTag: booking?.vehicleNumber || undefined,
           items: invoiceData.items as TripItem[],
         };
         const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
@@ -495,12 +499,16 @@ export default function ManifestsPage() {
       } else if (activeTab === "confirmation") {
         // Lazy load confirmation PDF generation
         const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+        const booking = bookings.find(b => b.id === selectedBookingId);
         const confirmationData: ConfirmationData = {
           confirmationNumber: invoiceData.invoiceNumber,
           clientName: invoiceData.clientName,
           clientAddress: invoiceData.clientAddress,
           clientPhone: invoiceData.clientPhone,
           clientEmail: invoiceData.clientEmail,
+          driverName: booking?.driverName || undefined,
+          vehicleType: booking?.vehicleType || undefined,
+          vehicleTag: booking?.vehicleNumber || undefined,
           items: invoiceData.items as TripItem[],
         };
         const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
@@ -1575,6 +1583,39 @@ export default function ManifestsPage() {
                             variant === "dark" ? "text-gray-300" : "text-gray-700"
                           }`}>{invoiceData.clientEmail || "—"}</p>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Driver Information */}
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Driver Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <label className={`text-xs block mb-1 ${
+                        variant === "dark" ? "text-gray-500" : "text-gray-500"
+                      }`}>Driver Name</label>
+                      <p className={`text-sm font-semibold ${
+                        variant === "dark" ? "text-gray-100" : "text-gray-900"
+                      }`}>{bookings.find(b => b.id === selectedBookingId)?.driverName || "—"}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Vehicle</label>
+                        <p className={`text-sm ${
+                          variant === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}>{bookings.find(b => b.id === selectedBookingId)?.vehicleType || "—"}</p>
+                      </div>
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Vehicle Tag</label>
+                        <p className={`text-sm ${
+                          variant === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}>{bookings.find(b => b.id === selectedBookingId)?.vehicleNumber || "—"}</p>
                       </div>
                     </div>
                   </div>
