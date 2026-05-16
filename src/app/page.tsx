@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { seedBookingStore } from "@/hooks/useBookingStore";
 import { structuredData } from "@/lib/metadata";
 import { notify } from "@/lib/notify";
@@ -26,7 +26,7 @@ const fullPhrase = "Travel in Luxury · Arrive in Style";
 
 export default function Home() {
   const { user, isAdmin, logout } = useAuth();
-  const { lang, toggleLang } = useLanguage();
+  const { lang, cycleLang } = useLanguage();
   const router = useRouter();
   
   // Booking state
@@ -238,7 +238,7 @@ export default function Home() {
         displayName={displayName}
         handleSignOut={handleSignOut}
         lang={lang}
-        toggleLang={toggleLang}
+        cycleLang={cycleLang}
       />
 
       {/* Hero Section */}

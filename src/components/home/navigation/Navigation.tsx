@@ -17,8 +17,8 @@ interface NavigationProps {
   isAdmin: boolean;
   displayName: string;
   handleSignOut: () => void;
-  lang: string;
-  toggleLang: () => void;
+  lang: "EN" | "ES" | "DE";
+  cycleLang: () => void;
 }
 
 export default function Navigation({
@@ -32,9 +32,8 @@ export default function Navigation({
   displayName,
   handleSignOut,
   lang,
-  toggleLang,
+  cycleLang,
 }: NavigationProps) {
-  const [currentLang, setCurrentLang] = useState<"EN" | "ES" | "DE">("EN");
   const [isOverHero, setIsOverHero] = useState(true);
 
   // Detect if navbar is over hero section
@@ -50,14 +49,6 @@ export default function Navigation({
       return () => window.removeEventListener('scroll', handleScroll);
     }
   }, [isOnLandingPage]);
-
-  const cycleLang = () => {
-    const langs: ("EN" | "ES" | "DE")[] = ["EN", "ES", "DE"];
-    const currentIndex = langs.indexOf(currentLang);
-    const nextIndex = (currentIndex + 1) % langs.length;
-    setCurrentLang(langs[nextIndex]);
-    toggleLang();
-  };
 
   // Determine if we should use dark theme styling (on landing page and over hero)
   const useDarkTheme = isOnLandingPage && isOverHero;
@@ -90,8 +81,8 @@ export default function Navigation({
                   <Image 
                     src="/assets/wc-logo-full.png" 
                     alt="Westminster Chariots" 
-                    width={isScrolled ? 45 : 55} 
-                    height={isScrolled ? 45 : 55} 
+                    width={isScrolled ? 55 : 70} 
+                    height={isScrolled ? 55 : 70} 
                     className="object-contain transition-all duration-700 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]" 
                   />
                 </div>
@@ -135,7 +126,7 @@ export default function Navigation({
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className={`flex items-center gap-3 glass-nav-right rounded-full px-6 py-4 backdrop-blur-xl transition-all duration-700 ease-in-out ${
+              className={`flex items-center gap-2.5 glass-nav-right rounded-full px-4 py-2.5 backdrop-blur-xl transition-all duration-700 ease-in-out ${
                 isScrolled ? 'scale-95 py-3' : 'scale-100'
               }`}
             >
@@ -151,16 +142,16 @@ export default function Navigation({
               </button>
 
               {/* Desktop User Menu */}
-              <div className="hidden md:flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2.5">
                 {user ? (
                   <>
                     <Link 
                       href="/account" 
-                      className={`group flex items-center gap-2 text-sm transition-all duration-300 hover:scale-105 ${
+                      className={`group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-105 ${
                         useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
                       }`}
                     >
-                      <UserCircle className="h-4 w-4 group-hover:rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(59,130,246,0.6)] transition-all duration-300" />
+                      <UserCircle className="h-3 w-3 group-hover:rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(59,130,246,0.6)] transition-all duration-300" />
                       <span className={`transition-all duration-500 ${isScrolled ? 'hidden xl:inline' : 'hidden lg:inline'}`}>
                         {displayName}
                       </span>
@@ -168,7 +159,7 @@ export default function Navigation({
                     {isAdmin && (
                       <Link 
                         href="/admin" 
-                        className={`group text-sm font-medium relative transition-all duration-300 ${
+                        className={`group text-[11px] font-medium relative transition-all duration-300 ${
                           useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground hover:text-primary'
                         }`}
                       >
@@ -178,35 +169,35 @@ export default function Navigation({
                     )}
                     <button 
                       onClick={handleSignOut} 
-                      className={`group flex items-center gap-2 text-sm transition-all duration-300 hover:scale-110 ${
+                      className={`group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-110 ${
                         useDarkTheme ? 'text-white/90 hover:text-red-400' : 'text-foreground/80 hover:text-destructive'
                       }`}
                     >
-                      <LogOut className="h-4 w-4 group-hover:-rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] transition-all duration-300" />
+                      <LogOut className="h-3 w-3 group-hover:-rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] transition-all duration-300" />
                     </button>
                   </>
                 ) : (
                   <Link 
                     href="/auth" 
-                    className="btn-primary px-5 py-2 rounded-full text-sm hover:scale-105 active:scale-95 transition-all duration-300"
+                    className="btn-primary px-3.5 py-1.5 rounded-full text-[11px] hover:scale-105 active:scale-95 transition-all duration-300"
                   >
                     Sign In
                   </Link>
                 )}
                 
                 {/* Language Toggle */}
-                <div className={`border-l pl-3 ${
+                <div className={`border-l pl-2.5 ${
                   useDarkTheme ? 'border-white/20' : 'border-white/10'
                 }`}>
                   <button
                     onClick={cycleLang}
-                    className={`group flex items-center gap-1.5 text-sm font-semibold transition-all duration-300 hover:scale-110 ${
+                    className={`group flex items-center gap-1 text-[11px] font-semibold transition-all duration-300 hover:scale-110 ${
                       useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
                     }`}
-                    aria-label={`Switch language - Current: ${currentLang}`}
+                    aria-label={`Switch language - Current: ${lang}`}
                   >
-                    <Globe className="h-4 w-4 group-hover:rotate-12 transition-all duration-300" />
-                    <span>{currentLang}</span>
+                    <Globe className="h-3 w-3 group-hover:rotate-12 transition-all duration-300" />
+                    <span>{lang}</span>
                   </button>
                 </div>
               </div>
@@ -301,10 +292,10 @@ export default function Navigation({
               <button
                 onClick={cycleLang}
                 className="group flex items-center gap-1.5 text-sm font-semibold text-foreground/80 hover:text-foreground transition-all duration-300 hover:scale-110"
-                aria-label={`Switch language - Current: ${currentLang}`}
+                aria-label={`Switch language - Current: ${lang}`}
               >
                 <Globe className="h-4 w-4 group-hover:rotate-12 transition-all duration-300" />
-                <span>{currentLang}</span>
+                <span>{lang}</span>
               </button>
             </div>
           </motion.div>
@@ -372,7 +363,7 @@ export default function Navigation({
                     className="flex items-center gap-2 text-base font-semibold text-foreground/80 hover:text-foreground transition-all duration-300"
                   >
                     <Globe className="h-5 w-5" />
-                    <span>Language: {currentLang}</span>
+                    <span>Language: {lang}</span>
                   </button>
                 </div>
               </div>

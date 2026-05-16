@@ -53,7 +53,7 @@ export default function BookingPage() {
     libraries,
   });
 
-  const { route, isLoading: isLoadingRoute, error: routeError, refetch: refetchRoute } = useRouteDetails(pickup, dropoff);
+  const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
 
   // Show loading state while redirecting
   if (!pickup || !dropoff) {

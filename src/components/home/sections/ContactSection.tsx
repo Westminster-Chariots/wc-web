@@ -29,17 +29,17 @@ export default function ContactSection({ scrollToBookingForm }: ContactSectionPr
               <div>
                 <h3 className="text-lg font-display font-semibold text-foreground mb-4">Contact Information</h3>
                 <div className="space-y-4 text-sm text-muted-foreground">
-                  <div>
+                  {/* <div>
                     <p className="font-medium text-foreground mb-1">Address</p>
                     <p>18750 Fuller Height Rd, Triangle, VA</p>
-                  </div>
+                  </div> */}
                   <div>
                     <p className="font-medium text-foreground mb-1">Phone</p>
                     <a href="tel:+15714266338" className="hover:text-foreground transition-colors">+1 (571) 426-6338</a>
                   </div>
                   <div>
                     <p className="font-medium text-foreground mb-1">Email</p>
-                    <a href="mailto:book@westminsterchariots.com" className="hover:text-foreground transition-colors">book@westminsterchariots.com</a>
+                    <a href="mailto:info@westminsterchariots.com" className="hover:text-foreground transition-colors">info@westminsterchariots.com</a>
                   </div>
                   <div>
                     <p className="font-medium text-foreground mb-1">Hours</p>

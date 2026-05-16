@@ -78,7 +78,7 @@ export default function BookingModals({
           opacity: 0 
         }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative rounded-2xl p-6 max-w-md w-full overflow-hidden"
+        className="relative rounded-2xl p-6 max-w-md w-full"
         style={{
           background: '#1a1a1a66',
           backdropFilter: 'blur(80px) saturate(200%)',

@@ -13,7 +13,7 @@ export default function WhyWestminsterSection() {
   ];
 
   const stats = [
-    { value: "15+", label: "Years serving the DMV" },
+    // { value: "15+", label: "Years serving the DMV" },
     { value: "24/7", label: "Dispatch & support" },
     { value: "4.9★", label: "Average client rating" },
     { value: "100%", label: "Licensed & insured" }
@@ -45,7 +45,7 @@ export default function WhyWestminsterSection() {
             ))}
           </ul>
           <Link
-            href="#services"
+            href="/services"
             className="bg-blue-gradient shadow-blue mt-10 inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
           >
             Explore services <ArrowRight className="h-4 w-4" />

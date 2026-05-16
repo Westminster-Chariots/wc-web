@@ -34,12 +34,12 @@ export default function Footer() {
               />
             </div>
             <div className="space-y-3 text-sm text-muted-foreground">
-              <p>18750 Fuller Height Rd, Triangle, VA</p>
+              {/* <p>18750 Fuller Height Rd, Triangle, VA</p> */}
               <p>
                 <a href="tel:+15714266338" className="hover:text-foreground transition-colors">+1 (571) 426-6338</a>
               </p>
               <p>
-                <a href="mailto:book@westminsterchariots.com" className="hover:text-foreground transition-colors">book@westminsterchariots.com</a>
+                <a href="mailto:info@westminsterchariots.com" className="hover:text-foreground transition-colors">info@westminsterchariots.com</a>
               </p>
             </div>
           </div>
@@ -61,8 +61,8 @@ export default function Footer() {
             <h4 className="text-lg font-display font-semibold text-foreground mb-6">Menu</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li><Link href="/" className="hover:text-foreground transition-colors">Home</Link></li>
-              <li><Link href="#services" className="hover:text-foreground transition-colors">Services</Link></li>
-              <li><Link href="#fleet" className="hover:text-foreground transition-colors">Our Fleet</Link></li>
+              <li><Link href="/services" className="hover:text-foreground transition-colors">Services</Link></li>
+              <li><Link href="/fleet" className="hover:text-foreground transition-colors">Our Fleet</Link></li>
               <li><Link href="#contact" className="hover:text-foreground transition-colors">Contact Us</Link></li>
               <li><Link href="/about" className="hover:text-foreground transition-colors">About Us</Link></li>
             </ul>

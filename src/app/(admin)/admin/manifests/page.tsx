@@ -26,7 +26,7 @@ export default function ManifestsPage() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"manifest" | "invoice">("manifest");
+  const [activeTab, setActiveTab] = useState<"manifest" | "invoice" | "confirmation">("manifest");
   // documentId is now deprecated - use invoiceData.invoiceNumber instead
   const [documentId, setDocumentId] = useState("");
   const [pricingConfigs, setPricingConfigs] = useState<any[]>([]);
@@ -741,6 +741,17 @@ export default function ManifestsPage() {
               <Receipt className="h-4 w-4" />
               Client Invoice
             </button>
+            <button
+              onClick={() => setActiveTab("confirmation")}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === "confirmation"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Receipt className="h-4 w-4" />
+              Trip Confirmation
+            </button>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4">
@@ -750,10 +761,10 @@ export default function ManifestsPage() {
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-display font-semibold">
-                  {activeTab === "manifest" ? "Manifest" : "Invoice"} {editing ? "Editor" : "Preview"}
+                  {activeTab === "manifest" ? "Manifest" : activeTab === "invoice" ? "Invoice" : "Trip Confirmation"} {editing ? "Editor" : "Preview"}
                 </h3>
                 <p className="text-xs text-muted-foreground font-body">
-                  {editing ? "Edit fields below and download or send" : "View-only mode"} · Invoice: {invoiceData.invoiceNumber}
+                  {editing ? "Edit fields below and download or send" : "View-only mode"} · {activeTab === "confirmation" ? "Confirmation" : "Invoice"}: {invoiceData.invoiceNumber}
                 </p>
               </div>
             </div>
@@ -770,7 +781,7 @@ export default function ManifestsPage() {
                 <Download className="h-3.5 w-3.5" />
                 PDF
               </Button>
-              {activeTab === "invoice" && (
+              {(activeTab === "invoice" || activeTab === "confirmation") && (
                 <>
                   <Button 
                     variant="outline" 
@@ -1041,7 +1052,7 @@ export default function ManifestsPage() {
               </div>
             </div>
           </div>
-          ) : (
+          ) : activeTab === "invoice" ? (
             <div className={`border border-border rounded-lg shadow-sm max-w-4xl mx-auto ${
               variant === "dark" ? "bg-[#1a1a1a]" : "bg-white"
             }`}>
@@ -1332,7 +1343,6 @@ export default function ManifestsPage() {
                                             placeholder="Enter dropoff location"
                                           />
                                         </div>
-                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -1428,6 +1438,318 @@ export default function ManifestsPage() {
                   <p>
                     Thank you for choosing Westminster Chariots. We truly value your trust and the opportunity to serve you. 
                     It is our privilege to provide refined, seamless transportation delivered with punctuality, discretion, and professionalism. 
+                    We look forward to serving you again.
+                  </p>
+                  <div className="pt-2">
+                    <p className={`font-semibold ${
+                      variant === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}>Sincerely,</p>
+                    <p className={variant === "dark" ? "text-gray-100" : "text-gray-900"}>The Westminster Chariots Team</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Trip Confirmation Template
+            <div className={`border border-border rounded-lg shadow-sm max-w-4xl mx-auto ${
+              variant === "dark" ? "bg-[#1a1a1a]" : "bg-white"
+            }`}>
+              <div className="p-8 pb-6">
+                <div className="flex items-start justify-between mb-8">
+                  <div>
+                    <img src="/assets/wc-logo-full.png" alt="Westminster Chariots" className="h-20 object-contain mb-3" />
+                    <div className={`text-xs space-y-0.5 ${
+                      variant === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      <p className="text-primary font-medium">www.westminsterchariots.com</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h1 className={`text-4xl font-bold mb-2 ${
+                      variant === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}>TRIP CONFIRMATION</h1>
+                    <div className={`text-xs space-y-1 ${
+                      variant === "dark" ? "text-gray-400" : "text-gray-600"
+                    }`}>
+                      <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6"></div>
+
+                {/* Client Information */}
+                <div className="mb-8">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Client Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <label className={`text-xs block mb-1 ${
+                        variant === "dark" ? "text-gray-500" : "text-gray-500"
+                      }`}>Client Name</label>
+                      {editing ? (
+                        <Input value={invoiceData.clientName} onChange={(e) => updateInvoiceField('clientName', e.target.value)} className={`h-8 text-sm ${
+                          variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                        }`} />
+                      ) : (
+                        <p className={`text-sm font-semibold ${
+                          variant === "dark" ? "text-gray-100" : "text-gray-900"
+                        }`}>{invoiceData.clientName || "—"}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className={`text-xs block mb-1 ${
+                        variant === "dark" ? "text-gray-500" : "text-gray-500"
+                      }`}>Address</label>
+                      {editing ? (
+                        <Input value={invoiceData.clientAddress} onChange={(e) => updateInvoiceField('clientAddress', e.target.value)} className={`h-8 text-sm ${
+                          variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                        }`} />
+                      ) : (
+                        <p className={`text-sm ${
+                          variant === "dark" ? "text-gray-300" : "text-gray-700"
+                        }`}>{invoiceData.clientAddress || "—"}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Phone</label>
+                        {editing ? (
+                          <Input value={invoiceData.clientPhone} onChange={(e) => updateInvoiceField('clientPhone', e.target.value)} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm ${
+                            variant === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}>{invoiceData.clientPhone || "—"}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Email</label>
+                        {editing ? (
+                          <Input value={invoiceData.clientEmail} onChange={(e) => updateInvoiceField('clientEmail', e.target.value)} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm ${
+                            variant === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}>{invoiceData.clientEmail || "—"}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trip Items Table */}
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className={`text-sm font-semibold ${
+                      variant === "dark" ? "text-gray-100" : "text-gray-900"
+                    }`}>Trip Details</h3>
+                    {editing && (
+                      <Button onClick={addInvoiceItem} size="sm" variant="outline" className="h-7 gap-1 text-xs">
+                        <Plus className="h-3 w-3" /> Add Item
+                      </Button>
+                    )}
+                  </div>
+                  <div className={`overflow-hidden border rounded-lg ${
+                    variant === "dark" ? "border-gray-700" : "border-gray-300"
+                  }`}>
+                    <table className="w-full">
+                      <thead>
+                        <tr className={variant === "dark" ? "bg-[#0a0a0a] text-primary" : "bg-gray-900 text-white"}>
+                          <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider">Time & Date</th>
+                          <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider">Passenger</th>
+                          <th className="text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider">Routing Information</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold uppercase tracking-wider">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${
+                        variant === "dark" ? "bg-[#1a1a1a] divide-gray-800" : "bg-white divide-gray-200"
+                      }`}>
+                        {invoiceData.items.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className={`py-8 text-center text-sm ${
+                              variant === "dark" ? "text-gray-500" : "text-gray-500"
+                            }`}>No items added yet</td>
+                          </tr>
+                        ) : (
+                          invoiceData.items.map((item, index) => (
+                            <tr key={index} className={variant === "dark" ? "hover:bg-[#2a2a2a]" : "hover:bg-gray-50"}>
+                              <td className="py-8 px-4">
+                                {editing ? (
+                                  <div className="space-y-1">
+                                    <Input 
+                                      type="date" 
+                                      value={item.pickupDate} 
+                                      onChange={(e) => updateInvoiceItem(index, 'pickupDate', e.target.value)} 
+                                      className={`h-7 text-xs ${
+                                        variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                      }`} 
+                                    />
+                                    <Input 
+                                      type="time" 
+                                      value={item.pickupTime} 
+                                      onChange={(e) => updateInvoiceItem(index, 'pickupTime', e.target.value)} 
+                                      className={`h-7 text-xs ${
+                                        variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                      }`} 
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="text-sm">
+                                    <div className={`font-medium ${
+                                      variant === "dark" ? "text-gray-100" : "text-gray-900"
+                                    }`}>{item.pickupDate}</div>
+                                    <div className={variant === "dark" ? "text-gray-400" : "text-gray-600"}>{item.pickupTime}</div>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-8 px-4">
+                                {editing ? (
+                                  <Input value={item.passengerName} onChange={(e) => updateInvoiceItem(index, 'passengerName', e.target.value)} className={`h-7 text-xs ${
+                                    variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                  }`} />
+                                ) : (
+                                  <span className={`text-sm ${
+                                    variant === "dark" ? "text-gray-100" : "text-gray-900"
+                                  }`}>{item.passengerName}</span>
+                                )}
+                              </td>
+                              <td className="py-8 px-4">
+                                {editing ? (
+                                  <div className="space-y-2">
+                                    <div className="flex items-start gap-2">
+                                      <button onClick={() => removeInvoiceItem(index)} className="text-destructive hover:text-destructive/80 transition-colors shrink-0 mt-1">
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                      <div className="flex-1 space-y-3">
+                                        <div>
+                                          <span className={`text-[10px] font-semibold uppercase block mb-1 ${
+                                            variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                          }`}>Pickup:</span>
+                                          <Input 
+                                            ref={(el) => { pickupRefs.current[index] = el; }}
+                                            value={item.pickup} 
+                                            onChange={(e) => updateInvoiceItemWithPriceCalc(index, 'pickup', e.target.value)} 
+                                            className={`h-7 text-xs ${
+                                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                            }`}
+                                            placeholder="Enter pickup location"
+                                          />
+                                        </div>
+                                        <div>
+                                          <span className={`text-[10px] font-semibold uppercase block mb-1 ${
+                                            variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                          }`}>Dropoff:</span>
+                                          <Input 
+                                            ref={(el) => { dropoffRefs.current[index] = el; }}
+                                            value={item.dropoff} 
+                                            onChange={(e) => updateInvoiceItemWithPriceCalc(index, 'dropoff', e.target.value)} 
+                                            className={`h-7 text-xs ${
+                                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                            }`}
+                                            placeholder="Enter dropoff location"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-sm space-y-2">
+                                    <div>
+                                      <span className={`text-[10px] font-semibold uppercase block mb-0.5 ${
+                                        variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                      }`}>Pickup:</span>
+                                      <span className={`leading-relaxed block text-xs ${
+                                        variant === "dark" ? "text-gray-300" : "text-gray-700"
+                                      }`}>{item.pickup}</span>
+                                    </div>
+                                    <div className={`text-primary text-sm`}>↓</div>
+                                    <div>
+                                      <span className={`text-[10px] font-semibold uppercase block mb-0.5 ${
+                                        variant === "dark" ? "text-gray-400" : "text-gray-600"
+                                      }`}>Dropoff:</span>
+                                      <span className={`leading-relaxed block text-xs ${
+                                        variant === "dark" ? "text-gray-300" : "text-gray-700"
+                                      }`}>{item.dropoff}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-8 px-4 text-right">
+                                {editing ? (
+                                  <Input type="number" step="0.01" value={item.price} onChange={(e) => updateInvoiceItem(index, 'price', parseFloat(e.target.value) || 0)} className={`h-7 text-xs text-right ${
+                                    variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                                  }`} />
+                                ) : (
+                                  <span className={`text-sm font-semibold ${
+                                    variant === "dark" ? "text-gray-100" : "text-gray-900"
+                                  }`}>${item.price.toFixed(2)}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Totals Section */}
+                <div className="flex justify-end mb-8">
+                  <div className="w-80">
+                    <div className="space-y-3">
+                      <div className={`flex justify-between items-center py-2 border-b ${
+                        variant === "dark" ? "border-gray-700" : "border-gray-200"
+                      }`}>
+                        <span className={`text-sm ${
+                          variant === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}>Subtotal:</span>
+                        <span className={`text-base font-semibold ${
+                          variant === "dark" ? "text-gray-100" : "text-gray-900"
+                        }`}>${invoiceData.subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className={`flex justify-between items-center py-2 border-b ${
+                        variant === "dark" ? "border-gray-700" : "border-gray-200"
+                      }`}>
+                        <span className={`text-sm ${
+                          variant === "dark" ? "text-gray-400" : "text-gray-600"
+                        }`}>Tax (if applicable):</span>
+                        {editing ? (
+                          <Input type="number" step="0.01" value={invoiceData.tax} onChange={(e) => updateInvoiceField('tax', parseFloat(e.target.value) || 0)} className={`h-8 text-sm text-right max-w-[120px] ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <span className={`text-base font-semibold ${
+                            variant === "dark" ? "text-gray-100" : "text-gray-900"
+                          }`}>${invoiceData.tax.toFixed(2)}</span>
+                        )}
+                      </div>
+                      <div className={`flex justify-between items-center py-3 px-4 rounded-lg border-2 mt-4 ${
+                        variant === "dark" ? "bg-primary/10 border-primary/30" : "bg-primary/5 border-primary/20"
+                      }`}>
+                        <span className={`text-base font-bold ${
+                          variant === "dark" ? "text-gray-100" : "text-gray-900"
+                        }`}>Total Amount Paid:</span>
+                        <span className="text-2xl font-bold text-primary">${invoiceData.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6"></div>
+
+                {/* Footer Message */}
+                <div className={`text-sm leading-relaxed space-y-3 ${
+                  variant === "dark" ? "text-gray-300" : "text-gray-700"
+                }`}>
+                  <p>
+                    Thank you for choosing Westminster Chariots. We truly value your trust and the opportunity to serve you. 
+                    It is our privilege to provide refined, seamless transportation delivered with professionalism. 
                     We look forward to serving you again.
                   </p>
                   <div className="pt-2">

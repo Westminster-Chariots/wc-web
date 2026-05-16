@@ -101,7 +101,7 @@ export default function LocationInput({ label, placeholder, value, onChange, ico
       <AnimatePresence>
         {isOpen && suggestions.length > 0 && (
           <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }}
-            className="absolute z-50 w-full mt-1 rounded-lg border border-white/20 bg-black/95 card-shadow overflow-hidden max-h-80 overflow-y-auto backdrop-blur-xl">
+            className="absolute z-[9999] w-full mt-1 rounded-lg border border-white/20 bg-black/95 card-shadow max-h-60 overflow-y-auto backdrop-blur-xl">
             {suggestions.map((pred) => {
               const isAirport = isAirportPlace(pred.description, pred.types);
               return (

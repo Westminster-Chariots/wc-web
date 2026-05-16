@@ -93,7 +93,7 @@ export default function AboutPage() {
                 <h2 className="text-2xl font-display font-bold text-foreground mb-4">Contact Us</h2>
                 <div className="space-y-2 text-muted-foreground font-body">
                   <p><strong className="text-foreground">Phone:</strong> <a href="tel:+15714266338" className="text-primary hover:underline">(571) 426-6338</a></p>
-                  <p><strong className="text-foreground">Email:</strong> <a href="mailto:book@westminsterchariots.com" className="text-primary hover:underline">book@westminsterchariots.com</a></p>
+                  <p><strong className="text-foreground">Email:</strong> <a href="mailto:info@westminsterchariots.com" className="text-primary hover:underline">info@westminsterchariots.com</a></p>
                   <p><strong className="text-foreground">Location:</strong> Triangle, VA · Washington DC Metropolitan Area</p>
                 </div>
               </div>
