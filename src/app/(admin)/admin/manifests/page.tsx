@@ -85,6 +85,12 @@ export default function ManifestsPage() {
     specialRequests: "",
   });
 
+  const [driverInfo, setDriverInfo] = useState({
+    driverName: "",
+    vehicleType: "",
+    vehicleTag: ""
+  });
+
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     invoiceNumber: generateInvoiceNumber(),
     clientName: "",
@@ -218,6 +224,12 @@ export default function ManifestsPage() {
       subtotal,
       tax,
       total,
+    });
+
+    setDriverInfo({
+      driverName: booking.driverName || "",
+      vehicleType: booking.vehicleType || "",
+      vehicleTag: booking.vehicleNumber || ""
     });
 
     setSelectedBookingId(bookingId);
@@ -440,16 +452,15 @@ export default function ManifestsPage() {
       } else if (activeTab === "confirmation") {
         // Lazy load confirmation PDF generation
         const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
-        const booking = bookings.find(b => b.id === selectedBookingId);
         const confirmationData: ConfirmationData = {
           confirmationNumber: invoiceData.invoiceNumber,
           clientName: invoiceData.clientName,
           clientAddress: invoiceData.clientAddress,
           clientPhone: invoiceData.clientPhone,
           clientEmail: invoiceData.clientEmail,
-          driverName: booking?.driverName || undefined,
-          vehicleType: booking?.vehicleType || undefined,
-          vehicleTag: booking?.vehicleNumber || undefined,
+          driverName: driverInfo.driverName || undefined,
+          vehicleType: driverInfo.vehicleType || undefined,
+          vehicleTag: driverInfo.vehicleTag || undefined,
           items: invoiceData.items as TripItem[],
         };
         const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
@@ -499,16 +510,15 @@ export default function ManifestsPage() {
       } else if (activeTab === "confirmation") {
         // Lazy load confirmation PDF generation
         const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
-        const booking = bookings.find(b => b.id === selectedBookingId);
         const confirmationData: ConfirmationData = {
           confirmationNumber: invoiceData.invoiceNumber,
           clientName: invoiceData.clientName,
           clientAddress: invoiceData.clientAddress,
           clientPhone: invoiceData.clientPhone,
           clientEmail: invoiceData.clientEmail,
-          driverName: booking?.driverName || undefined,
-          vehicleType: booking?.vehicleType || undefined,
-          vehicleTag: booking?.vehicleNumber || undefined,
+          driverName: driverInfo.driverName || undefined,
+          vehicleType: driverInfo.vehicleType || undefined,
+          vehicleTag: driverInfo.vehicleTag || undefined,
           items: invoiceData.items as TripItem[],
         };
         const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
@@ -1119,7 +1129,20 @@ export default function ManifestsPage() {
                     <div className={`text-xs space-y-1 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
-                      <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
+                      {editing ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="font-mono text-sm">#</span>
+                          <Input 
+                            value={invoiceData.invoiceNumber} 
+                            onChange={(e) => updateInvoiceField('invoiceNumber', e.target.value)} 
+                            className={`h-7 text-sm font-mono w-[180px] ${
+                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                            }`} 
+                          />
+                        </div>
+                      ) : (
+                        <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1214,9 +1237,19 @@ export default function ManifestsPage() {
                         <span className={`text-xs font-semibold ${
                           variant === "dark" ? "text-gray-400" : "text-gray-600"
                         }`}>Invoice Number:</span>
-                        <span className={`text-sm font-mono font-bold ${
-                          variant === "dark" ? "text-gray-100" : "text-gray-900"
-                        }`}>{invoiceData.invoiceNumber}</span>
+                        {editing ? (
+                          <Input 
+                            value={invoiceData.invoiceNumber} 
+                            onChange={(e) => updateInvoiceField('invoiceNumber', e.target.value)} 
+                            className={`h-7 text-xs max-w-[180px] font-mono ${
+                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                            }`} 
+                          />
+                        ) : (
+                          <span className={`text-sm font-mono font-bold ${
+                            variant === "dark" ? "text-gray-100" : "text-gray-900"
+                          }`}>{invoiceData.invoiceNumber}</span>
+                        )}
                       </div>
                       <div className={`flex justify-between items-center py-2 border-b ${
                         variant === "dark" ? "border-gray-700" : "border-gray-200"
@@ -1516,46 +1549,59 @@ export default function ManifestsPage() {
                     <div className={`text-xs space-y-1 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
-                      <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
+                      {editing ? (
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="font-mono text-sm">#</span>
+                          <Input 
+                            value={invoiceData.invoiceNumber} 
+                            onChange={(e) => updateInvoiceField('invoiceNumber', e.target.value)} 
+                            className={`h-7 text-sm font-mono w-[180px] ${
+                              variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                            }`} 
+                          />
+                        </div>
+                      ) : (
+                        <p className="font-mono text-sm">#{invoiceData.invoiceNumber}</p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="h-px bg-gradient-to-r from-primary/50 via-primary to-primary/50 mb-6"></div>
 
-                {/* Client Information */}
-                <div className="mb-8">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Client Information</h3>
-                  <div className="space-y-2">
-                    <div>
-                      <label className={`text-xs block mb-1 ${
-                        variant === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}>Client Name</label>
-                      {editing ? (
-                        <Input value={invoiceData.clientName} onChange={(e) => updateInvoiceField('clientName', e.target.value)} className={`h-8 text-sm ${
-                          variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                        }`} />
-                      ) : (
-                        <p className={`text-sm font-semibold ${
-                          variant === "dark" ? "text-gray-100" : "text-gray-900"
-                        }`}>{invoiceData.clientName || "—"}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className={`text-xs block mb-1 ${
-                        variant === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}>Address</label>
-                      {editing ? (
-                        <Input value={invoiceData.clientAddress} onChange={(e) => updateInvoiceField('clientAddress', e.target.value)} className={`h-8 text-sm ${
-                          variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
-                        }`} />
-                      ) : (
-                        <p className={`text-sm ${
-                          variant === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}>{invoiceData.clientAddress || "—"}</p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
+                {/* Client & Driver Information - Side by Side */}
+                <div className="grid grid-cols-2 gap-12 mb-8">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Client Information</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Client Name</label>
+                        {editing ? (
+                          <Input value={invoiceData.clientName} onChange={(e) => updateInvoiceField('clientName', e.target.value)} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm font-semibold ${
+                            variant === "dark" ? "text-gray-100" : "text-gray-900"
+                          }`}>{invoiceData.clientName || "—"}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Address</label>
+                        {editing ? (
+                          <Input value={invoiceData.clientAddress} onChange={(e) => updateInvoiceField('clientAddress', e.target.value)} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm ${
+                            variant === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}>{invoiceData.clientAddress || "—"}</p>
+                        )}
+                      </div>
                       <div>
                         <label className={`text-xs block mb-1 ${
                           variant === "dark" ? "text-gray-500" : "text-gray-500"
@@ -1586,36 +1632,51 @@ export default function ManifestsPage() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Driver Information */}
-                <div className="mb-8">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Driver Information</h3>
-                  <div className="space-y-2">
-                    <div>
-                      <label className={`text-xs block mb-1 ${
-                        variant === "dark" ? "text-gray-500" : "text-gray-500"
-                      }`}>Driver Name</label>
-                      <p className={`text-sm font-semibold ${
-                        variant === "dark" ? "text-gray-100" : "text-gray-900"
-                      }`}>{bookings.find(b => b.id === selectedBookingId)?.driverName || "—"}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-primary mb-3">Driver Information</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className={`text-xs block mb-1 ${
+                          variant === "dark" ? "text-gray-500" : "text-gray-500"
+                        }`}>Driver Name</label>
+                        {editing ? (
+                          <Input value={driverInfo.driverName} onChange={(e) => setDriverInfo(prev => ({ ...prev, driverName: e.target.value }))} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm font-semibold ${
+                            variant === "dark" ? "text-gray-100" : "text-gray-900"
+                          }`}>{driverInfo.driverName || "—"}</p>
+                        )}
+                      </div>
                       <div>
                         <label className={`text-xs block mb-1 ${
                           variant === "dark" ? "text-gray-500" : "text-gray-500"
                         }`}>Vehicle</label>
-                        <p className={`text-sm ${
-                          variant === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}>{bookings.find(b => b.id === selectedBookingId)?.vehicleType || "—"}</p>
+                        {editing ? (
+                          <Input value={driverInfo.vehicleType} onChange={(e) => setDriverInfo(prev => ({ ...prev, vehicleType: e.target.value }))} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm ${
+                            variant === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}>{driverInfo.vehicleType || "—"}</p>
+                        )}
                       </div>
                       <div>
                         <label className={`text-xs block mb-1 ${
                           variant === "dark" ? "text-gray-500" : "text-gray-500"
                         }`}>Vehicle Tag</label>
-                        <p className={`text-sm ${
-                          variant === "dark" ? "text-gray-300" : "text-gray-700"
-                        }`}>{bookings.find(b => b.id === selectedBookingId)?.vehicleNumber || "—"}</p>
+                        {editing ? (
+                          <Input value={driverInfo.vehicleTag} onChange={(e) => setDriverInfo(prev => ({ ...prev, vehicleTag: e.target.value }))} className={`h-8 text-sm ${
+                            variant === "dark" ? "bg-[#2a2a2a] border-gray-700 text-gray-100" : "border-gray-300"
+                          }`} />
+                        ) : (
+                          <p className={`text-sm ${
+                            variant === "dark" ? "text-gray-300" : "text-gray-700"
+                          }`}>{driverInfo.vehicleTag || "—"}</p>
+                        )}
                       </div>
                     </div>
                   </div>

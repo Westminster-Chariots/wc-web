@@ -139,11 +139,14 @@ export async function generateConfirmationPDF(
   doc.line(innerMargin, y, rightX, y);
   y += 20;
 
-  // Client Information Section
+  const col2X = innerMargin + innerW / 2 + 20;
+
+  // Client and Driver Information Side by Side
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...P.accent);
   doc.text("CLIENT INFORMATION", innerMargin, y);
+  doc.text("DRIVER INFORMATION", col2X, y);
   y += 18;
 
   const labelValue = (label: string, value: string, lx: number, bold = false) => {
@@ -157,28 +160,25 @@ export async function generateConfirmationPDF(
     y += 20;
   };
 
+  const savedY = y;
   labelValue("Client Name", confirmation.clientName, innerMargin, true);
   labelValue("Address", confirmation.clientAddress, innerMargin);
   labelValue("Phone", confirmation.clientPhone || "N/A", innerMargin);
   labelValue("Email", confirmation.clientEmail || "N/A", innerMargin);
-  y += 12;
+  const leftEndY = y;
+
+  y = savedY;
+  labelValue("Driver Name", confirmation.driverName || "N/A", col2X, true);
+  labelValue("Vehicle", confirmation.vehicleType || "N/A", col2X);
+  labelValue("Vehicle Tag", confirmation.vehicleTag || "N/A", col2X);
+  const rightEndY = y;
+
+  y = Math.max(leftEndY, rightEndY) + 12;
 
   doc.setDrawColor(...P.border);
   doc.setLineWidth(0.3);
   doc.line(innerMargin, y, rightX, y);
   y += 20;
-
-  // Driver Information Section
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(...P.accent);
-  doc.text("DRIVER INFORMATION", innerMargin, y);
-  y += 18;
-
-  labelValue("Driver Name", confirmation.driverName || "N/A", innerMargin, true);
-  labelValue("Vehicle", confirmation.vehicleType || "N/A", innerMargin);
-  labelValue("Vehicle Tag", confirmation.vehicleTag || "N/A", innerMargin);
-  y += 12;
 
   doc.setDrawColor(...P.border);
   doc.setLineWidth(0.3);
