@@ -101,7 +101,7 @@ export default function Navigation({
               <ServicesDropdown isDark={useDarkTheme} />
               
               <a 
-                href="#fleet" 
+                href="/fleet" 
                 className={`group text-sm font-medium transition-all duration-300 relative ${
                   useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
                 }`}
@@ -236,7 +236,7 @@ export default function Navigation({
               <ServicesDropdown isDark={false} />
               
               <a 
-                href="#fleet" 
+                href="/fleet" 
                 className="group text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative"
               >
                 <span className="relative z-10">Our Fleet</span>
@@ -336,7 +336,7 @@ export default function Navigation({
                   <a href="/services#date-night" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Date Night</a>
                 </div>
                 
-                <a href="#fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground py-2">Our Fleet</a>
+                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground py-2">Our Fleet</a>
                 <a href="/help" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground py-2">Help</a>
                 
                 {user ? (

@@ -14,6 +14,7 @@ import Navigation from "@/components/home/navigation/Navigation";
 import HeroSection from "@/components/home/sections/HeroSection";
 import ServicesSection from "@/components/home/sections/ServicesSection";
 import WhyWestminsterSection from "@/components/home/sections/WhyWestminsterSection";
+import FleetSection from "@/components/home/sections/FleetSection";
 import TestimonialSection from "@/components/home/sections/TestimonialSection";
 import ContactSection from "@/components/home/sections/ContactSection";
 import CTASection from "@/components/home/sections/CTASection";
@@ -272,6 +273,9 @@ export default function Home() {
         <WhyWestminsterSection />
       </div>
 
+      {/* Fleet Section */}
+      <FleetSection />
+
       {/* Testimonial Section */}
       <TestimonialSection />
 
@@ -309,12 +313,12 @@ export default function Home() {
       />
 
       {/* Floating CTA */}
-      <FloatingCTA
+      {/* <FloatingCTA
         showBookCTA={showBookCTA}
         isOnLandingPage={isOnLandingPage}
         ctaSectionRef={ctaSectionRef}
         scrollToBookingForm={scrollToBookingForm}
-      />
+      /> */}
 
       {/* Audio Player */}
       <AudioPlayer isMuted={isMuted} setIsMuted={setIsMuted} />

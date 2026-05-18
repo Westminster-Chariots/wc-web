@@ -410,7 +410,7 @@ export default function Home() {
       )}
 
       {/* Floating Book CTA - appears when scrolled away from hero */}
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {showBookCTA && (
           <motion.button
             initial={{ opacity: 0, y: 100, scale: 0.8 }}
@@ -428,7 +428,7 @@ export default function Home() {
             <ArrowRight className="h-4 w-4" />
           </motion.button>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
       {/* Audio and mute button - keeping existing code */}
     </div>

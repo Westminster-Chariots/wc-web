@@ -2,9 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Phone, Mail, MapPin } from "lucide-react";
 
 export default function Footer() {
+  const router = useRouter();
+  
   const services = [
     "Airport Transfer",
     "Corporate Car Service",
@@ -33,24 +36,41 @@ export default function Footer() {
                 className="object-contain h-16 w-auto" 
               />
             </div>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              {/* <p>18750 Fuller Height Rd, Triangle, VA</p> */}
-              <p>
-                <a href="tel:+15714266338" className="hover:text-foreground transition-colors">+1 (571) 426-6338</a>
-              </p>
-              <p>
-                <a href="mailto:info@westminsterchariots.com" className="hover:text-foreground transition-colors">info@westminsterchariots.com</a>
-              </p>
+            <div className="space-y-3 text-sm">
+              <a 
+                href="tel:+15714266338" 
+                className="flex items-center gap-2 text-muted-foreground hover:text-accent-blue-bright transition-all duration-300 group"
+              >
+                <Phone className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                <span>+1 (571) 426-6338</span>
+              </a>
+              <a 
+                href="mailto:info@westminsterchariots.com" 
+                className="flex items-center gap-2 text-muted-foreground hover:text-accent-blue-bright transition-all duration-300 group"
+              >
+                <Mail className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                <span>info@westminsterchariots.com</span>
+              </a>
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>Washington DC Metro Area</span>
+              </div>
             </div>
           </div>
 
           {/* Our Services */}
           <div>
             <h4 className="text-lg font-display font-semibold text-foreground mb-6">Our Services</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
+            <ul className="space-y-3 text-sm">
               {services.map((service) => (
                 <li key={service}>
-                  <a href="/services" className="hover:text-foreground transition-colors">{service}</a>
+                  <Link 
+                    href="/services" 
+                    className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-1 group"
+                  >
+                    <span className="w-1 h-1 rounded-full bg-accent-blue-bright/0 group-hover:bg-accent-blue-bright transition-colors" />
+                    {service}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -59,28 +79,67 @@ export default function Footer() {
           {/* Menu */}
           <div>
             <h4 className="text-lg font-display font-semibold text-foreground mb-6">Menu</h4>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><Link href="/" className="hover:text-foreground transition-colors">Home</Link></li>
-              <li><Link href="/services" className="hover:text-foreground transition-colors">Services</Link></li>
-              <li><Link href="/fleet" className="hover:text-foreground transition-colors">Our Fleet</Link></li>
-              <li><Link href="#contact" className="hover:text-foreground transition-colors">Contact Us</Link></li>
-              <li><Link href="/about" className="hover:text-foreground transition-colors">About Us</Link></li>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link 
+                  href="/" 
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/services" 
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/fleet" 
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  Our Fleet
+                </Link>
+              </li>
+              <li>
+                <a 
+                  href="#contact" 
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  Contact Us
+                </a>
+              </li>
+              <li>
+                <Link 
+                  href="/about" 
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  About Us
+                </Link>
+              </li>
             </ul>
           </div>
 
           {/* Get in Touch */}
           <div>
             <h4 className="text-lg font-display font-semibold text-foreground mb-6">Get in Touch</h4>
-            <p className="text-sm text-muted-foreground mb-4">Ready to book your luxury ride?</p>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">Ready to book your luxury ride? Experience premium chauffeur service.</p>
             <button 
-              onClick={() => {
-                const bookingForm = document.getElementById("booking-form");
-                bookingForm?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="inline-flex items-center gap-2 bg-blue-gradient shadow-blue rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 transition-all duration-300"
+              onClick={() => router.push('/book')}
+              className="inline-flex items-center gap-2 bg-blue-gradient shadow-blue rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 hover:shadow-lg hover:shadow-accent-blue-bright/30 active:scale-95 transition-all duration-300 group"
             >
-              Book Now <ArrowRight className="h-4 w-4" />
+              Book Now 
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </button>
+            <p className="text-xs text-muted-foreground mt-4">Available 24/7 · Instant Confirmation</p>
           </div>
         </div>
 
@@ -93,8 +152,18 @@ export default function Footer() {
               <span className="block md:inline mt-2 md:mt-0">Powered by Hashmat</span>
             </div>
             <div className="flex items-center gap-6">
-              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-foreground transition-colors">Terms & Conditions</Link>
+              <Link 
+                href="/privacy" 
+                className="hover:text-accent-blue-bright transition-all duration-300 hover:underline underline-offset-4"
+              >
+                Privacy Policy
+              </Link>
+              <Link 
+                href="/terms" 
+                className="hover:text-accent-blue-bright transition-all duration-300 hover:underline underline-offset-4"
+              >
+                Terms & Conditions
+              </Link>
             </div>
           </div>
         </div>
