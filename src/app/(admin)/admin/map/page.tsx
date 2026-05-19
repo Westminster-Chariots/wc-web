@@ -39,6 +39,8 @@ export default function MapPage() {
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: true,
+    controlSize: 28,
+    padding: { top: 60, right: 10, bottom: 10, left: 10 },
   }), []);
 
   const onMapLoad = useCallback((map: google.maps.Map) => {

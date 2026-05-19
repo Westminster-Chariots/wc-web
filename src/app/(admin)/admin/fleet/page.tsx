@@ -368,7 +368,7 @@ export default function AdminFleetPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Type</Label>
+                <Label className="text-xs">Type *</Label>
                 <select
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={form.vehicleType}
@@ -377,6 +377,7 @@ export default function AdminFleetPage() {
                   <option value="sedan">Sedan</option>
                   <option value="suv">SUV</option>
                 </select>
+                <p className="text-[10px] text-muted-foreground mt-1">Must match pricing config vehicle types</p>
               </div>
               <div>
                 <Label className="text-xs">Status</Label>

@@ -2,14 +2,19 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -24,15 +29,15 @@ function AuthCallbackContent() {
       }
 
       try {
-        // Store tokens
         localStorage.setItem("access_token", accessToken);
         localStorage.setItem("refresh_token", refreshToken);
 
-        // Refresh user data
         await refreshUser();
+        setSuccess(true);
 
-        // Redirect to specified path or home
-        router.push(redirect);
+        setTimeout(() => {
+          router.push(redirect);
+        }, 1500);
       } catch (err) {
         console.error("Callback error:", err);
         setError("Failed to complete authentication.");
@@ -43,23 +48,109 @@ function AuthCallbackContent() {
     handleCallback();
   }, [searchParams, router, refreshUser]);
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="text-destructive text-lg font-semibold mb-2">{error}</div>
-          <p className="text-sm text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-        <p className="text-sm text-muted-foreground">Completing sign in...</p>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+      
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md relative z-10"
+      >
+        <div className="glass-strong rounded-2xl border border-primary/30 p-8 shadow-glass-elevated">
+          <div className="text-center mb-6">
+            <Link href="/" className="inline-block mb-8">
+              <Image 
+                src="/assets/wc-logo-full.png" 
+                alt="Westminster Chariots" 
+                width={240} 
+                height={70} 
+                className="object-contain mx-auto" 
+              />
+            </Link>
+          </div>
+
+          <div className="text-center space-y-6">
+            {!error && !success && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="h-16 w-16 text-primary mx-auto" />
+                </motion.div>
+                <div className="mt-6">
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+                    Completing Sign In
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-body">
+                    Please wait while we complete your authentication...
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                >
+                  <CheckCircle className="h-16 w-16 text-primary mx-auto" />
+                </motion.div>
+                <div className="mt-6">
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+                    Success!
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-body">
+                    Redirecting you now...
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                >
+                  <AlertCircle className="h-16 w-16 text-destructive mx-auto" />
+                </motion.div>
+                <div className="mt-6">
+                  <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+                    Authentication Failed
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-body mb-6">
+                    {error}
+                  </p>
+                  <Button 
+                    variant="hero" 
+                    className="w-full bg-blue-gradient shadow-blue" 
+                    onClick={() => router.push("/auth")}
+                  >
+                    Return to Sign In
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
@@ -67,8 +158,15 @@ function AuthCallbackContent() {
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="glass-strong rounded-2xl border border-primary/30 p-8 shadow-glass-elevated">
+            <div className="text-center">
+              <Loader2 className="h-16 w-16 text-primary animate-spin mx-auto" />
+              <p className="text-sm text-muted-foreground font-body mt-6">Loading...</p>
+            </div>
+          </div>
+        </div>
       </div>
     }>
       <AuthCallbackContent />

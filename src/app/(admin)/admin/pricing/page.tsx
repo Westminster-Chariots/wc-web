@@ -10,7 +10,7 @@ interface PricingConfig {
   baseRate: number;
   ratePerMile: number;
   ratePerMinute: number;
-  gratuityPercent: number;
+  taxPercent: number;
   waitTimeHourly: number;
 }
 
@@ -48,7 +48,7 @@ export default function AdminPricingPage() {
         baseRate: parseFloat(c.baseRate),
         ratePerMile: parseFloat(c.ratePerMile),
         ratePerMinute: parseFloat(c.ratePerMinute),
-        gratuityPercent: parseFloat(c.gratuityPercent),
+        taxPercent: parseFloat(c.taxPercent),
         waitTimeHourly: parseFloat(c.waitTimeHourly),
       }));
       
@@ -75,7 +75,7 @@ export default function AdminPricingPage() {
         baseRate: config.baseRate,
         ratePerMile: config.ratePerMile,
         ratePerMinute: config.ratePerMinute,
-        gratuityPercent: config.gratuityPercent,
+        taxPercent: config.taxPercent,
         waitTimeHourly: config.waitTimeHourly,
       });
       toast.success(`${config.vehicleType.toUpperCase()} pricing saved`);
@@ -161,7 +161,7 @@ export default function AdminPricingPage() {
                         ["baseRate", "Base ($)"],
                         ["ratePerMile", "$/Mile"],
                         ["ratePerMinute", "$/Minute"],
-                        ["gratuityPercent", "Gratuity (%)"],
+                        ["taxPercent", "Tax (%)"],
                         ["waitTimeHourly", "Wait ($/hr)"],
                       ] as const
                     ).map(([field, label]) => (
@@ -183,7 +183,7 @@ export default function AdminPricingPage() {
                   </div>
 
                   <div className="text-[11px] text-muted-foreground bg-secondary/50 rounded px-2 py-1.5">
-                    Formula: ${c.baseRate} + (${c.ratePerMile} × miles) + (${c.ratePerMinute} × mins) + {c.gratuityPercent}% gratuity
+                    Formula: ${c.baseRate} + (${c.ratePerMile} × miles) + (${c.ratePerMinute} × mins) + {c.taxPercent}% tax
                   </div>
                 </div>
               ))}

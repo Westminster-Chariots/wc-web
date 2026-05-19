@@ -1,7 +1,5 @@
-export function calculatePrice(distance: number, duration: number, vehicleType: "sedan" | "suv"): number {
-  if (vehicleType === "sedan") return 30 + 4.0 * distance + 1.25 * duration;
-  return 37 + 4.5 * distance + 1.55 * duration;
-}
+// Pricing calculation is now handled by usePricing hook which fetches from database
+// This file only contains gatekeeper logic
 
 export type GatekeeperStatus = "standard" | "urgent" | "emergency";
 

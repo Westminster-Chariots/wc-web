@@ -16,7 +16,7 @@ interface CheckoutSummaryProps {
   pickupTime: string;
   vehicleType: "sedan" | "suv";
   basePrice: number;
-  gratuity: number;
+  tax: number;
   total: number;
   distanceMiles: number;
   durationMinutes: number;
@@ -65,7 +65,7 @@ const CheckoutSummary = ({
   pickupTime,
   vehicleType,
   basePrice,
-  gratuity,
+  tax,
   total,
   distanceMiles,
   flightNumber,
@@ -135,8 +135,8 @@ const CheckoutSummary = ({
     setEditingIndex(null);
   };
 
-  const totalGratuity = grandTotal * 0.2;
-  const grandTotalWithGratuity = grandTotal + totalGratuity;
+  const totalTax = grandTotal * 0.2;
+  const grandTotalWithTax = grandTotal + totalTax;
 
   return (
     <motion.div
@@ -417,11 +417,11 @@ const CheckoutSummary = ({
         </div>
         <div className="flex justify-between text-sm font-body">
           <span className="text-muted-foreground">Tax (20%)</span>
-          <span className="text-foreground">${Number(totalGratuity || 0).toFixed(2)}</span>
+          <span className="text-foreground">${Number(totalTax || 0).toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
           <span className="text-foreground font-semibold">Total</span>
-          <span className="text-primary font-display font-bold text-lg">${Number(grandTotalWithGratuity || 0).toFixed(2)}</span>
+          <span className="text-primary font-display font-bold text-lg">${Number(grandTotalWithTax || 0).toFixed(2)}</span>
         </div>
       </div>
 

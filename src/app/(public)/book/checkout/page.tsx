@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useBookingStore, type TripLeg } from "@/hooks/useBookingStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouteDetails, fetchRouteDetails } from "@/hooks/useRouteDetails";
+import { usePricing } from "@/hooks/usePricing";
 import type { RouteDetails } from "@/types";
-import { calculatePrice } from "@/lib/pricing";
 import { notify } from "@/lib/notify";
 import { bookingService } from "@/lib/services";
 import CheckoutSummary from "@/components/booking/CheckoutSummary";
@@ -17,11 +17,13 @@ export default function BookingCheckoutPage() {
   const { user } = useAuth();
   const { data, update, addLeg, removeLeg, updateLeg } = useBookingStore();
   const [loading, setLoading] = useState(false);
+  const { calculatePrice, getTaxPercent } = usePricing();
 
   const { route } = useRouteDetails(data.pickup, data.dropoff);
-  const basePrice = route && data.selectedVehicle ? calculatePrice(route.distance, route.duration, data.selectedVehicle) : 0;
-  const gratuity = basePrice * 0.2;
-  const total = basePrice + gratuity;
+  const basePrice = route && data.selectedVehicle ? calculatePrice(route.distance, route.duration, data.selectedVehicle) || 0 : 0;
+  const taxPercent = data.selectedVehicle ? getTaxPercent(data.selectedVehicle) / 100 : 0.2;
+  const tax = basePrice * taxPercent;
+  const total = basePrice + tax;
 
   // Fetch routes for additional legs
   const [legRoutes, setLegRoutes] = useState<RouteDetails[]>([]);
@@ -52,9 +54,9 @@ export default function BookingCheckoutPage() {
     const additionalLegsCount = (data.additionalLegs || []).length;
     if (legRoutes.length !== additionalLegsCount) return [];
     return legRoutes.map(legRoute =>
-      calculatePrice(legRoute.distance, legRoute.duration, data.selectedVehicle || "sedan")
+      calculatePrice(legRoute.distance, legRoute.duration, data.selectedVehicle || "sedan") || 0
     );
-  }, [legRoutes, data.additionalLegs, data.selectedVehicle]);
+  }, [legRoutes, data.additionalLegs, data.selectedVehicle, calculatePrice]);
 
   const grandTotal = basePrice + (legPrices?.reduce((a, b) => a + b, 0) || 0);
 
@@ -161,7 +163,7 @@ export default function BookingCheckoutPage() {
           pickupTime={data.pickupTime}
           vehicleType={data.selectedVehicle!}
           basePrice={basePrice}
-          gratuity={gratuity}
+          tax={tax}
           total={total}
           distanceMiles={route.distance}
           durationMinutes={route.duration}
