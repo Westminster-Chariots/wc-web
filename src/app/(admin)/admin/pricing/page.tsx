@@ -212,19 +212,45 @@ export default function AdminPricingPage() {
     );
   };
 
-  const updateVehiclePricing = async (vehicleId: string, field: keyof VehicleSpecificPricing, value: number | undefined) => {
+  const updateVehiclePricing = (vehicleId: string, field: keyof VehicleSpecificPricing, value: number | undefined) => {
     const updated = { ...vehiclePricing[vehicleId], vehicleId, [field]: value };
     setVehiclePricing((prev) => ({ ...prev, [vehicleId]: updated }));
-    
+  };
+
+  const saveVehiclePricing = async (vehicleId: string) => {
+    const pricing = vehiclePricing[vehicleId];
+    if (!pricing) return;
+
+    setSaving(true);
     try {
       await pricingService.upsertVehiclePricing(vehicleId, {
-        baseRate: updated.baseRate,
-        ratePerMile: updated.ratePerMile,
-        ratePerMinute: updated.ratePerMinute,
-        taxPercent: updated.taxPercent,
+        baseRate: pricing.baseRate,
+        ratePerMile: pricing.ratePerMile,
+        ratePerMinute: pricing.ratePerMinute,
+        taxPercent: pricing.taxPercent,
       });
+      toast.success("Vehicle pricing saved");
     } catch (error: any) {
-      toast.error("Failed to save vehicle pricing");
+      toast.error(error.message || "Failed to save vehicle pricing");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearVehiclePricing = async (vehicleId: string) => {
+    setSaving(true);
+    try {
+      await pricingService.deleteVehiclePricing(vehicleId);
+      setVehiclePricing((prev) => {
+        const updated = { ...prev };
+        delete updated[vehicleId];
+        return updated;
+      });
+      toast.success("Reset to category defaults");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to clear vehicle pricing");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -666,22 +692,26 @@ export default function AdminPricingPage() {
                         </div>
                       </div>
 
-                      {hasOverride && (
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => {
-                            setVehiclePricing((prev) => {
-                              const updated = { ...prev };
-                              delete updated[vehicle.id];
-                              return updated;
-                            });
-                            toast.success("Reset to category defaults");
-                          }}
-                          className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+                          onClick={() => saveVehiclePricing(vehicle.id)}
+                          disabled={saving || usingFallback}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          <X className="h-3 w-3" />
-                          Clear custom pricing (use category defaults)
+                          <Save className="h-3 w-3" />
+                          Save Pricing
                         </button>
-                      )}
+                        {hasOverride && (
+                          <button
+                            onClick={() => clearVehiclePricing(vehicle.id)}
+                            disabled={saving}
+                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:border-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <X className="h-3 w-3" />
+                            Clear
+                          </button>
+                        )}
+                      </div>
 
                       {!defaultConfig && (
                         <p className="text-[10px] text-amber-600 bg-amber-500/10 rounded px-2 py-1">
