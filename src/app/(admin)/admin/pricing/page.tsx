@@ -65,8 +65,8 @@ export default function AdminPricingPage() {
   });
 
   const { route, isLoading: routeLoading } = useRouteDetails(
-    calcPickup && calcDropoff ? calcPickup : null,
-    calcPickup && calcDropoff ? calcDropoff : null
+    calcPickup || "",
+    calcDropoff || ""
   );
 
   useEffect(() => {
@@ -208,7 +208,7 @@ export default function AdminPricingPage() {
     return { basePrice, tax, total, taxPercent };
   };
 
-  const calculatedPrice = route && calcVehicle ? calculatePrice(route.distance, route.duration, calcVehicle) : null;
+  const calculatedPrice = route && calcVehicle && calcPickup && calcDropoff ? calculatePrice(route.distance, route.duration, calcVehicle) : null;
 
   return (
     <div className="p-4 md:p-8 space-y-6">
