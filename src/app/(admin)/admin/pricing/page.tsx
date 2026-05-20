@@ -42,6 +42,15 @@ interface VehicleSpecificPricing {
   taxPercent?: number;
 }
 
+interface FleetVehicle {
+  id: string;
+  vehicleType: string;
+  make: string;
+  model: string;
+  plate: string | null;
+  status: string;
+}
+
 export default function AdminPricingPage() {
   const [activeTab, setActiveTab] = useState<"config" | "calculator">("config");
   const [configs, setConfigs] = useState<PricingConfig[]>([]);
