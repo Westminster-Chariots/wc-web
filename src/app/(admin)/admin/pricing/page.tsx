@@ -99,9 +99,32 @@ export default function AdminPricingPage() {
     setLoading(true);
     try {
       const [configData, zoneData, fleetData] = await Promise.all([
-        pricingService.getConfig(),
-        pricingService.getZones(),
-        fleetService.getAll()
+        pricingService.getConfig().catch((err) => {
+          console.error("Failed to load pricing config:", err);
+          // Return fallback pricing if API fails
+          return [
+            {
+              id: "fallback-sedan",
+              vehicleType: "sedan",
+              baseRate: "30",
+              ratePerMile: "4.0",
+              ratePerMinute: "1.25",
+              taxPercent: "20",
+              waitTimeHourly: "95",
+            },
+            {
+              id: "fallback-suv",
+              vehicleType: "suv",
+              baseRate: "37",
+              ratePerMile: "4.5",
+              ratePerMinute: "1.55",
+              taxPercent: "20",
+              waitTimeHourly: "95",
+            },
+          ];
+        }),
+        pricingService.getZones().catch(() => []),
+        fleetService.getAll().catch(() => [])
       ]);
       
       const parsedConfigs = configData.map((c: any) => ({
@@ -123,6 +146,10 @@ export default function AdminPricingPage() {
       setConfigs(parsedConfigs);
       setZones(parsedZones);
       setVehicles(fleetData);
+      
+      if (configData.length === 0 || configData[0]?.id?.startsWith("fallback")) {
+        toast.warning("Using default pricing. Backend pricing API is unavailable.");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to load pricing data");
     } finally {

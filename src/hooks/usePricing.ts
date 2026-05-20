@@ -66,19 +66,24 @@ export function usePricing() {
       
       setConfigs(parsed);
     } catch (err: any) {
-      // Use fallback pricing for public users (401 = not authenticated)
-      if (err.response?.status === 401) {
+      // Use fallback pricing for any error (401, 500, etc.)
+      const status = err.response?.status;
+      if (status === 401) {
         console.log("Using fallback pricing for unauthenticated user");
-        setConfigs(FALLBACK_PRICING);
-        FALLBACK_PRICING.forEach((config) => {
-          pricingCache[config.vehicleType] = config;
-        });
+      } else if (status === 500) {
+        console.error("Backend pricing error, using fallback pricing");
       } else {
-        setError(err.message || "Failed to load pricing");
         console.error("Pricing load error:", err);
-        // Still use fallback on other errors
-        setConfigs(FALLBACK_PRICING);
       }
+      
+      // Always use fallback pricing on error
+      setConfigs(FALLBACK_PRICING);
+      FALLBACK_PRICING.forEach((config) => {
+        pricingCache[config.vehicleType] = config;
+      });
+      
+      // Don't set error state - just use fallback silently
+      setError(null);
     } finally {
       setLoading(false);
     }
