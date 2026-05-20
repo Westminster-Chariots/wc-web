@@ -256,6 +256,11 @@ export const pricingService = {
     return data;
   },
   
+  createConfig: async (config: { vehicleType: string; baseRate: number; ratePerMile: number; ratePerMinute: number; taxPercent: number; waitTimeHourly: number }) => {
+    const { data } = await api.post("/pricing/config", config);
+    return data;
+  },
+  
   updateConfig: async (id: string, config: any) => {
     const { data } = await api.patch(`/pricing/config/${id}`, config);
     return data;

@@ -49,6 +49,8 @@ export default function AdminPricingPage() {
   const [vehiclePricing, setVehiclePricing] = useState<Record<string, VehicleSpecificPricing>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [initializing, setInitializing] = useState(false);
 
   // Calculator state
   const [calcPickup, setCalcPickup] = useState("");
@@ -101,6 +103,7 @@ export default function AdminPricingPage() {
       const [configData, zoneData, fleetData] = await Promise.all([
         pricingService.getConfig().catch((err) => {
           console.error("Failed to load pricing config:", err);
+          setUsingFallback(true);
           // Return fallback pricing if API fails
           return [
             {
@@ -147,8 +150,10 @@ export default function AdminPricingPage() {
       setZones(parsedZones);
       setVehicles(fleetData);
       
-      if (configData.length === 0 || configData[0]?.id?.startsWith("fallback")) {
-        toast.warning("Using default pricing. Backend pricing API is unavailable.");
+      if (configData.length > 0 && configData[0]?.id?.startsWith("fallback")) {
+        toast.warning("Backend pricing API unavailable. Using read-only default pricing for calculator.", {
+          duration: 5000,
+        });
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load pricing data");
@@ -158,6 +163,10 @@ export default function AdminPricingPage() {
   };
 
   const saveConfig = async (config: PricingConfig) => {
+    if (usingFallback) {
+      toast.error("Cannot save pricing. Backend API is unavailable. Please contact support.");
+      return;
+    }
     setSaving(true);
     try {
       await pricingService.updateConfig(config.id, {
@@ -176,6 +185,10 @@ export default function AdminPricingPage() {
   };
 
   const saveZone = async (zone: FlatZone) => {
+    if (usingFallback) {
+      toast.error("Cannot save zones. Backend API is unavailable. Please contact support.");
+      return;
+    }
     setSaving(true);
     try {
       await pricingService.updateZone(zone.id, {
@@ -213,6 +226,38 @@ export default function AdminPricingPage() {
         [field]: value,
       },
     }));
+  };
+
+  const initializePricing = async () => {
+    setInitializing(true);
+    try {
+      await Promise.all([
+        pricingService.createConfig({
+          vehicleType: "sedan",
+          baseRate: 30,
+          ratePerMile: 4.0,
+          ratePerMinute: 1.25,
+          taxPercent: 20,
+          waitTimeHourly: 95,
+        }),
+        pricingService.createConfig({
+          vehicleType: "suv",
+          baseRate: 37,
+          ratePerMile: 4.5,
+          ratePerMinute: 1.55,
+          taxPercent: 20,
+          waitTimeHourly: 95,
+        }),
+      ]);
+      
+      toast.success("Pricing configurations initialized successfully!");
+      setUsingFallback(false);
+      await loadPricingData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to initialize pricing");
+    } finally {
+      setInitializing(false);
+    }
   };
 
   const calculatePrice = (distance: number, duration: number, vehicleId: string) => {
@@ -416,6 +461,44 @@ export default function AdminPricingPage() {
         </div>
       ) : (
         <>
+          {usingFallback && (
+            <div className="glass-card rounded-xl p-6 mb-6 border-amber-500/30 bg-amber-500/5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-lg bg-amber-500/10">
+                  <DollarSign className="h-6 w-6 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-base font-semibold text-foreground mb-2">Pricing Database Not Initialized</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    The pricing configuration table is empty. Click the button below to create default pricing configurations for Sedan and SUV vehicle types.
+                  </p>
+                  <Button
+                    onClick={initializePricing}
+                    disabled={initializing}
+                    className="gap-2 bg-blue-gradient shadow-blue"
+                  >
+                    {initializing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Initializing...
+                      </>
+                    ) : (
+                      <>
+                        <DollarSign className="h-4 w-4" />
+                        Initialize Pricing Configs
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    This will create:
+                    <br />• Sedan: $30 base + $4.00/mile + $1.25/min + 20% tax
+                    <br />• SUV: $37 base + $4.50/mile + $1.55/min + 20% tax
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Rate Equations */}
           <section>
             <h3 className="text-base font-display font-semibold text-foreground mb-1">Rate Equations</h3>
@@ -432,8 +515,9 @@ export default function AdminPricingPage() {
                     </h4>
                     <button
                       onClick={() => saveConfig(c)}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                      disabled={saving || usingFallback}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title={usingFallback ? "Cannot save - Backend API unavailable" : "Save pricing configuration"}
                     >
                       <Save className="h-3 w-3" />
                       Save
@@ -609,8 +693,9 @@ export default function AdminPricingPage() {
                     </div>
                     <button
                       onClick={() => saveZone(zone)}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                      disabled={saving || usingFallback}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      title={usingFallback ? "Cannot save - Backend API unavailable" : "Save zone configuration"}
                     >
                       <Save className="h-3 w-3" />
                       Save
