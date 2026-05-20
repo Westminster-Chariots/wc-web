@@ -99,9 +99,12 @@ export default function AdminFleetPage() {
       formData.append("file", file);
       formData.append("type", "vehicle_image");
 
+      const token = localStorage.getItem("access_token");
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/uploads`, {
         method: "POST",
-        credentials: "include",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
         body: formData,
       });
 

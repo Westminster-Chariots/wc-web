@@ -12,6 +12,28 @@ export interface PricingConfig {
   waitTimeHourly: number;
 }
 
+// Fallback pricing for public users (when API requires auth)
+const FALLBACK_PRICING: PricingConfig[] = [
+  {
+    id: "fallback-sedan",
+    vehicleType: "sedan",
+    baseRate: 30,
+    ratePerMile: 4.0,
+    ratePerMinute: 1.25,
+    taxPercent: 20,
+    waitTimeHourly: 95,
+  },
+  {
+    id: "fallback-suv",
+    vehicleType: "suv",
+    baseRate: 37,
+    ratePerMile: 4.5,
+    ratePerMinute: 1.55,
+    taxPercent: 20,
+    waitTimeHourly: 95,
+  },
+];
+
 const pricingCache: Record<string, PricingConfig> = {};
 
 export function usePricing() {
@@ -44,8 +66,19 @@ export function usePricing() {
       
       setConfigs(parsed);
     } catch (err: any) {
-      setError(err.message || "Failed to load pricing");
-      console.error("Pricing load error:", err);
+      // Use fallback pricing for public users (401 = not authenticated)
+      if (err.response?.status === 401) {
+        console.log("Using fallback pricing for unauthenticated user");
+        setConfigs(FALLBACK_PRICING);
+        FALLBACK_PRICING.forEach((config) => {
+          pricingCache[config.vehicleType] = config;
+        });
+      } else {
+        setError(err.message || "Failed to load pricing");
+        console.error("Pricing load error:", err);
+        // Still use fallback on other errors
+        setConfigs(FALLBACK_PRICING);
+      }
     } finally {
       setLoading(false);
     }

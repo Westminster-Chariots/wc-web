@@ -114,12 +114,13 @@ api.interceptors.response.use(
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         
-        // Only redirect if not already on auth pages
+        // Only redirect if not already on auth pages or public booking pages
         if (typeof window !== "undefined") {
           const currentPath = window.location.pathname;
           const isAuthPage = ["/auth", "/book/login", "/reset-password"].includes(currentPath);
+          const isPublicBookingPage = currentPath.startsWith("/book") && !currentPath.startsWith("/book/checkout");
           
-          if (!isAuthPage) {
+          if (!isAuthPage && !isPublicBookingPage) {
             toast.error("Session expired. Please login again.");
             window.location.href = "/auth";
           }
