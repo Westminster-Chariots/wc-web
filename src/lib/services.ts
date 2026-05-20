@@ -284,6 +284,25 @@ export const pricingService = {
   deleteZone: async (id: string) => {
     await api.delete(`/pricing/zones/${id}`);
   },
+  
+  getVehiclePricing: async () => {
+    const { data } = await api.get("/pricing/vehicles");
+    return data;
+  },
+  
+  getVehiclePricingById: async (vehicleId: string) => {
+    const { data } = await api.get(`/pricing/vehicles/${vehicleId}`);
+    return data;
+  },
+  
+  upsertVehiclePricing: async (vehicleId: string, pricing: { baseRate?: number; ratePerMile?: number; ratePerMinute?: number; taxPercent?: number }) => {
+    const { data } = await api.put(`/pricing/vehicles/${vehicleId}`, pricing);
+    return data;
+  },
+  
+  deleteVehiclePricing: async (vehicleId: string) => {
+    await api.delete(`/pricing/vehicles/${vehicleId}`);
+  },
 };
 
 // ─── Campaign Services ───────────────────────────────────────────────────────

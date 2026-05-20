@@ -8,8 +8,9 @@ import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import type { FleetVehicle } from "@/types";
 import { motion } from "framer-motion";
+import Link from "next/link";
+import { X } from "lucide-react";
 
 const libraries: ("places")[] = ["places"];
 
@@ -100,34 +101,18 @@ export default function AdminPricingPage() {
   const loadPricingData = async () => {
     setLoading(true);
     try {
-      const [configData, zoneData, fleetData] = await Promise.all([
+      const [configData, zoneData, fleetData, vehiclePricingData] = await Promise.all([
         pricingService.getConfig().catch((err) => {
           console.error("Failed to load pricing config:", err);
           setUsingFallback(true);
-          // Return fallback pricing if API fails
           return [
-            {
-              id: "fallback-sedan",
-              vehicleType: "sedan",
-              baseRate: "30",
-              ratePerMile: "4.0",
-              ratePerMinute: "1.25",
-              taxPercent: "20",
-              waitTimeHourly: "95",
-            },
-            {
-              id: "fallback-suv",
-              vehicleType: "suv",
-              baseRate: "37",
-              ratePerMile: "4.5",
-              ratePerMinute: "1.55",
-              taxPercent: "20",
-              waitTimeHourly: "95",
-            },
+            { id: "fallback-sedan", vehicleType: "sedan", baseRate: "30", ratePerMile: "4.0", ratePerMinute: "1.25", taxPercent: "20", waitTimeHourly: "95" },
+            { id: "fallback-suv", vehicleType: "suv", baseRate: "37", ratePerMile: "4.5", ratePerMinute: "1.55", taxPercent: "20", waitTimeHourly: "95" },
           ];
         }),
         pricingService.getZones().catch(() => []),
-        fleetService.getAll().catch(() => [])
+        fleetService.getAll().catch(() => []),
+        pricingService.getVehiclePricing().catch(() => [])
       ]);
       
       const parsedConfigs = configData.map((c: any) => ({
@@ -146,14 +131,24 @@ export default function AdminPricingPage() {
         radiusMiles: parseFloat(z.radiusMiles),
       }));
       
+      const parsedVehiclePricing: Record<string, VehicleSpecificPricing> = {};
+      vehiclePricingData.forEach((vp: any) => {
+        parsedVehiclePricing[vp.vehicleId] = {
+          vehicleId: vp.vehicleId,
+          baseRate: vp.baseRate ? parseFloat(vp.baseRate) : undefined,
+          ratePerMile: vp.ratePerMile ? parseFloat(vp.ratePerMile) : undefined,
+          ratePerMinute: vp.ratePerMinute ? parseFloat(vp.ratePerMinute) : undefined,
+          taxPercent: vp.taxPercent ? parseFloat(vp.taxPercent) : undefined,
+        };
+      });
+      
       setConfigs(parsedConfigs);
       setZones(parsedZones);
       setVehicles(fleetData);
+      setVehiclePricing(parsedVehiclePricing);
       
       if (configData.length > 0 && configData[0]?.id?.startsWith("fallback")) {
-        toast.warning("Backend pricing API unavailable. Using read-only default pricing for calculator.", {
-          duration: 5000,
-        });
+        toast.warning("Backend pricing API unavailable. Using read-only default pricing for calculator.", { duration: 5000 });
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to load pricing data");
@@ -217,15 +212,20 @@ export default function AdminPricingPage() {
     );
   };
 
-  const updateVehiclePricing = (vehicleId: string, field: keyof VehicleSpecificPricing, value: number | undefined) => {
-    setVehiclePricing((prev) => ({
-      ...prev,
-      [vehicleId]: {
-        ...prev[vehicleId],
-        vehicleId,
-        [field]: value,
-      },
-    }));
+  const updateVehiclePricing = async (vehicleId: string, field: keyof VehicleSpecificPricing, value: number | undefined) => {
+    const updated = { ...vehiclePricing[vehicleId], vehicleId, [field]: value };
+    setVehiclePricing((prev) => ({ ...prev, [vehicleId]: updated }));
+    
+    try {
+      await pricingService.upsertVehiclePricing(vehicleId, {
+        baseRate: updated.baseRate,
+        ratePerMile: updated.ratePerMile,
+        ratePerMinute: updated.ratePerMinute,
+        taxPercent: updated.taxPercent,
+      });
+    } catch (error: any) {
+      toast.error("Failed to save vehicle pricing");
+    }
   };
 
   const initializePricing = async () => {
@@ -468,32 +468,37 @@ export default function AdminPricingPage() {
                   <DollarSign className="h-6 w-6 text-amber-500" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-base font-semibold text-foreground mb-2">Pricing Database Not Initialized</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    The pricing configuration table is empty. Click the button below to create default pricing configurations for Sedan and SUV vehicle types.
-                  </p>
-                  <Button
-                    onClick={initializePricing}
-                    disabled={initializing}
-                    className="gap-2 bg-blue-gradient shadow-blue"
-                  >
-                    {initializing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Initializing...
-                      </>
-                    ) : (
-                      <>
-                        <DollarSign className="h-4 w-4" />
-                        Initialize Pricing Configs
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    This will create:
-                    <br />• Sedan: $30 base + $4.00/mile + $1.25/min + 20% tax
-                    <br />• SUV: $37 base + $4.50/mile + $1.55/min + 20% tax
-                  </p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-base font-semibold text-foreground mb-2">Pricing Database Not Initialized</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        The pricing configuration table is empty. Initialize default pricing for Sedan and SUV categories first.
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        <strong>What will be created:</strong>
+                        <br />• <strong>Sedan Category:</strong> $30 base + $4.00/mile + $1.25/min + 20% tax + $95/hr wait time
+                        <br />• <strong>SUV Category:</strong> $37 base + $4.50/mile + $1.55/min + 20% tax + $95/hr wait time
+                      </p>
+                      <Button
+                        onClick={initializePricing}
+                        disabled={initializing}
+                        size="lg"
+                        className="gap-2 bg-blue-gradient shadow-blue"
+                      >
+                        {initializing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Initializing Database...
+                          </>
+                        ) : (
+                          <>
+                            <DollarSign className="h-4 w-4" />
+                            Initialize Pricing Database
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -562,112 +567,132 @@ export default function AdminPricingPage() {
           {/* Vehicle-Specific Pricing */}
           <section>
             <div className="mb-4">
-              <h3 className="text-base font-display font-semibold text-foreground mb-1">Vehicle-Specific Pricing</h3>
+              <h3 className="text-base font-display font-semibold text-foreground mb-1">Vehicle-Specific Pricing Overrides</h3>
               <p className="text-xs text-muted-foreground">
-                Override default pricing for specific vehicles. Leave blank to use category defaults.
+                Set custom pricing for individual vehicles. Fields show category defaults in <span className="text-primary font-semibold">[brackets]</span>. Leave empty to use category pricing.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {vehicles.map((vehicle) => {
-                const defaultConfig = configs.find(c => c.vehicleType === vehicle.vehicleType);
-                const specific = vehiclePricing[vehicle.id];
-                const hasOverride = specific && (specific.baseRate !== undefined || specific.ratePerMile !== undefined || specific.ratePerMinute !== undefined || specific.taxPercent !== undefined);
+            {vehicles.length === 0 ? (
+              <div className="glass-card rounded-lg p-8 text-center">
+                <Car className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground mb-1">No vehicles in fleet</p>
+                <p className="text-xs text-muted-foreground">Add vehicles in <Link href="/admin/fleet" className="text-primary hover:underline">Fleet Management</Link> first</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {vehicles.map((vehicle) => {
+                  const defaultConfig = configs.find(c => c.vehicleType === vehicle.vehicleType);
+                  const specific = vehiclePricing[vehicle.id];
+                  const hasOverride = specific && (specific.baseRate !== undefined || specific.ratePerMile !== undefined || specific.ratePerMinute !== undefined || specific.taxPercent !== undefined);
 
-                return (
-                  <div key={vehicle.id} className={`rounded-lg border p-4 space-y-3 transition-all ${
-                    hasOverride ? "border-primary/40 bg-primary/5" : "border-border bg-card"
-                  }`}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="text-sm font-display font-semibold text-foreground">
-                          {vehicle.make} {vehicle.model}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {vehicle.plate} • {vehicle.vehicleType.toUpperCase()}
-                        </p>
+                  return (
+                    <div key={vehicle.id} className={`rounded-lg border p-4 space-y-3 transition-all ${
+                      hasOverride ? "border-primary/40 bg-primary/5 shadow-blue" : "border-border bg-card"
+                    }`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-display font-semibold text-foreground">
+                            {vehicle.make} {vehicle.model}
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            {vehicle.plate} • <span className="uppercase font-semibold">{vehicle.vehicleType}</span>
+                          </p>
+                          {defaultConfig && (
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              Category defaults: ${defaultConfig.baseRate} + ${defaultConfig.ratePerMile}/mi + ${defaultConfig.ratePerMinute}/min
+                            </p>
+                          )}
+                        </div>
+                        {hasOverride && (
+                          <span className="text-[10px] px-2 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
+                            CUSTOM
+                          </span>
+                        )}
                       </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
+                            Base Rate ($)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={specific?.baseRate ?? ""}
+                            onChange={(e) => updateVehiclePricing(vehicle.id, "baseRate", e.target.value ? parseFloat(e.target.value) : undefined)}
+                            placeholder={defaultConfig?.baseRate.toString() || "30"}
+                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
+                            Rate Per Mile ($)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={specific?.ratePerMile ?? ""}
+                            onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMile", e.target.value ? parseFloat(e.target.value) : undefined)}
+                            placeholder={defaultConfig?.ratePerMile.toString() || "4.00"}
+                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
+                            Rate Per Minute ($)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={specific?.ratePerMinute ?? ""}
+                            onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMinute", e.target.value ? parseFloat(e.target.value) : undefined)}
+                            placeholder={defaultConfig?.ratePerMinute.toString() || "1.25"}
+                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
+                            Tax Percent (%)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={specific?.taxPercent ?? ""}
+                            onChange={(e) => updateVehiclePricing(vehicle.id, "taxPercent", e.target.value ? parseFloat(e.target.value) : undefined)}
+                            placeholder={defaultConfig?.taxPercent.toString() || "20"}
+                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
+
                       {hasOverride && (
-                        <span className="text-[10px] px-2 py-1 rounded-full bg-primary/20 text-primary font-semibold">
-                          CUSTOM
-                        </span>
+                        <button
+                          onClick={() => {
+                            setVehiclePricing((prev) => {
+                              const updated = { ...prev };
+                              delete updated[vehicle.id];
+                              return updated;
+                            });
+                            toast.success("Reset to category defaults");
+                          }}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+                        >
+                          <X className="h-3 w-3" />
+                          Clear custom pricing (use category defaults)
+                        </button>
+                      )}
+
+                      {!defaultConfig && (
+                        <p className="text-[10px] text-amber-600 bg-amber-500/10 rounded px-2 py-1">
+                          ⚠️ No category pricing found for {vehicle.vehicleType}. Initialize pricing first.
+                        </p>
                       )}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          Base ($) {defaultConfig && `[${defaultConfig.baseRate}]`}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={specific?.baseRate ?? ""}
-                          onChange={(e) => updateVehiclePricing(vehicle.id, "baseRate", e.target.value ? parseFloat(e.target.value) : undefined)}
-                          placeholder={defaultConfig?.baseRate.toString()}
-                          className="w-full mt-0.5 bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          $/Mile {defaultConfig && `[${defaultConfig.ratePerMile}]`}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={specific?.ratePerMile ?? ""}
-                          onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMile", e.target.value ? parseFloat(e.target.value) : undefined)}
-                          placeholder={defaultConfig?.ratePerMile.toString()}
-                          className="w-full mt-0.5 bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          $/Min {defaultConfig && `[${defaultConfig.ratePerMinute}]`}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={specific?.ratePerMinute ?? ""}
-                          onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMinute", e.target.value ? parseFloat(e.target.value) : undefined)}
-                          placeholder={defaultConfig?.ratePerMinute.toString()}
-                          className="w-full mt-0.5 bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          Tax (%) {defaultConfig && `[${defaultConfig.taxPercent}]`}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={specific?.taxPercent ?? ""}
-                          onChange={(e) => updateVehiclePricing(vehicle.id, "taxPercent", e.target.value ? parseFloat(e.target.value) : undefined)}
-                          placeholder={defaultConfig?.taxPercent.toString()}
-                          className="w-full mt-0.5 bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </div>
-
-                    {hasOverride && (
-                      <button
-                        onClick={() => {
-                          setVehiclePricing((prev) => {
-                            const updated = { ...prev };
-                            delete updated[vehicle.id];
-                            return updated;
-                          });
-                          toast.success("Reset to default pricing");
-                        }}
-                        className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        Reset to defaults
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Flat Rate Zones */}
