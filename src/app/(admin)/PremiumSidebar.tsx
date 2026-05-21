@@ -311,16 +311,15 @@ function PremiumMobileMenu() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[99] bg-black/70 backdrop-blur-md" 
+              className="fixed inset-0 w-screen h-screen z-[99] bg-black/70 backdrop-blur-md" 
               onClick={handleClose}
-              style={{ minHeight: '100vh' }}
             />
             <motion.div 
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-screen w-[280px] bg-background/80 backdrop-blur-lg border-r border-white/[0.12] flex flex-col z-[100]" 
+              className="fixed left-0 top-0 h-screen w-[280px] bg-white/60 backdrop-blur-xl border-r border-white/[0.12] flex flex-col z-[100]" 
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 border-b border-white/[0.08] bg-background/95 backdrop-blur-xl flex items-center justify-between shrink-0">
