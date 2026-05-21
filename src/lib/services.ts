@@ -44,6 +44,11 @@ export const authService = {
     const { data } = await api.get("/auth/me");
     return data;
   },
+
+  updateProfile: async (updates: { displayName?: string; phone?: string }) => {
+    const { data } = await api.patch("/auth/profile", updates);
+    return data;
+  },
   
   forgotPassword: async (email: string) => {
     await api.post("/auth/forgot-password", { email });

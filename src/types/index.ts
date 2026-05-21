@@ -9,6 +9,7 @@ export interface User {
   role: "admin" | "client";
   fullName?: string;
   phone?: string;
+  profile?: Profile | null;
 }
 
 export interface Profile {
@@ -61,10 +62,12 @@ export interface Driver {
   name: string;
   phone: string | null;
   email: string | null;
-  status: "available" | "unavailable" | "on_trip";
+  status: "available" | "off_duty" | "on_trip" | "unavailable";
   vehicleId: string | null;
   photoUrl: string | null;
   notes: string | null;
+  rating?: number | null;
+  tripsCompleted?: number | null;
   createdAt: string;
 }
 
@@ -76,7 +79,7 @@ export interface FleetVehicle {
   vehicleType: VehicleType;
   color: string | null;
   plate: string | null;
-  status: "available" | "in_service" | "maintenance";
+  status: "available" | "in_use" | "maintenance" | "retired" | "in_service";
   passengerCapacity: number | null;
   luggageCapacity: number | null;
   imageUrl: string | null;

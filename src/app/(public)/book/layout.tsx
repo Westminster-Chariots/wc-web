@@ -163,7 +163,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
                           : 'border-border bg-card text-muted-foreground'
                       }`}
                     >
-                      {i + 1}
+                      <span className="flex items-center justify-center w-full h-full">{i + 1}</span>
                     </motion.div>
                     <span className={`text-sm font-body whitespace-nowrap ${
                       i === currentStep ? 'text-foreground font-semibold' : 'text-muted-foreground'
@@ -195,20 +195,20 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
                     <motion.div 
                       initial={{ scale: 0.8 }}
                       animate={{ scale: 1 }}
-                      className={`rounded-full transition-all z-10 ${
+                      className={`rounded-full transition-all z-10 flex items-center justify-center ${
                         i === currentStep 
-                          ? 'h-8 w-8 bg-blue-gradient shadow-blue border-2 border-white flex items-center justify-center' 
+                          ? 'h-8 w-8 bg-blue-gradient shadow-blue border-2 border-white' 
                           : i < currentStep 
-                          ? 'h-6 w-6 bg-primary border-2 border-white flex items-center justify-center' 
+                          ? 'h-6 w-6 bg-primary border-2 border-white' 
                           : 'h-6 w-6 bg-card border-2 border-border'
                       }`}
                     >
                       {i < currentStep ? (
                         <Check className="h-3 w-3 text-white" />
                       ) : i === currentStep ? (
-                        <span className="text-xs font-bold text-white">{i + 1}</span>
+                        <span className="text-xs font-bold text-white flex items-center justify-center w-full h-full">{i + 1}</span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">{i + 1}</span>
+                        <span className="text-xs text-muted-foreground flex items-center justify-center w-full h-full">{i + 1}</span>
                       )}
                     </motion.div>
                   </div>

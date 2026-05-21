@@ -1,196 +1,15 @@
 "use client";
-import { LayoutDashboard, Calendar, Car, Users, FileText, Map, DollarSign, Settings, Shield, ChevronLeft, Menu, Megaphone, User, LogOut } from "lucide-react";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/primitives";
 import SystemHealth from "@/components/dashboard/SystemHealth";
 import AdminNotificationBell from "@/components/dashboard/AdminNotificationBell";
 import RouteLoadingBar from "@/components/ui/RouteLoadingBar";
 import { useAuth } from "@/hooks/useAuth";
-
-
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
-  { icon: Calendar, label: 'Schedule', path: '/admin/schedule' },
-  { icon: Car, label: 'Fleet', path: '/admin/fleet' },
-  { icon: Users, label: 'Drivers', path: '/admin/drivers' },
-  { icon: FileText, label: 'Manifests', path: '/admin/manifests' },
-  { icon: Map, label: 'Live Map', path: '/admin/map' },
-  { icon: DollarSign, label: 'Pricing', path: '/admin/pricing' },
-  { icon: Users, label: 'Clients', path: '/admin/clients' },
-  { icon: Megaphone, label: 'Campaigns', path: '/admin/campaigns' },
-];
-
-const bottomItems = [
-  { icon: Shield, label: 'Audit Log', path: '/admin/audit' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
-];
-
-function Sidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCollapsed: (v: boolean) => void }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const isActive = (path: string) => pathname === path;
-
-  return (
-    <motion.aside animate={{ width: collapsed ? 72 : 240 }} transition={{ duration: 0.2 }} className="fixed left-0 top-0 h-screen glass-heavy border-r border-white/[0.06] flex flex-col z-50 hidden md:flex">
-      <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
-        <Link href="/">
-          <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} className="rounded-md object-contain shrink-0 hover:opacity-80 transition-opacity" />
-        </Link>
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }} exit={{ opacity: 0, width: 0 }} className="overflow-hidden whitespace-nowrap">
-              <Link href="/">
-                <h1 className="text-sm font-display font-semibold text-foreground tracking-wide">Westminster</h1>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body">Chariots</p>
-              </Link>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <nav className="flex-1 py-4 px-3 space-y-1">
-        {navItems.map((item) => (
-          <button 
-            key={item.label} 
-            onClick={() => router.push(item.path)} 
-            className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
-              isActive(item.path)
-                ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border border-transparent'
-            }`}
-          >
-            <item.icon className={`h-4 w-4 shrink-0 transition-colors ${
-              isActive(item.path) ? 'text-primary' : ''
-            }`} />
-            <AnimatePresence>
-              {!collapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="truncate">{item.label}</motion.span>}
-            </AnimatePresence>
-          </button>
-        ))}
-      </nav>
-
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-        {bottomItems.map((item) => (
-          <button 
-            key={item.label} 
-            onClick={() => router.push(item.path)} 
-            className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
-              isActive(item.path)
-                ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border border-transparent'
-            }`}
-          >
-            <item.icon className={`h-4 w-4 shrink-0 transition-colors ${
-              isActive(item.path) ? 'text-primary' : ''
-            }`} />
-            <AnimatePresence>
-              {!collapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{item.label}</motion.span>}
-            </AnimatePresence>
-          </button>
-        ))}
-      </div>
-
-      <div className="px-3 pb-4">
-        <button 
-          onClick={() => setCollapsed(!collapsed)} 
-          className="w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-body transition-all duration-200 cursor-pointer"
-        >
-          <ChevronLeft className={`h-4 w-4 shrink-0 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
-          <AnimatePresence>
-            {!collapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>Collapse</motion.span>}
-          </AnimatePresence>
-        </button>
-      </div>
-    </motion.aside>
-  );
-}
-
-function MobileMenu() {
-  const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-  const router = useRouter();
-  const isActive = (path: string) => pathname === path;
-
-  // Lock body scroll when menu is open
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
-
-  const handleClose = () => {
-    setOpen(false);
-    document.body.style.overflow = '';
-  };
-
-  return (
-    <div className="md:hidden">
-      <button onClick={() => setOpen(!open)} className="p-2 rounded-md hover:bg-muted transition-colors">
-        <Menu className="h-5 w-5 text-foreground" />
-      </button>
-      {open && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={handleClose}>
-          <div className="fixed left-0 top-0 h-full w-[260px] glass-heavy border-r border-white/[0.06] flex flex-col overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
-              <Link href="/" onClick={handleClose}>
-                <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} className="rounded-md object-contain" />
-              </Link>
-              <Link href="/" onClick={handleClose}>
-                <h1 className="text-sm font-display font-semibold text-foreground tracking-wide">Westminster</h1>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body">Chariots</p>
-              </Link>
-            </div>
-            <nav className="flex-1 py-4 px-3 space-y-1">
-              {navItems.map((item) => (
-                <button 
-                  key={item.label} 
-                  onClick={() => { router.push(item.path); handleClose(); }} 
-                  className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
-                    isActive(item.path)
-                      ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent border border-transparent'
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 transition-colors ${
-                    isActive(item.path) ? 'text-primary' : ''
-                  }`} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-            <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-              {bottomItems.map((item) => (
-                <button 
-                  key={item.label} 
-                  onClick={() => { router.push(item.path); handleClose(); }} 
-                  className={`w-full flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-body transition-all duration-200 cursor-pointer ${
-                    isActive(item.path)
-                      ? 'bg-primary/20 text-primary border border-primary/30 shadow-sm shadow-primary/10'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent border border-transparent'
-                  }`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 transition-colors ${
-                    isActive(item.path) ? 'text-primary' : ''
-                  }`} />
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+import { PremiumSidebar, PremiumMobileMenu } from "./PremiumSidebar";
+import { User, Settings, LogOut, Bell, BarChart3, Shield } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -247,37 +66,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-background">
       <RouteLoadingBar />
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <main className="md:ml-[240px] min-h-screen">
-        <header className="sticky top-0 z-40 glass-frosted px-4 md:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MobileMenu />
+      <PremiumSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <main className="md:ml-[280px] min-h-screen">
+        <header className="sticky top-0 z-40 glass-strong px-6 md:px-8 py-5 flex items-center justify-between border-b border-white/[0.08] shadow-glass-elevated backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <PremiumMobileMenu />
             <div>
-              <h2 className="text-lg md:text-xl font-display font-semibold text-foreground">Command Center</h2>
-              <p className="text-xs text-muted-foreground font-body mt-0.5 hidden sm:block">
+              <h2 className="text-xl md:text-2xl font-display font-bold text-foreground">Command Center</h2>
+              <p className="text-sm text-muted-foreground font-body mt-1 hidden sm:block">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
             <SystemHealth />
             <AdminNotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="h-8 w-8 rounded-full gradient-gold flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary">
-                  <Image src="/assets/wc-logo-white.png" alt="WC" width={20} height={20} className="object-contain" />
+                <button className="h-10 w-10 rounded-full glass border border-white/[0.15] flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/50 hover:scale-105 transition-transform duration-300 relative group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Image src="/assets/wc-logo-white.png" alt="WC" width={24} height={24} className="relative object-contain" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/admin/settings")}>
-                  <User className="mr-2 h-4 w-4" />Profile
+              <DropdownMenuContent align="end" className="w-56 glass-strong border border-white/[0.12] shadow-glass-elevated">
+                <div className="px-2 py-1.5">
+                  <p className="text-xs text-muted-foreground font-body">Signed in as</p>
+                  <p className="text-sm font-semibold text-foreground font-body truncate">{user?.email}</p>
+                </div>
+                <DropdownMenuSeparator className="bg-white/[0.08]" />
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={() => router.push("/admin/settings")}>
+                  <User className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span className="font-body">Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/admin/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />Settings
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={() => router.push("/admin/settings")}>
+                  <Settings className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span className="font-body">Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => router.push("/auth")}>
-                  <LogOut className="mr-2 h-4 w-4" />Logout
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={() => router.push("/admin/audit")}>
+                  <BarChart3 className="mr-3 h-4 w-4 text-muted-foreground" />
+                  <span className="font-body">Analytics</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/[0.08]" />
+                <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive" onClick={() => router.push("/auth")}>
+                  <LogOut className="mr-3 h-4 w-4" />
+                  <span className="font-body">Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { User, Camera, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -28,8 +29,8 @@ export default function ProfileHeader({ displayName, email, clientCode, avatarUr
   };
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-4">
+    <section className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6">
+      <div className="grid gap-6 md:grid-cols-[auto_1fr] items-center">
         <input
           ref={avatarInputRef}
           type="file"
@@ -40,40 +41,50 @@ export default function ProfileHeader({ displayName, email, clientCode, avatarUr
         <button
           onClick={() => avatarInputRef.current?.click()}
           disabled={uploadingAvatar || !onAvatarUpload}
-          className="relative h-16 w-16 rounded-full glass flex items-center justify-center overflow-hidden group hover:ring-2 hover:ring-primary/50 transition-all disabled:opacity-70 flex-shrink-0"
+          className="relative h-24 w-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden group shadow-sm transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed"
           title="Upload profile photo"
         >
           {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="h-full w-full object-cover"
-            />
+            <Image src={avatarUrl} alt={displayName} fill className="object-cover" />
           ) : (
-            <User className="h-8 w-8 text-primary" />
+            <User className="h-10 w-10 text-sky-600" />
           )}
           {onAvatarUpload && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               {uploadingAvatar ? (
-                <Loader2 className="h-5 w-5 text-white animate-spin" />
+                <Loader2 className="h-6 w-6 text-slate-700 animate-spin" />
               ) : (
-                <Camera className="h-5 w-5 text-white" />
+                <Camera className="h-6 w-6 text-slate-700" />
               )}
             </div>
           )}
         </button>
-        <div className="flex-1">
-          <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground">
-            {displayName}
-          </h1>
+
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-display font-semibold text-slate-900 break-words">{displayName}</h1>
+            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Premium Member</span>
+          </div>
           {clientCode && (
-            <p className="text-sm text-primary font-mono font-medium mt-0.5">
-              {clientCode}
-            </p>
+            <p className="text-sm text-slate-500">Client ID: {clientCode}</p>
           )}
-          <p className="text-sm text-muted-foreground">{email}</p>
+          <p className="text-sm text-slate-600 max-w-xl">Welcome to your account dashboard. Manage rides, invoices, and profile settings from one refined and consistent experience.</p>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            <div className="rounded-3xl bg-slate-50 p-3">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Email</p>
+              <p className="text-sm text-slate-900 mt-1 break-all">{email}</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-3">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Member since</p>
+              <p className="text-sm text-slate-900 mt-1">Elite access</p>
+            </div>
+            <div className="rounded-3xl bg-slate-50 p-3">
+              <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Status</p>
+              <p className="text-sm text-slate-900 mt-1">Executive access</p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

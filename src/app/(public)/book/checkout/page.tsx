@@ -7,6 +7,7 @@ import { useBookingStore, type TripLeg } from "@/hooks/useBookingStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouteDetails, fetchRouteDetails } from "@/hooks/useRouteDetails";
 import { usePricing } from "@/hooks/usePricing";
+import { useFleet } from "@/hooks/useFleet";
 import type { RouteDetails } from "@/types";
 import { notify } from "@/lib/notify";
 import { bookingService } from "@/lib/services";
@@ -16,6 +17,7 @@ export default function BookingCheckoutPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { data, update, addLeg, removeLeg, updateLeg } = useBookingStore();
+  const { vehicles } = useFleet();
   const [loading, setLoading] = useState(false);
   const { calculatePrice, getTaxPercent } = usePricing();
 
@@ -57,6 +59,12 @@ export default function BookingCheckoutPage() {
       calculatePrice(legRoute.distance, legRoute.duration, data.selectedVehicle || "sedan") || 0
     );
   }, [legRoutes, data.additionalLegs, data.selectedVehicle, calculatePrice]);
+
+  const vehicleImage = useMemo(() => {
+    if (!data.selectedVehicle || vehicles.length === 0) return null;
+    const vehicle = vehicles.find((v) => v.vehicleType === data.selectedVehicle);
+    return vehicle?.imageUrl || null;
+  }, [vehicles, data.selectedVehicle]);
 
   const grandTotal = basePrice + (legPrices?.reduce((a, b) => a + b, 0) || 0);
 
@@ -162,9 +170,8 @@ export default function BookingCheckoutPage() {
           pickupDate={data.pickupDate}
           pickupTime={data.pickupTime}
           vehicleType={data.selectedVehicle!}
+          vehicleImage={vehicleImage || undefined}
           basePrice={basePrice}
-          tax={tax}
-          total={total}
           distanceMiles={route.distance}
           durationMinutes={route.duration}
           flightNumber={data.flightNumber}

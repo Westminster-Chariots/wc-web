@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, MapPin, Car, Plane, Clock, Shield, Pencil, Plus, Trash2, Route, Check, Users } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Car, Plane, Clock, Shield, Pencil, Plus, Trash2, Route, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/FormInputs";
 import DatePicker from "./DatePicker";
 import RouteVisualization from "./RouteVisualization";
+import MapPreview from "./MapPreview";
 import { format } from "date-fns";
 import type { TripLeg } from "@/hooks/useBookingStore";
 import LocationInput from "@/components/booking/LocationInput";
@@ -17,9 +19,8 @@ interface CheckoutSummaryProps {
   pickupDate: string;
   pickupTime: string;
   vehicleType: "sedan" | "suv";
+  vehicleImage?: string;
   basePrice: number;
-  tax: number;
-  total: number;
   distanceMiles: number;
   durationMinutes: number;
   flightNumber?: string;
@@ -46,7 +47,7 @@ function formatDateStr(d: string) {
   if (!d) return "";
   try {
     return format(new Date(d + "T00:00:00"), "EEE, MMM d, yyyy");
-  } catch (err) {
+  } catch {
     return d;
   }
 }
@@ -55,7 +56,7 @@ function formatTimeStr(t: string) {
   if (!t) return "";
   try {
     return format(new Date(`2000-01-01T${t}`), "h:mm a");
-  } catch (err) {
+  } catch {
     return t;
   }
 }
@@ -66,9 +67,8 @@ const CheckoutSummary = ({
   pickupDate,
   pickupTime,
   vehicleType,
+  vehicleImage,
   basePrice,
-  tax,
-  total,
   distanceMiles,
   flightNumber,
   specialRequests,
@@ -93,6 +93,8 @@ const CheckoutSummary = ({
   const [newLeg, setNewLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editLeg, setEditLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
+  const [newLegTouched, setNewLegTouched] = useState(false);
+  const [editLegTouched, setEditLegTouched] = useState(false);
 
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
@@ -119,10 +121,12 @@ const CheckoutSummary = ({
     !isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime);
 
   const handleAddLeg = () => {
+    setNewLegTouched(true);
     if (!isNewLegValid) return;
     onAddLeg(newLeg);
     setNewLeg({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
     setShowAddForm(false);
+    setNewLegTouched(false);
   };
 
   const handleStartEdit = (i: number) => {
@@ -131,10 +135,12 @@ const CheckoutSummary = ({
   };
 
   const handleSaveEdit = () => {
+    setEditLegTouched(true);
     if (editingIndex === null) return;
-    if (!editLeg.pickup || !editLeg.dropoff || !editLeg.pickupDate || !editLeg.pickupTime) return;
+    if (!editLeg.pickup || !editLeg.dropoff || !editLeg.pickupDate || !editLeg.pickupTime || isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime)) return;
     onUpdateLeg(editingIndex, editLeg);
     setEditingIndex(null);
+    setEditLegTouched(false);
   };
 
   const totalTax = grandTotal * 0.2;
@@ -164,20 +170,39 @@ const CheckoutSummary = ({
               </div>
               <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Primary Route</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={onEditDetails} className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onEditDetails}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1 shrink-0"
+            >
               <Pencil className="h-3 w-3" /> Edit
             </Button>
           </div>
 
-          <div className="flex items-center gap-3 mt-3">
-            <Car className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-sm font-body text-foreground capitalize">
-              Business {vehicleType === "suv" ? "SUV" : "Class"}
-            </span>
+          <div className="flex items-center justify-between gap-4 mt-3">
+            <div className="flex items-center gap-3">
+              <Car className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-body text-foreground capitalize">
+                Business {vehicleType === "suv" ? "SUV" : "Class"}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onEditVehicle}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1"
+            >
+              <Pencil className="h-3 w-3" /> Change car
+            </Button>
           </div>
 
           <div className="flex items-start gap-3 mt-3">
             <RouteVisualization pickup={pickup} dropoff={dropoff} index={0} />
+          </div>
+
+          <div className="mt-3">
+            <MapPreview pickup={pickup} dropoff={dropoff} className="w-full" />
           </div>
 
           <div className="flex items-center gap-3 mt-2">
@@ -218,12 +243,18 @@ const CheckoutSummary = ({
             <span className="text-foreground font-semibold">${basePrice.toFixed(2)}</span>
           </div>
         </div>
-        <div className="hidden md:block md:col-span-1">
-          <div className="rounded-lg overflow-hidden shadow-lg h-full bg-gradient-to-br from-white/40 to-primary/5 p-3 flex flex-col items-center justify-center">
+          <div className="md:col-span-1 col-span-1">
+            <div className="rounded-lg overflow-hidden shadow-lg h-full bg-linear-to-br from-white/40 to-primary/5 p-3 flex flex-col items-center justify-center">
             {loading ? (
               <div className="h-28 w-full animate-pulse bg-slate-200 rounded-md" />
             ) : (
-              <img src={vehicleType === "suv" ? "/assets/suv-profile.png" : "/assets/sedan-profile.png"} alt="vehicle" className="h-28 w-full object-cover rounded-md border border-border" />
+              <Image
+                  src={vehicleImage || (vehicleType === "suv" ? "/assets/suv-profile.png" : "/assets/sedan-profile.png")}
+                  alt={vehicleType === "suv" ? "Selected SUV" : "Selected sedan"}
+                  width={800}
+                  height={360}
+                  className="h-28 sm:h-32 w-full object-cover rounded-md border border-border"
+                />
             )}
             <p className="text-sm font-display font-bold mt-3">Premium Business {vehicleType === "suv" ? "SUV" : "Sedan"}</p>
             <p className="text-xs text-muted-foreground mt-1">Comfort and privacy guaranteed</p>
@@ -254,7 +285,7 @@ const CheckoutSummary = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleStartEdit(i)}
-                    className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1"
+                    className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1"
                   >
                     <Pencil className="h-3 w-3" /> Edit
                   </Button>
@@ -263,7 +294,7 @@ const CheckoutSummary = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => { onRemoveLeg(i); if (editingIndex === i) setEditingIndex(null); }}
-                  className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                  className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 gap-1"
                 >
                   <Trash2 className="h-3 w-3" /> Remove
                 </Button>
@@ -278,6 +309,7 @@ const CheckoutSummary = ({
                   value={editLeg.pickup}
                   onChange={(val) => setEditLeg(l => ({ ...l, pickup: val }))}
                   icon="pickup"
+                  light
                 />
                 <LocationInput
                   label="Drop-off Location"
@@ -285,6 +317,7 @@ const CheckoutSummary = ({
                   value={editLeg.dropoff}
                   onChange={(val) => setEditLeg(l => ({ ...l, dropoff: val }))}
                   icon="dropoff"
+                  light
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <DatePicker
@@ -292,6 +325,7 @@ const CheckoutSummary = ({
                     min={today}
                     onChange={(v) => setEditLeg(l => ({ ...l, pickupDate: v }))}
                     label="Date"
+                    light
                   />
                   <Input
                     type="time"
@@ -300,6 +334,12 @@ const CheckoutSummary = ({
                     onChange={(e) => setEditLeg(l => ({ ...l, pickupTime: e.target.value }))}
                     label="Time"
                   />
+                </div>
+                {editLegTouched && !isEditLegValid && (
+                  <p className="text-xs text-destructive">Please enter valid pickup, drop-off, date and time (not in the past).</p>
+                )}
+                <div className="mt-2">
+                  <MapPreview pickup={editLeg.pickup} dropoff={editLeg.dropoff} />
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setEditingIndex(null)} className="font-body">Cancel</Button>
@@ -312,6 +352,9 @@ const CheckoutSummary = ({
               <>
 
                 <RouteVisualization pickup={leg.pickup} dropoff={leg.dropoff} index={i + 1} />
+                <div className="mt-3">
+                  <MapPreview pickup={leg.pickup} dropoff={leg.dropoff} />
+                </div>
 
                 <div className="flex items-center gap-3">
                   <Clock className="h-4 w-4 text-primary shrink-0" />
@@ -335,7 +378,7 @@ const CheckoutSummary = ({
         <Button
           variant="outline"
           onClick={() => setShowAddForm(true)}
-          className="w-full border-dashed border-primary/30 text-primary hover:bg-primary/5 gap-2 font-body"
+          className="w-full border-dashed border-primary/30 text-primary hover:bg-primary/5 gap-2 font-body cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <Route className="h-4 w-4" />
@@ -361,6 +404,7 @@ const CheckoutSummary = ({
               value={newLeg.pickup}
               onChange={(val) => setNewLeg(l => ({ ...l, pickup: val }))}
               icon="pickup"
+              light
             />
             <LocationInput
               label="Drop-off Location"
@@ -368,6 +412,7 @@ const CheckoutSummary = ({
               value={newLeg.dropoff}
               onChange={(val) => setNewLeg(l => ({ ...l, dropoff: val }))}
               icon="dropoff"
+              light
             />
             <div className="grid grid-cols-2 gap-3">
                 <DatePicker
@@ -375,6 +420,7 @@ const CheckoutSummary = ({
                   min={today}
                   onChange={(v) => setNewLeg(l => ({ ...l, pickupDate: v }))}
                   label="Date"
+                  light
                 />
                 <Input
                   type="time"
@@ -384,45 +430,32 @@ const CheckoutSummary = ({
                   label="Time"
                 />
             </div>
-          </div>
+            {newLegTouched && !isNewLegValid && (
+              <p className="text-xs text-destructive">Please complete pickup, drop-off, date and time (not in the past).</p>
+            )}
+            <div className="mt-2">
+              <MapPreview pickup={newLeg.pickup} dropoff={newLeg.dropoff} />
+            </div>
 
-          <Button
-            variant="hero"
-            onClick={handleAddLeg}
-            disabled={!isNewLegValid}
-            className="w-full gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Route
-          </Button>
+            <Button
+              variant="hero"
+              onClick={handleAddLeg}
+              disabled={!isNewLegValid}
+              className="w-full gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Route
+            </Button>
+
+          </div>
         </motion.div>
       )}
 
-      {/* Price breakdown */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-2">
-        <div className="flex justify-between text-sm font-body">
-          <span className="text-muted-foreground">Primary route ({Number(distanceMiles || 0).toFixed(1)} mi)</span>
-          <span className="text-foreground">${Number(basePrice || 0).toFixed(2)}</span>
-        </div>
-        {(additionalLegs || []).map((_, i) => (
-          <div key={i} className="flex justify-between text-sm font-body">
-            <span className="text-muted-foreground">Route {i + 2}</span>
-            <span className="text-foreground">${Number(legPrices[i] || 0)?.toFixed(2) ?? "—"}</span>
-          </div>
-        ))}
-        <div className="flex justify-between text-sm font-body pt-1 border-t border-border">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span className="text-foreground">${Number(grandTotal || 0).toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-sm font-body">
-          <span className="text-muted-foreground">Tax (20%)</span>
-          <span className="text-foreground">${Number(totalTax || 0).toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
-          <span className="text-foreground font-semibold">Total</span>
-          <span className="text-primary font-display font-bold text-lg">${Number(grandTotalWithTax || 0).toFixed(2)}</span>
-        </div>
+      <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
+        <span className="text-foreground font-semibold">Total</span>
+        <span className="text-primary font-display font-bold text-lg">${Number(grandTotalWithTax || 0).toFixed(2)}</span>
       </div>
+
 
       <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground font-body">
         <Shield className="h-3.5 w-3.5 shrink-0" />
@@ -433,7 +466,12 @@ const CheckoutSummary = ({
         <Button variant="outline" onClick={onBack} className="font-body">
           Back
         </Button>
-        <Button variant="hero" onClick={onPay} disabled={loading} className="flex-1 gap-2">
+        <Button
+          variant="cta"
+          onClick={onPay}
+          disabled={loading}
+          className="flex-1 gap-2"
+        >
           {loading ? "Submitting…" : "Submit booking request"}
           {!loading && <ArrowRight className="h-4 w-4" />}
         </Button>

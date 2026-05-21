@@ -64,7 +64,23 @@ export function usePricing() {
         pricingCache[config.vehicleType] = config;
       });
       
-      setConfigs(parsed);
+      // If API returned no configs, fall back to built-in defaults
+      if (!parsed || parsed.length === 0) {
+        setConfigs(FALLBACK_PRICING);
+        FALLBACK_PRICING.forEach((config) => { pricingCache[config.vehicleType] = config; });
+      } else {
+        // Ensure we have entries for both sedan and suv; merge missing types from fallback
+        const hasSedan = parsed.some((c: any) => c.vehicleType === "sedan");
+        const hasSuv = parsed.some((c: any) => c.vehicleType === "suv");
+        const merged = [...parsed];
+        if (!hasSedan) merged.push(FALLBACK_PRICING.find(p => p.vehicleType === "sedan")!);
+        if (!hasSuv) merged.push(FALLBACK_PRICING.find(p => p.vehicleType === "suv")!);
+
+        merged.forEach((config: PricingConfig) => {
+          pricingCache[config.vehicleType] = config;
+        });
+        setConfigs(merged);
+      }
     } catch (err: any) {
       // Use fallback pricing for any error (401, 500, etc.)
       const status = err.response?.status;

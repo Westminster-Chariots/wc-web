@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { bookingService } from "@/lib/services";
+import { authService, bookingService } from "@/lib/services";
 import { notify } from "@/lib/notify";
 import type { Booking } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,19 +44,32 @@ export default function ClientAccountPage() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
+      const currentUser = await authService.me();
+      const profileData = (currentUser as any).profile;
+      if (profileData) {
+        setProfile(profileData);
       } else {
-        setProfile({ email: user?.email, displayName: user?.fullName });
+        setProfile({
+          email: user?.email,
+          displayName: currentUser.fullName || user?.fullName || user?.email?.split("@")[0] || "",
+          phone: "",
+          isCorporate: false,
+          corporateName: "",
+          clientCode: undefined,
+          avatarUrl: undefined,
+        });
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
-      setProfile({ email: user?.email, displayName: user?.fullName });
+      setProfile({
+        email: user?.email,
+        displayName: user?.fullName || user?.email?.split("@")[0] || "",
+        phone: "",
+        isCorporate: false,
+        corporateName: "",
+        clientCode: undefined,
+        avatarUrl: undefined,
+      });
     }
   };
 
@@ -76,19 +89,13 @@ export default function ClientAccountPage() {
     }
   };
 
-  const handleSaveProfile = async (data: Omit<UserProfile, 'email' | 'clientCode'>) => {
+  const handleSaveProfile = async (data: Omit<UserProfile, 'email' | 'clientCode' | 'avatarUrl'>) => {
     if (!user || !profile) return;
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch("https://wc-backend-ayx0.onrender.com/api/profile", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(data)
+      await authService.updateProfile({
+        displayName: data.displayName,
+        phone: data.phone,
       });
-      if (!response.ok) throw new Error("Failed to save profile");
       setProfile((prev) => (prev ? { ...prev, ...data } : null));
       notify.success("Profile updated successfully");
     } catch (error: any) {
@@ -225,10 +232,10 @@ export default function ClientAccountPage() {
   const displayName = profile?.displayName || user.fullName || user.email?.split("@")[0] || "User";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <AccountHeader onSignOut={handleSignOut} />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
         <ProfileHeader
           displayName={displayName}
           email={user.email || ""}
@@ -237,55 +244,102 @@ export default function ClientAccountPage() {
           onAvatarUpload={handleAvatarUpload}
         />
 
-        <Tabs defaultValue="rides" className="space-y-6 mt-8">
-          <TabsList className="glass-subtle p-1 h-auto flex-wrap">
-            <TabsTrigger value="rides" className="gap-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Car className="h-4 w-4" /> My Rides
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className="gap-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <FileText className="h-4 w-4" /> Invoices
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="gap-1.5 data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Settings className="h-4 w-4" /> Profile
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="rides">
-            <BookingsList
-              bookings={bookings}
-              loading={loading}
-              page={bookingsPage}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-              onReschedule={handleReschedule}
-              onCancel={handleCancelBooking}
-            />
-          </TabsContent>
-
-          <TabsContent value="invoices">
-            <div className="rounded-xl glass p-8 text-center">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No invoices yet</p>
+        <div className="grid gap-4 xl:grid-cols-[1.5fr_0.85fr] items-start mt-8">
+          <div className="space-y-6">
+            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6">
+              <div className="flex flex-wrap gap-4 items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Your account summary</p>
+                  <h2 className="mt-2 text-xl font-display font-semibold text-slate-900">Your dashboard</h2>
+                </div>
+                <p className="text-sm text-slate-600 max-w-xl">Manage upcoming rides, invoices, and account preferences with clean, consistent brand styling.</p>
+              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Active bookings</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">{bookings.filter((b) => b.status !== "cancelled" && b.status !== "done").length}</p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Total rides</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">{bookings.length}</p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
+                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Account tier</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">Executive</p>
+                </div>
+              </div>
             </div>
-          </TabsContent>
 
-          <TabsContent value="profile">
-            {profile && (
-              <ProfileSettings
-                profile={{
-                  email: profile.email || user.email || "",
-                  displayName: profile.displayName || "",
-                  phone: profile.phone || "",
-                  isCorporate: profile.isCorporate || false,
-                  corporateName: profile.corporateName || "",
-                  clientCode: profile.clientCode,
-                }}
-                onSave={handleSaveProfile}
-                onChangePassword={handleChangePassword}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-5">
+              <Tabs defaultValue="rides" className="space-y-6">
+                <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-3xl bg-slate-100 p-2">
+                  <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                    <Car className="h-4 w-4" /> Rides
+                  </TabsTrigger>
+                  <TabsTrigger value="invoices" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                    <FileText className="h-4 w-4" /> Invoices
+                  </TabsTrigger>
+                  <TabsTrigger value="profile" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                    <Settings className="h-4 w-4" /> Profile
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="rides">
+                  <BookingsList
+                    bookings={bookings}
+                    loading={loading}
+                    page={bookingsPage}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                    onReschedule={handleReschedule}
+                    onCancel={handleCancelBooking}
+                  />
+                </TabsContent>
+
+                <TabsContent value="invoices">
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
+                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-white mb-2">Invoices coming soon</h3>
+                    <p className="text-sm text-slate-400">Your billing history will appear here after your first completed ride.</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="profile">
+                  {profile && (
+                    <ProfileSettings
+                      profile={{
+                        email: profile.email || user.email || "",
+                        displayName: profile.displayName || "",
+                        phone: profile.phone || "",
+                        isCorporate: profile.isCorporate || false,
+                        corporateName: profile.corporateName || "",
+                        clientCode: profile.clientCode,
+                      }}
+                      onSave={handleSaveProfile}
+                      onChangePassword={handleChangePassword}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+
+          <aside className="space-y-6">
+            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6">
+              <h3 className="text-sm uppercase tracking-[0.3em] text-slate-500">Quick actions</h3>
+              <div className="mt-5 space-y-3">
+                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
+                  <p className="mt-2 text-sm text-slate-700">Need help with your ride or account? Contact our concierge team anytime.</p>
+                </div>
+                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
+                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Payment method</p>
+                  <p className="mt-2 text-sm text-slate-700">Secure card vault and priority invoicing for corporate clients.</p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
       </main>
     </div>
   );

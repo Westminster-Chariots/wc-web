@@ -13,6 +13,7 @@ import { usePricing } from "@/hooks/usePricing";
 import { format } from "date-fns";
 import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
+import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
 import type { FleetVehicle } from "@/types";
 import { useLoadScript } from "@react-google-maps/api";
@@ -129,17 +130,6 @@ export default function BookingPage() {
 
   const sedanPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "sedan") : null;
   const suvPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "suv") : null;
-  
-  // Debug logging
-  useEffect(() => {
-    if (route) {
-      console.log('Route data:', route);
-      console.log('Sedan price:', sedanPrice);
-      console.log('SUV price:', suvPrice);
-      console.log('Pricing loading:', pricingLoading);
-      console.log('Pricing error:', pricingError);
-    }
-  }, [route, sedanPrice, suvPrice, pricingLoading, pricingError]);
   const gatekeeperStatus = useMemo(() => getGatekeeperStatus(pickupDate, pickupTime), [pickupDate, pickupTime]);
 
   const selectedPrice = selectedVehicle === "sedan" ? sedanPrice : selectedVehicle === "suv" ? suvPrice : null;
@@ -430,108 +420,27 @@ export default function BookingPage() {
               )}
 
               <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
-                {vehiclesWithPrices.map((v, i) => {
+                {vehicles.map((v, i) => {
                   const isSelected = selectedVehicle === v.type;
                   const isExpanded = expandedVehicle === v.type;
-                  const vTaxPercent = getTaxPercent(v.type) / 100;
-                  const vTax = v.price ? v.price * vTaxPercent : 0;
-                  const vTotal = v.price ? v.price + vTax : 0;
 
                   return (
-                    <motion.div key={v.type} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.1 }}>
-                      <button
-                        onClick={() => {
-                          setSelectedVehicle(v.type);
-                          setExpandedVehicle(expandedVehicle === v.type ? null : v.type);
-                        }}
-                        className={`w-full rounded-xl p-4 sm:p-6 text-left transition-all duration-300 group ${
-                          isSelected 
-                            ? "glass-strong border-primary/40 shadow-blue scale-[1.02]" 
-                            : "glass-card hover:shadow-blue hover:scale-[1.01] hover:border-primary/30"
-                        }`}
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-                          <div className="w-full sm:w-32 h-24 sm:h-20 shrink-0 rounded-lg overflow-hidden glass-card relative group-hover:shadow-glass transition-all duration-300">
-                            <Image src={v.image} alt={v.name} fill className="object-contain group-hover:scale-105 transition-transform duration-300" />
-                          </div>
-                          <div className="flex items-start justify-between sm:contents">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-sm sm:text-base font-display font-semibold text-foreground">{v.name}</h3>
-                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground font-body">
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-3.5 w-3.5" />
-                                  {v.passengers}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <Briefcase className="h-3.5 w-3.5" />
-                                  {v.luggage}
-                                </span>
-                              </div>
-                              <p className="text-[11px] sm:text-xs text-muted-foreground font-body mt-1 hidden sm:block">{v.subtitle}</p>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                              {v.price !== null ? (
-                                <span className={`text-lg sm:text-xl font-display font-bold ${isSelected ? "text-primary" : "text-foreground"}`}>
-                                  US${vTotal.toFixed(2)}
-                                </span>
-                              ) : (
-                                <div className="h-6 w-20 sm:w-24 rounded bg-secondary animate-pulse" />
-                              )}
-                              <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground font-body mt-2 sm:hidden">{v.subtitle}</p>
-                      </button>
-
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                            <div className="px-4 sm:px-6 py-4 sm:py-5 glass-card rounded-b-xl -mt-1 shadow-glass">
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
-                                {v.features.map((f) => (
-                                  <div key={f} className="flex items-center gap-2">
-                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                    <span className="text-xs text-muted-foreground font-body">{f}</span>
-                                  </div>
-                                ))}
-                              </div>
-                              {v.price !== null ? (
-                                <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
-                                  <div className="flex justify-between text-xs font-body">
-                                    <span className="text-muted-foreground">Base fare</span>
-                                    <span className="text-foreground">${v.price.toFixed(2)}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-body">
-                                    <span className="text-muted-foreground">Tax ({getTaxPercent(v.type)}%)</span>
-                                    <span className="text-foreground">${vTax.toFixed(2)}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
-                                    <span className="text-foreground font-semibold">Total</span>
-                                    <span className="text-primary font-display font-bold text-base">${vTotal.toFixed(2)}</span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
-                                  <div className="flex justify-between text-xs font-body">
-                                    <span className="text-muted-foreground">Base fare</span>
-                                    <span className="text-foreground">Calculating...</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-body">
-                                    <span className="text-muted-foreground">Tax ({getTaxPercent(v.type)}%)</span>
-                                    <span className="text-foreground">Calculating...</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
-                                    <span className="text-foreground font-semibold">Total</span>
-                                    <span className="text-primary font-display font-bold text-base">Calculating...</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
+                    <VehiclePricingDisplay
+                      key={v.type}
+                      vehicleType={v.type}
+                      name={v.name}
+                      subtitle={v.subtitle}
+                      passengers={v.passengers}
+                      luggage={v.luggage}
+                      image={v.image}
+                      features={v.features}
+                      distance={route?.distance || 0}
+                      duration={route?.duration || 0}
+                      isSelected={isSelected}
+                      isExpanded={isExpanded}
+                      onSelect={() => setSelectedVehicle(v.type)}
+                      onToggleExpand={() => setExpandedVehicle(expandedVehicle === v.type ? null : v.type)}
+                    />
                   );
                 })}
               </div>
