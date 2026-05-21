@@ -319,10 +319,10 @@ function PremiumMobileMenu() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 h-full w-[280px] glass-strong border-r border-white/[0.12] flex flex-col z-[100] overflow-y-auto" 
+              className="fixed left-0 top-0 h-screen w-[280px] glass-strong border-r border-white/[0.12] flex flex-col z-[100]" 
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-white/[0.08] sticky top-0 bg-glass-strong backdrop-blur-xl z-10 flex items-center justify-between">
+              <div className="p-6 border-b border-white/[0.08] bg-background/95 backdrop-blur-xl flex items-center justify-between shrink-0">
                 <Link href="/" onClick={handleClose} className="block">
                   <div className="flex items-center gap-3">
                     <Image 
@@ -399,7 +399,7 @@ function PremiumMobileMenu() {
                 </div>
               ))}
             </nav>
-            <div className="px-4 py-6 border-t border-white/[0.08] space-y-1">
+            <div className="px-4 py-6 border-t border-white/[0.08] space-y-1 shrink-0">
               {bottomItems.map((item) => {
                 const active = isActive(item.path);
                 return (

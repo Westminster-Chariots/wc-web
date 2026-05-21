@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <RouteLoadingBar />
       <PremiumSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <main className="md:ml-[280px] min-h-screen">
-        <header className="sticky top-0 z-40 glass-strong px-6 md:px-8 py-5 flex items-center justify-between border-b border-white/[0.08] shadow-glass-elevated backdrop-blur-xl">
+        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg px-6 md:px-8 py-5 flex items-center justify-between border-b border-white/[0.12] shadow-lg">
           <div className="flex items-center gap-4">
             <PremiumMobileMenu />
             <div>
