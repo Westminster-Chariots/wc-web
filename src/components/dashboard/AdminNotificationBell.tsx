@@ -89,8 +89,8 @@ export default function AdminNotificationBell() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0 glass-heavy border-border" sideOffset={8}>
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      <PopoverContent align="end" className="w-80 p-0 bg-background/75 backdrop-blur-xl border border-white/[0.12] shadow-xl" sideOffset={8}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
           <h3 className="text-sm font-display font-semibold text-foreground">Notifications</h3>
           {notifications.length > 0 && (
             <button onClick={clearAll} className="text-[10px] text-muted-foreground hover:text-foreground font-body">
@@ -115,7 +115,7 @@ export default function AdminNotificationBell() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0 }}
-                    className={`flex items-start gap-3 px-4 py-3 border-b border-border/50 hover:bg-muted/20 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
+                    className={`flex items-start gap-3 px-4 py-3 border-b border-white/[0.08] hover:bg-white/5 transition-colors ${!n.read ? "bg-primary/10" : ""}`}
                   >
                     <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${colorByType[n.type]}`}>
                       <Icon className="h-4 w-4" />
