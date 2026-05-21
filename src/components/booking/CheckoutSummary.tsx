@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, MapPin, Car, Plane, Clock, Shield, Pencil, Plus, Trash2, Route, Check, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/FormInputs";
+import DatePicker from "./DatePicker";
+import RouteVisualization from "./RouteVisualization";
 import { format } from "date-fns";
 import type { TripLeg } from "@/hooks/useBookingStore";
 import LocationInput from "@/components/booking/LocationInput";
@@ -153,75 +155,79 @@ const CheckoutSummary = ({
       </div>
 
       {/* Primary Leg */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
-              <span className="text-[10px] font-bold text-primary">1</span>
+      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div className="md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-primary">1</span>
+              </div>
+              <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Primary Route</span>
             </div>
-            <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Primary Route</span>
+            <Button variant="ghost" size="sm" onClick={onEditDetails} className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1 shrink-0">
+              <Pencil className="h-3 w-3" /> Edit
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={onEditDetails} className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1 shrink-0">
-            <Pencil className="h-3 w-3" /> Edit
-          </Button>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-3">
             <Car className="h-4 w-4 text-primary shrink-0" />
             <span className="text-sm font-body text-foreground capitalize">
               Business {vehicleType === "suv" ? "SUV" : "Class"}
             </span>
           </div>
-          <Button variant="ghost" size="sm" onClick={onEditVehicle} className="h-7 px-2 text-xs text-muted-foreground hover:text-primary gap-1">
-            <Pencil className="h-3 w-3" /> Edit
-          </Button>
-        </div>
 
-        <div className="flex items-start gap-3">
-          <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <div className="text-sm font-body">
-            <p className="text-foreground">{pickup}</p>
-            <p className="text-muted-foreground text-xs mt-0.5">→ {dropoff}</p>
+          <div className="flex items-start gap-3 mt-3">
+            <RouteVisualization pickup={pickup} dropoff={dropoff} index={0} />
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <Clock className="h-4 w-4 text-primary shrink-0" />
-          <span className="text-sm font-body text-foreground">
-            {formatDateStr(pickupDate)} at {formatTimeStr(pickupTime)}
-          </span>
-        </div>
-
-        {flightNumber && (
-          <div className="flex items-center gap-3">
-            <Plane className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-sm font-body text-foreground">{flightNumber}</span>
+          <div className="flex items-center gap-3 mt-2">
+            <Clock className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-body text-foreground">
+              {formatDateStr(pickupDate)} at {formatTimeStr(pickupTime)}
+            </span>
           </div>
-        )}
 
-        {specialRequests && (
-          <div className="pt-2 border-t border-border">
-            <p className="text-[11px] text-muted-foreground font-body mb-1">Special Requests</p>
-            <p className="text-xs text-foreground font-body">{specialRequests}</p>
-          </div>
-        )}
-
-        {bookingForSomeoneElse && guestFirstName && (
-          <div className="pt-2 border-t border-border space-y-1.5">
-            <div className="flex items-center gap-2">
-              <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-              <p className="text-[11px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Booking for Guest</p>
+          {flightNumber && (
+            <div className="flex items-center gap-3">
+              <Plane className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-body text-foreground">{flightNumber}</span>
             </div>
-            <p className="text-sm font-body text-foreground">{guestFirstName} {guestLastName}</p>
-            {guestEmail && <p className="text-xs font-body text-muted-foreground">{guestEmail}</p>}
-            {guestPhone && <p className="text-xs font-body text-muted-foreground">{guestPhone}</p>}
-          </div>
-        )}
+          )}
 
-        <div className="flex justify-between text-xs font-body pt-2 border-t border-border">
-          <span className="text-muted-foreground">{distanceMiles.toFixed(1)} mi</span>
-          <span className="text-foreground font-semibold">${basePrice.toFixed(2)}</span>
+          {specialRequests && (
+            <div className="pt-2 border-t border-border">
+              <p className="text-[11px] text-muted-foreground font-body mb-1">Special Requests</p>
+              <p className="text-xs text-foreground font-body">{specialRequests}</p>
+            </div>
+          )}
+
+          {bookingForSomeoneElse && guestFirstName && (
+            <div className="pt-2 border-t border-border space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                <p className="text-[11px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Booking for Guest</p>
+              </div>
+              <p className="text-sm font-body text-foreground">{guestFirstName} {guestLastName}</p>
+              {guestEmail && <p className="text-xs font-body text-muted-foreground">{guestEmail}</p>}
+              {guestPhone && <p className="text-xs font-body text-muted-foreground">{guestPhone}</p>}
+            </div>
+          )}
+
+          <div className="flex justify-between text-xs font-body pt-2 border-t border-border">
+            <span className="text-muted-foreground">{distanceMiles.toFixed(1)} mi</span>
+            <span className="text-foreground font-semibold">${basePrice.toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="hidden md:block md:col-span-1">
+          <div className="rounded-lg overflow-hidden shadow-lg h-full bg-gradient-to-br from-white/40 to-primary/5 p-3 flex flex-col items-center justify-center">
+            {loading ? (
+              <div className="h-28 w-full animate-pulse bg-slate-200 rounded-md" />
+            ) : (
+              <img src={vehicleType === "suv" ? "/assets/suv-profile.png" : "/assets/sedan-profile.png"} alt="vehicle" className="h-28 w-full object-cover rounded-md border border-border" />
+            )}
+            <p className="text-sm font-display font-bold mt-3">Premium Business {vehicleType === "suv" ? "SUV" : "Sedan"}</p>
+            <p className="text-xs text-muted-foreground mt-1">Comfort and privacy guaranteed</p>
+          </div>
         </div>
       </div>
 
@@ -281,11 +287,10 @@ const CheckoutSummary = ({
                   icon="dropoff"
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    type="date"
-                    min={today}
+                  <DatePicker
                     value={editLeg.pickupDate}
-                    onChange={(e) => setEditLeg(l => ({ ...l, pickupDate: e.target.value }))}
+                    min={today}
+                    onChange={(v) => setEditLeg(l => ({ ...l, pickupDate: v }))}
                     label="Date"
                   />
                   <Input
@@ -305,13 +310,8 @@ const CheckoutSummary = ({
               </div>
             ) : (
               <>
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                  <div className="text-sm font-body">
-                    <p className="text-foreground">{leg.pickup}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">→ {leg.dropoff}</p>
-                  </div>
-                </div>
+
+                <RouteVisualization pickup={leg.pickup} dropoff={leg.dropoff} index={i + 1} />
 
                 <div className="flex items-center gap-3">
                   <Clock className="h-4 w-4 text-primary shrink-0" />
@@ -370,20 +370,19 @@ const CheckoutSummary = ({
               icon="dropoff"
             />
             <div className="grid grid-cols-2 gap-3">
-              <Input
-                type="date"
-                min={today}
-                value={newLeg.pickupDate}
-                onChange={(e) => setNewLeg(l => ({ ...l, pickupDate: e.target.value }))}
-                label="Date"
-              />
-              <Input
-                type="time"
-                min={newLeg.pickupDate === today ? currentTime : "00:00"}
-                value={newLeg.pickupTime}
-                onChange={(e) => setNewLeg(l => ({ ...l, pickupTime: e.target.value }))}
-                label="Time"
-              />
+                <DatePicker
+                  value={newLeg.pickupDate}
+                  min={today}
+                  onChange={(v) => setNewLeg(l => ({ ...l, pickupDate: v }))}
+                  label="Date"
+                />
+                <Input
+                  type="time"
+                  min={newLeg.pickupDate === today ? currentTime : "00:00"}
+                  value={newLeg.pickupTime}
+                  onChange={(e) => setNewLeg(l => ({ ...l, pickupTime: e.target.value }))}
+                  label="Time"
+                />
             </div>
           </div>
 

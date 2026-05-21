@@ -10,8 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ServicesDropdown from "@/components/home/navigation/ServicesDropdown";
 
-const STEP_LABELS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] as const;
-const STEP_ROUTES = ["/book", "/book/details", "/book/login", "/book/payment", "/book/checkout"] as const;
+const STEP_LABELS = ["Service Class", "Pickup Info", "Log In", "Checkout"] as const;
+const STEP_ROUTES = ["/book", "/book/details", "/book/login", "/book/checkout"] as const;
 
 function getStepIndex(pathname: string): number {
   const index = STEP_ROUTES.findIndex(route => pathname === route);
@@ -134,7 +134,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
       </header>
 
       {/* Progress Stepper */}
-      <div className="fixed top-16 right-[10%] left-[10%] z-40 bg-background/95 backdrop-blur-md rounded-xl border border-border shadow-glass">
+      <div className="fixed top-16 right-[10%] left-[10%] z-40 bg-background/95 backdrop-blur-md rounded-xl border border-border shadow-glass mb-6">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           {/* Desktop Stepper */}
           <nav className="hidden md:flex items-center justify-center gap-0">
@@ -148,7 +148,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
                       whileHover={{ scale: 1.1 }}
                       className="h-9 w-9 rounded-full flex items-center justify-center border-2 transition-all border-primary bg-primary text-white shadow-blue group-hover:shadow-lg"
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-4 w-4 text-black" />
                     </motion.div>
                     <span className="text-sm font-body text-muted-foreground group-hover:text-primary transition-colors">{step}</span>
                   </Link>
@@ -236,7 +236,7 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Main Content */}
-      <main className="pt-36 md:pt-40 pb-24">
+      <main className="pt-44 md:pt-40 pb-24">
         {children}
       </main>
 
