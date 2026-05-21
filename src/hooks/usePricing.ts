@@ -37,7 +37,7 @@ const FALLBACK_PRICING: PricingConfig[] = [
 const pricingCache: Record<string, PricingConfig> = {};
 
 export function usePricing() {
-  const [configs, setConfigs] = useState<PricingConfig[]>([]);
+  const [configs, setConfigs] = useState<PricingConfig[]>(FALLBACK_PRICING);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -94,7 +94,7 @@ export function usePricing() {
     if (!config) return null;
     
     const basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
-    return basePrice;
+    return Math.round(basePrice * 100) / 100; // Round to 2 decimal places
   };
 
   const getTaxPercent = (vehicleType: "sedan" | "suv"): number => {

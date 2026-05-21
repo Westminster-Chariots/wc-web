@@ -129,6 +129,17 @@ export default function BookingPage() {
 
   const sedanPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "sedan") : null;
   const suvPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "suv") : null;
+  
+  // Debug logging
+  useEffect(() => {
+    if (route) {
+      console.log('Route data:', route);
+      console.log('Sedan price:', sedanPrice);
+      console.log('SUV price:', suvPrice);
+      console.log('Pricing loading:', pricingLoading);
+      console.log('Pricing error:', pricingError);
+    }
+  }, [route, sedanPrice, suvPrice, pricingLoading, pricingError]);
   const gatekeeperStatus = useMemo(() => getGatekeeperStatus(pickupDate, pickupTime), [pickupDate, pickupTime]);
 
   const selectedPrice = selectedVehicle === "sedan" ? sedanPrice : selectedVehicle === "suv" ? suvPrice : null;
@@ -485,7 +496,7 @@ export default function BookingPage() {
                                   </div>
                                 ))}
                               </div>
-                              {v.price !== null && (
+                              {v.price !== null ? (
                                 <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
                                   <div className="flex justify-between text-xs font-body">
                                     <span className="text-muted-foreground">Base fare</span>
@@ -498,6 +509,21 @@ export default function BookingPage() {
                                   <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
                                     <span className="text-foreground font-semibold">Total</span>
                                     <span className="text-primary font-display font-bold text-base">${vTotal.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
+                                  <div className="flex justify-between text-xs font-body">
+                                    <span className="text-muted-foreground">Base fare</span>
+                                    <span className="text-foreground">Calculating...</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs font-body">
+                                    <span className="text-muted-foreground">Tax ({getTaxPercent(v.type)}%)</span>
+                                    <span className="text-foreground">Calculating...</span>
+                                  </div>
+                                  <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
+                                    <span className="text-foreground font-semibold">Total</span>
+                                    <span className="text-primary font-display font-bold text-base">Calculating...</span>
                                   </div>
                                 </div>
                               )}
