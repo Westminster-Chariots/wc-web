@@ -147,7 +147,7 @@ export default function Navigation({
                   <>
                     <Link 
                       href="/account" 
-                      className={`group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-105 ${
+                      className={`btn-primary px-3.5 py-2 rounded-full group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-105 ${
                         useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
                       }`}
                     >
@@ -179,7 +179,7 @@ export default function Navigation({
                 ) : (
                   <Link 
                     href="/auth" 
-                    className="btn-primary px-3.5 py-1.5 rounded-full text-[11px] hover:scale-105 active:scale-95 transition-all duration-300"
+                    className="btn-primary px-3.5 py-2 rounded-full text-[11px] hover:scale-105 active:scale-95 transition-all duration-300"
                   >
                     Sign In
                   </Link>

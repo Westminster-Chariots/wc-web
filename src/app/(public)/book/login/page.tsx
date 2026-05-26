@@ -128,24 +128,14 @@ export default function BookingLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-slate-150">
         {/* Left — branding panel with typing animation */}
         <div className="hidden lg:flex lg:w-[45%] relative items-center justify-center overflow-hidden">
-          <Image
-            src="/assets/fleet/fleet-escalade-interior.jpg"
-            alt="Luxury chauffeur service"
-            fill
-            className="absolute inset-0 w-full h-full object-cover"
-            priority
-          />
-          
           {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/40" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30" />
           
           {/* Animated gradient accent */}
           <motion.div 
-            className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent"
+            className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent"
             animate={{
               opacity: [0.3, 0.5, 0.3],
             }}
@@ -162,33 +152,9 @@ export default function BookingLoginPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Link href="/" className="inline-block mb-10">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <Image 
-                    src="/assets/wc-logo-full.png" 
-                    alt="Westminster Chariots" 
-                    width={280} 
-                    height={80} 
-                    className="object-contain drop-shadow-2xl" 
-                  />
-                </motion.div>
-              </Link>
+              
 
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-              >
-                <h2 className="text-4xl font-display font-bold text-white leading-tight mb-2">
-                  Almost there
-                </h2>
-                <h2 className="text-4xl font-display font-bold leading-tight mb-6">
-                  <span className="text-primary">Your ride awaits</span>
-                </h2>
-              </motion.div>
+              
 
               {/* Typing animation */}
               <motion.div
@@ -198,7 +164,7 @@ export default function BookingLoginPage() {
                 className="mb-8"
               >
                 <div className="h-8 flex items-center">
-                  <span className="text-lg text-white/90 font-body">
+                  <span className="text-lg text-slate-950/90 font-body">
                     {typedText}
                     <motion.span
                       animate={{ opacity: [1, 0] }}
@@ -209,14 +175,7 @@ export default function BookingLoginPage() {
                 </div>
               </motion.div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9, duration: 0.6 }}
-                className="text-sm text-white/80 font-body leading-relaxed mb-8"
-              >
-                Sign in or create a free account to confirm your booking. It only takes a moment.
-              </motion.p>
+              
 
               {/* Booking summary pill */}
               {data.pickup && data.dropoff && (
@@ -227,16 +186,16 @@ export default function BookingLoginPage() {
                   className="glass-strong rounded-xl border border-primary/30 p-4 space-y-2 shadow-glass-elevated"
                 >
                   <p className="text-[10px] uppercase tracking-widest text-primary font-semibold">Your Trip</p>
-                  <div className="flex items-start gap-2 text-xs font-body text-white">
+                  <div className="flex items-start gap-2 text-xs font-body text-slate-950">
                     <span className="text-primary mt-0.5">↑</span>
                     <span className="truncate">{data.pickup}</span>
                   </div>
-                  <div className="flex items-start gap-2 text-xs font-body text-white/70">
+                  <div className="flex items-start gap-2 text-xs font-body text-slate-950/70">
                     <span className="text-white/70 mt-0.5">↓</span>
                     <span className="truncate">{data.dropoff}</span>
                   </div>
                   {data.selectedVehicle && (
-                    <p className="text-[10px] text-white/60 uppercase tracking-wider pt-1 border-t border-white/20">
+                    <p className="text-[10px] text-slate-950/60 uppercase tracking-wider pt-1 border-t border-white/20">
                       {data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV"}
                     </p>
                   )}
@@ -263,8 +222,8 @@ export default function BookingLoginPage() {
                   <Image 
                     src="/assets/wc-logo-full.png" 
                     alt="Westminster Chariots" 
-                    width={200} 
-                    height={60} 
+                    width={150} 
+                    height={40} 
                     className="object-contain" 
                   />
                 </Link>
@@ -399,10 +358,10 @@ export default function BookingLoginPage() {
                         <ArrowRight className="h-4 w-4" />
                       </Button>
 
-                      <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-border"></div>
-                        </div>
+                      <div className="relative my-4">
+                        
+                          <div className="w-full border-t border-border mb-2"></div>
+                        
                         <div className="relative flex justify-center text-xs uppercase">
                           <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
                         </div>

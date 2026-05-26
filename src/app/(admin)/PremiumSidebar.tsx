@@ -65,7 +65,7 @@ function PremiumSidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
               style={{
                 objectFit: 'contain',
                 maxWidth: collapsed ? '40px' : '60px',
-                height: '40px'
+                height: '47px'
               }}
             />
             <AnimatePresence>
@@ -77,8 +77,8 @@ function PremiumSidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
                   className="overflow-hidden whitespace-nowrap"
                 >
                   <div className="ml-2">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body font-semibold">
-                      Admin Portal
+                    <p className="text-[8px] uppercase tracking-[0.2em] text-primary font-body font-semibold">
+                      Admin Command Suite
                     </p>
                   </div>
                 </motion.div>
@@ -244,7 +244,7 @@ function PremiumSidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
       </div>
 
       {/* Collapse Button */}
-      <div className="px-4 pb-6">
+      {/* <div className="px-4 pb-6">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30 font-body transition-all duration-300 cursor-pointer group"
@@ -266,7 +266,7 @@ function PremiumSidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
             )}
           </AnimatePresence>
         </button>
-      </div>
+      </div> */}
     </motion.aside>
   );
 }
@@ -334,12 +334,12 @@ function PremiumMobileMenu() {
                       style={{
                         objectFit: 'contain',
                         maxWidth: '160px',
-                        height: '40px'
+                        height: '47px'
                       }}
                     />
                     <div className="ml-2">
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-body font-semibold">
-                        Admin Portal
+                      <p className="text-[8px] uppercase tracking-[0.2em] text-primary font-body font-semibold">
+                        Admin Command Suite
                       </p>
                     </div>
                   </div>

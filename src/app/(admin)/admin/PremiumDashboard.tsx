@@ -115,7 +115,7 @@ export default function PremiumDashboard() {
 
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          {/* <div className="glass rounded-xl p-4 border border-white/[0.06]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Avg. Trip</p>
@@ -123,9 +123,9 @@ export default function PremiumDashboard() {
               </div>
               <TrendingUp className="h-5 w-5 text-emerald-500" />
             </div>
-          </div>
+          </div> */}
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          {/* <div className="glass rounded-xl p-4 border border-white/[0.06]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">On-Time Rate</p>
@@ -133,7 +133,7 @@ export default function PremiumDashboard() {
               </div>
               <MapPin className="h-5 w-5 text-primary" />
             </div>
-          </div>
+          </div> */}
           
           <div className="glass rounded-xl p-4 border border-white/[0.06]">
             <div className="flex items-center justify-between">
@@ -149,7 +149,7 @@ export default function PremiumDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Fleet Available</p>
-                <p className="text-lg font-display font-bold text-foreground">12/15</p>
+                <p className="text-lg font-display font-bold text-foreground font-light">upcoming</p>
               </div>
               <Car className="h-5 w-5 text-primary" />
             </div>

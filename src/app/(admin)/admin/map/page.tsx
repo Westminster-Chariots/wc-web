@@ -12,7 +12,7 @@ import {
   statusColors,
   markerIcon,
   getMockPosition,
-  darkMapStyle,
+  lightMapStyle,
   containerStyle,
 } from "@/components/map/mapConfig";
 
@@ -33,7 +33,7 @@ export default function MapPage() {
   });
 
   const mapOptions = useMemo(() => ({
-    styles: darkMapStyle,
+    styles: lightMapStyle,
     disableDefaultUI: false,
     zoomControl: true,
     mapTypeControl: false,
@@ -89,7 +89,7 @@ export default function MapPage() {
       </div>
 
       {/* Map */}
-      <div className="relative rounded-lg overflow-hidden border border-border" style={{ height: "calc(100vh - 280px)", minHeight: "500px" }}>
+      <div className="relative rounded-2xl overflow-hidden border border-border bg-slate-100/80 shadow-sm" style={{ height: "calc(100vh - 280px)", minHeight: "500px" }}>
         {loadError && (
           <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
             <div className="text-center p-8">

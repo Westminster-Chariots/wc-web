@@ -124,7 +124,7 @@ export default function PremiumBookingGrid({
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="sm"
@@ -144,7 +144,7 @@ export default function PremiumBookingGrid({
               <Download className="h-4 w-4" />
               Export
             </Button>
-          </div>
+          </div> */}
         </div>
         
         {/* Search and Stats */}
@@ -164,10 +164,10 @@ export default function PremiumBookingGrid({
           </div>
           
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/30 border border-border">
+            {/* <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/30 border border-border">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-xs font-body text-muted-foreground">Filters</span>
-            </div>
+            </div> */}
             <div className="text-sm text-muted-foreground font-body">
               {filtered.length} of {bookings.length} bookings
             </div>

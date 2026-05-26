@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Loader2, Calendar, PanelRightClose, PanelRightOpen, Download } from "lucide-react";
-import { format, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks } from "date-fns";
+import { format, addMonths, subMonths, addDays, subDays, startOfWeek, addWeeks, subWeeks, parse, addMinutes } from "date-fns";
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -56,6 +56,110 @@ export default function AdminSchedulePage() {
     else if (viewMode === "day" || viewMode === "timeline") setCurrentDate(addDays(currentDate, 1));
   };
 
+  const parseBookingDateTime = (pickupDate: string, pickupTime: string) => {
+    // Try to parse the time with various formats
+    const formats = ["h:mm a", "hh:mm a", "H:mm", "HH:mm", "h:mm aa", "hh:mm aa"];
+    let timeStr = "00:00";
+
+    for (const fmt of formats) {
+      try {
+        const parsed = parse(pickupTime, fmt, new Date());
+        if (!Number.isNaN(parsed.getTime())) {
+          timeStr = format(parsed, "HH:mm");
+          break;
+        }
+      } catch {
+        // Continue to next format
+      }
+    }
+
+    // Ensure pickupDate is in YYYY-MM-DD format
+    let dateStr = pickupDate;
+    if (pickupDate && !pickupDate.match(/^\d{4}-\d{2}-\d{2}/)) {
+      // Try to parse and reformat the date
+      try {
+        const parsed = new Date(pickupDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          dateStr = format(parsed, "yyyy-MM-dd");
+        }
+      } catch {
+        dateStr = format(new Date(), "yyyy-MM-dd");
+      }
+    }
+
+    const isoDateTime = `${dateStr}T${timeStr}:00`;
+    const result = new Date(isoDateTime);
+    return Number.isNaN(result.getTime()) ? new Date() : result;
+  };
+
+  const formatIcsDate = (date: Date) => {
+    // Ensure date is valid
+    if (Number.isNaN(date.getTime())) {
+      return format(new Date(), "yyyyMMdd'T'HHmmss'Z'");
+    }
+    return format(date, "yyyyMMdd'T'HHmmss'Z'");
+  };
+
+  const buildIcsContent = (bookingsToExport: typeof bookings) => {
+    const events = bookingsToExport.map((booking) => {
+      const start = parseBookingDateTime(booking.pickupDate, booking.pickupTime);
+      const end = addMinutes(start, booking.durationMinutes ?? 60);
+      const rawDescription = [
+        `Reservation: ${booking.reservationNumber}`,
+        `Client: ${booking.clientName}`,
+        `Pickup: ${booking.pickupLocation}`,
+        `Dropoff: ${booking.dropoffLocation}`,
+        booking.notes ? `Notes: ${booking.notes}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const description = rawDescription.replace(/\n/g, "\\n");
+
+      return [
+        "BEGIN:VEVENT",
+        `UID:${booking.id}@wc-admin`,
+        `SUMMARY:${booking.clientName} — ${booking.pickupLocation} to ${booking.dropoffLocation}`,
+        `DTSTART:${formatIcsDate(start)}`,
+        `DTEND:${formatIcsDate(end)}`,
+        `LOCATION:${booking.pickupLocation}`,
+        `DESCRIPTION:${description}`,
+        `STATUS:${booking.status === "cancelled" ? "CANCELLED" : "CONFIRMED"}`,
+        "END:VEVENT",
+      ].join("\n");
+    });
+
+    return [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Westminster Chauffeur//WC Admin Calendar//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      ...events,
+      "END:VCALENDAR",
+    ].join("\n");
+  };
+
+  const handleExportICS = () => {
+    const upcoming = bookings.filter((b) => b.status !== "done" && b.status !== "cancelled");
+    if (upcoming.length === 0) {
+      notify.error("No upcoming bookings to sync");
+      return;
+    }
+
+    const content = buildIcsContent(upcoming);
+    const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `wc-schedule-${format(new Date(), "yyyyMMdd")}.ics`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+
+    notify.success(`Downloaded ${upcoming.length} bookings`);
+  };
+
   const dateLabel = () => {
     if (viewMode === "month") return format(currentDate, "MMMM yyyy");
     if (viewMode === "week") {
@@ -65,15 +169,6 @@ export default function AdminSchedulePage() {
     }
     if (viewMode === "day" || viewMode === "timeline") return format(currentDate, "EEEE, MMMM d, yyyy");
     return "All Bookings";
-  };
-
-  const handleExportICS = () => {
-    const upcoming = bookings.filter((b) => b.status !== "done" && b.status !== "cancelled");
-    if (upcoming.length === 0) {
-      notify.error("No upcoming bookings to sync");
-      return;
-    }
-    notify.success(`Exported ${upcoming.length} bookings`);
   };
 
   return (

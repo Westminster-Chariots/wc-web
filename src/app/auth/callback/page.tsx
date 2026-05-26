@@ -62,7 +62,7 @@ function AuthCallbackContent() {
           <div className="text-center mb-6">
             <Link href="/" className="inline-block mb-8">
               <Image 
-                src="/assets/wc-logo-full.png" 
+                src="/assets/wc-logo-no-motto.png" 
                 alt="Westminster Chariots" 
                 width={240} 
                 height={70} 

@@ -10,10 +10,10 @@ interface AccountHeaderProps {
 
 export default function AccountHeader({ onSignOut }: AccountHeaderProps) {
   return (
-    <header className="sticky top-0 z-50 bg-white/95 border-b border-slate-200 shadow-sm backdrop-blur-sm">
+    <header className="sticky top-0 z-50 bg-white/15 border-b border-slate-200 shadow-sm backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-3 font-display font-semibold text-slate-900">
-          <div className="relative h-10 w-10 overflow-hidden bg-slate-100 shadow-sm">
+          <div className="relative h-10 w-10 overflow-hidden">
             <Image src="/assets/wc-logo-no-motto.png" alt="Westminster Chariots" fill className="object-contain" />
           </div>
           <div className="space-y-0.5">

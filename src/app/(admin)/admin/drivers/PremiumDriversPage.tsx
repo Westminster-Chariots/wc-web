@@ -131,9 +131,11 @@ export default function PremiumDriversPage() {
       formData.append("file", file);
       formData.append("type", "driver_photo");
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem("access_token") : null;
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/uploads`, {
         method: "POST",
-        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
 

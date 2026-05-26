@@ -200,10 +200,10 @@ export default function VehiclePricingDisplay({
                   <span className="text-foreground font-semibold">Total</span>
                   <span className="text-primary font-display font-bold text-base">${total.toFixed(2)}</span>
                 </div>
-                <div className="text-[10px] text-muted-foreground/70 font-body mt-2 pt-2 border-t border-border">
+                {/* <div className="text-[10px] text-muted-foreground/70 font-body mt-2 pt-2 border-t border-border">
                   <p>Based on {distance.toFixed(1)} miles × {duration} minutes</p>
                   <p className="mt-0.5">Formula: ${FALLBACK_PRICING[vehicleType].baseRate} + (${FALLBACK_PRICING[vehicleType].ratePerMile} × miles) + (${FALLBACK_PRICING[vehicleType].ratePerMinute} × minutes)</p>
-                </div>
+                </div> */}
               </div>
             ) : (
               <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">

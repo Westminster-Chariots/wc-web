@@ -24,7 +24,7 @@ interface UserProfile {
 }
 
 export default function ClientAccountPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -34,13 +34,17 @@ export default function ClientAccountPage() {
   const pageSize = 10;
 
   useEffect(() => {
+    // Wait for auth to finish initializing before redirecting
+    if (authLoading) return;
+
     if (!user) {
       router.push("/auth");
       return;
     }
+
     fetchProfile();
     fetchBookingsPage(0);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProfile = async () => {
     try {

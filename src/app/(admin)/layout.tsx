@@ -79,16 +79,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
           <div className="flex items-center gap-4 md:gap-6">
-            <SystemHealth />
+            {/* <SystemHealth /> */}
             <AdminNotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="h-10 w-10 rounded-full glass border border-white/[0.15] flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/50 hover:scale-105 transition-transform duration-300 relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <Image src="/assets/wc-logo-white.png" alt="WC" width={24} height={24} className="relative object-contain" />
+                  <Image src="/assets/wc-logo-no-motto.png" alt="WC" width={24} height={24} className="relative object-contain" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 glass-strong border border-white/[0.12] shadow-glass-elevated">
+              <DropdownMenuContent align="end" className="w-56 glass-strong border border-white/[0.12] shadow-glass-elevated backdrop-blur-xs">
                 <div className="px-2 py-1.5">
                   <p className="text-xs text-muted-foreground font-body">Signed in as</p>
                   <p className="text-sm font-semibold text-foreground font-body truncate">{user?.email}</p>
@@ -102,10 +102,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Settings className="mr-3 h-4 w-4 text-muted-foreground" />
                   <span className="font-body">Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={() => router.push("/admin/audit")}>
+                {/* <DropdownMenuItem className="cursor-pointer py-2.5" onClick={() => router.push("/admin/audit")}>
                   <BarChart3 className="mr-3 h-4 w-4 text-muted-foreground" />
                   <span className="font-body">Analytics</span>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator className="bg-white/[0.08]" />
                 <DropdownMenuItem className="cursor-pointer py-2.5 text-destructive" onClick={() => router.push("/auth")}>
                   <LogOut className="mr-3 h-4 w-4" />

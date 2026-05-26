@@ -53,7 +53,8 @@ export function useAdminBookings() {
           flightTail: b.flightNumber,
           specialRequests: b.specialRequests,
           notes: b.notes,
-          price: b.totalPrice || b.basePrice || 0,
+          // Ensure price is a number (API may return strings like "123.45")
+          price: Number(b.totalPrice ?? b.basePrice ?? 0),
           isUrgent,
           distanceMiles: b.distanceMiles,
           durationMinutes: b.durationMinutes,

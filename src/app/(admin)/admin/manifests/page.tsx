@@ -22,7 +22,7 @@ export default function ManifestsPage() {
     libraries,
   });
   
-  const [variant, setVariant] = useState<ManifestVariant>("dark");
+  const [variant, setVariant] = useState<ManifestVariant>("light");
   const [editing, setEditing] = useState(false);
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState("");
@@ -666,7 +666,7 @@ export default function ManifestsPage() {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex gap-3">
-            <label className="flex items-center gap-1.5 cursor-pointer">
+            {/* <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
                 value="dark"
@@ -675,7 +675,7 @@ export default function ManifestsPage() {
                 className="h-4 w-4 text-primary"
               />
               <span className="text-xs">Black</span>
-            </label>
+            </label> */}
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="radio"
@@ -687,14 +687,14 @@ export default function ManifestsPage() {
               <span className="text-xs">White</span>
             </label>
           </div>
-          <Button variant="outline" onClick={handleDownloadDocx} className="gap-2" size="sm">
+          {/* <Button variant="outline" onClick={handleDownloadDocx} className="gap-2" size="sm">
             <FileType className="h-4 w-4" />
             Word
-          </Button>
-          <Button variant="outline" onClick={handleDownloadPDF} className="gap-2" size="sm">
+          </Button> */}
+          {/* <Button variant="outline" onClick={handleDownloadPDF} className="gap-2" size="sm">
             <Download className="h-4 w-4" />
             PDF
-          </Button>
+          </Button> */}
         </div>
       </div>
 

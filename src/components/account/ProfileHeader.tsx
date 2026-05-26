@@ -63,7 +63,7 @@ export default function ProfileHeader({ displayName, email, clientCode, avatarUr
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-display font-semibold text-slate-900 break-words">{displayName}</h1>
-            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Premium Member</span>
+            {/* <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">Unverified Member</span> */}
           </div>
           {clientCode && (
             <p className="text-sm text-slate-500">Client ID: {clientCode}</p>
@@ -74,14 +74,14 @@ export default function ProfileHeader({ displayName, email, clientCode, avatarUr
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Email</p>
               <p className="text-sm text-slate-900 mt-1 break-all">{email}</p>
             </div>
-            <div className="rounded-3xl bg-slate-50 p-3">
+            {/* <div className="rounded-3xl bg-slate-50 p-3">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Member since</p>
               <p className="text-sm text-slate-900 mt-1">Elite access</p>
             </div>
             <div className="rounded-3xl bg-slate-50 p-3">
               <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Status</p>
               <p className="text-sm text-slate-900 mt-1">Executive access</p>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

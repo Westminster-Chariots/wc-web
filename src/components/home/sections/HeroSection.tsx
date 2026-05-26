@@ -77,7 +77,7 @@ export default function HeroSection({
         </div>
 
         {/* Toggle Buttons */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
@@ -97,7 +97,7 @@ export default function HeroSection({
               By the hour
             </button>
           </div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Booking Form */}
         <motion.div
@@ -107,7 +107,7 @@ export default function HeroSection({
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-1"
         >
-          <div className=" max-w-[1280px] mx-auto glass-strong rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden">
+          <div className=" max-w-[1280px] mx-auto glass-strong rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden md:mt-28">
             <div className="flex flex-col md:flex-row md:items-center w-full">
               {/* Pickup */}
               <button

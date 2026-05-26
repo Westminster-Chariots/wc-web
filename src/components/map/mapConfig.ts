@@ -70,4 +70,16 @@ export const darkMapStyle = [
   { featureType: "transit", elementType: "geometry", stylers: [{ color: "#1e1e30" }] },
 ];
 
+export const lightMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#f5f7fa" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#5f6774" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#dce0e8" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#d7e6f7" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eef1f6" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#f4f7fb" }] },
+  { featureType: "landscape", elementType: "geometry.fill", stylers: [{ color: "#ecf0f4" }] },
+];
+
 export const containerStyle = { width: "100%", height: "100%", position: "absolute" as const, top: 0, left: 0, right: 0, bottom: 0 };
