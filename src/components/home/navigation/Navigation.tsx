@@ -132,8 +132,8 @@ export default function Navigation({
             >
               {/* Mobile Menu Button */}
               <button 
-                className={`md:hidden transition-all duration-300 p-2 hover:scale-110 hover:rotate-90 ${
-                  useDarkTheme ? 'text-white hover:text-blue-400' : 'text-foreground hover:text-primary'
+                className={`md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm transition-all duration-300 p-3 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 ${
+                  useDarkTheme ? 'text-white hover:text-blue-300' : 'text-foreground hover:text-primary'
                 }`}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
@@ -224,7 +224,7 @@ export default function Navigation({
 
             {/* Mobile Menu Button */}
             <button 
-              className="md:hidden text-foreground hover:text-primary transition-all duration-300 p-2 hover:scale-110 hover:rotate-90" 
+              className="md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm p-3 transition-all duration-300 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground" 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
@@ -319,25 +319,25 @@ export default function Navigation({
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden mt-4 border border-white/10 glass-card rounded-2xl relative z-50 overflow-hidden"
+              className="md:hidden mt-4 border border-white/10 glass-card rounded-3xl relative z-50 overflow-y-auto shadow-glass max-h-[80vh] w-full"
             >
-              <div className="px-6 py-6 space-y-4">
+              <div className="px-5 py-6 space-y-5 sm:px-6">
                 <div className="space-y-2">
                   <p className="text-sm font-semibold text-foreground/60 mb-2">Services</p>
-                  <a href="/services#airport-transfer" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Airport Transfer</a>
-                  <a href="/services#corporate-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Corporate Car Service</a>
-                  <a href="/services#hourly-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Hourly Car Service</a>
-                  <a href="/services#long-distance-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Long Distance Car Service</a>
-                  <a href="/services#night-out" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Night out</a>
-                  <a href="/services#concert-transportation" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Concert Transportation</a>
-                  <a href="/services#transportation-for-wedding" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Transportation for Wedding</a>
-                  <a href="/services#city-tours" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">City Tours</a>
-                  <a href="/services#prom-limo-service" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Prom Limo Service</a>
-                  <a href="/services#date-night" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground/80 hover:text-foreground pl-4 py-1">Date Night</a>
+                  <a href="/services#airport-transfer" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Airport Transfer</a>
+                  <a href="/services#corporate-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Corporate Car Service</a>
+                  <a href="/services#hourly-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Hourly Car Service</a>
+                  <a href="/services#long-distance-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Long Distance Car Service</a>
+                  <a href="/services#night-out" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Night out</a>
+                  <a href="/services#concert-transportation" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Concert Transportation</a>
+                  <a href="/services#transportation-for-wedding" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Transportation for Wedding</a>
+                  <a href="/services#city-tours" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">City Tours</a>
+                  <a href="/services#prom-limo-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Prom Limo Service</a>
+                  <a href="/services#date-night" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Date Night</a>
                 </div>
                 
-                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground py-2">Our Fleet</a>
-                <a href="/help" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground py-2">Help</a>
+                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 py-3">Our Fleet</a>
+                <a href="/help" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 py-3">Help</a>
                 
                 {user ? (
                   <>

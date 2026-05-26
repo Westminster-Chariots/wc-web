@@ -426,7 +426,7 @@ const EnhancedCheckoutSummary = ({
             </AnimatePresence>
 
             {/* Add Route Button/Form */}
-            {!showAddForm ? (
+            {/* {!showAddForm ? (
               <Button
                 variant="outline"
                 onClick={() => setShowAddForm(true)}
@@ -498,7 +498,7 @@ const EnhancedCheckoutSummary = ({
                   Add Route
                 </Button>
               </motion.div>
-            )}
+            )} */}
           </div>
         </div>
 

@@ -68,25 +68,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshUser();
-    
+
     // Refresh user data every 5 minutes (only if authenticated)
     const interval = setInterval(() => {
-      if (user) refreshUser();
+      const token = typeof window !== 'undefined' ? localStorage.getItem("access_token") : null;
+      if (token) refreshUser();
     }, 5 * 60 * 1000);
-    
+
     // Start session timeout tracking
     const cleanup = sessionManager.startActivityTracking(() => {
-      if (user) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem("access_token") : null;
+      if (token) {
         toast.error("Session expired due to inactivity");
         logout();
       }
     });
-    
+
     return () => {
       clearInterval(interval);
       cleanup();
     };
-  }, [refreshUser, user]);
+  }, [refreshUser]);
 
   const login = async (email: string, password: string) => {
     try {

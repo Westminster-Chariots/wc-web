@@ -10,7 +10,7 @@ import MapPreview from "@/components/booking/MapPreview";
 import RouteVisualization from "@/components/booking/RouteVisualization";
 import type { Booking } from "@/types";
 import { format, parseISO, differenceInHours } from "date-fns";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 const statusColors: Record<string, string> = {
   pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
@@ -29,7 +29,7 @@ interface BookingsListProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onReschedule: (bookingId: string, date: string, time: string) => Promise<void>;
-  onCancel: (bookingId: string, reservationNumber: string) => Promise<void>;
+  onCancel: (bookingId: string) => Promise<void>;
 }
 
 export default function BookingsList({ bookings, loading, page, pageSize, onPageChange, onReschedule, onCancel }: BookingsListProps) {
@@ -38,6 +38,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [rescheduling, setRescheduling] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const vehicleThumbnails: Record<string, string> = {
@@ -70,10 +71,42 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
     cancelled: "Cancelled",
   };
 
-  const filteredBookings = useMemo(() => {
+  const filteredByStatus = useMemo(() => {
     if (statusFilter === "all") return bookings;
     return bookings.filter((b) => b.status === statusFilter);
   }, [bookings, statusFilter]);
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const searchedBookings = useMemo(() => {
+    if (!normalizedSearch) return filteredByStatus;
+
+    const searchParts = normalizedSearch.split(/\s+/).filter(Boolean);
+
+    return filteredByStatus.filter((booking) => {
+      const haystack = [
+        booking.reservationNumber,
+        booking.pickupLocation,
+        booking.dropoffLocation,
+        booking.status,
+        booking.vehicleType,
+        booking.clientName,
+        booking.clientPhone,
+        booking.clientEmail,
+        booking.flightNumber,
+        booking.specialRequests,
+        booking.driverId,
+        booking.dispatcherNotes,
+        booking.pickupDate,
+        booking.pickupTime,
+        booking.totalPrice?.toString(),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return searchParts.every((term) => haystack.includes(term));
+    });
+  }, [filteredByStatus, normalizedSearch]);
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { all: bookings.length };
@@ -82,6 +115,17 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
     });
     return counts;
   }, [bookings]);
+
+  const totalPages = Math.max(1, Math.ceil(searchedBookings.length / pageSize));
+  const paginatedBookings = useMemo(() => {
+    if (page < 0) return searchedBookings.slice(0, pageSize);
+    const start = page * pageSize;
+    return searchedBookings.slice(start, start + pageSize);
+  }, [searchedBookings, page, pageSize]);
+
+  useEffect(() => {
+    onPageChange(0);
+  }, [searchTerm, statusFilter]);
 
   const handleReschedule = async () => {
     if (!rescheduleBooking || !rescheduleDate || !rescheduleTime) return;
@@ -104,46 +148,54 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
           </div>
         </div>
 
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 items-center">
-          <div className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
-            <Filter className="h-4 w-4 text-sky-600" />
-            Filters
+        <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.8fr] items-center">
+          <div className="relative w-full lg:max-w-xs">
+            <Label htmlFor="booking-search" className="sr-only">Search rides</Label>
+            <Input
+              id="booking-search"
+              placeholder="Search reservation, pickup, dropoff, driver, notes..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full"
+            />
           </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            {[
-              { label: `All (${statusCounts.all || 0})`, value: "all" },
-              { label: `Pending (${statusCounts.pending || 0})`, value: "pending" },
-              { label: `Assigned (${statusCounts.assigned || 0})`, value: "assigned" },
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => setStatusFilter(filter.value)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
-                  statusFilter === filter.value
-                    ? "bg-sky-500/15 text-sky-700 shadow-sm"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}>
-                {filter.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-2 items-center">
-            {[
-              { label: `In Progress (${statusCounts.in_progress || 0})`, value: "in_progress" },
-              { label: `Done (${statusCounts.done || 0})`, value: "done" },
-              { label: `Cancelled (${statusCounts.cancelled || 0})`, value: "cancelled" },
-            ].map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => setStatusFilter(filter.value)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
-                  statusFilter === filter.value
-                    ? "bg-sky-500/15 text-sky-700 shadow-sm"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}>
-                {filter.label}
-              </button>
-            ))}
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: `All (${statusCounts.all || 0})`, value: "all" },
+                { label: `Pending (${statusCounts.pending || 0})`, value: "pending" },
+                { label: `Assigned (${statusCounts.assigned || 0})`, value: "assigned" },
+              ].map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
+                    statusFilter === filter.value
+                      ? "bg-sky-500/15 text-sky-700 shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}>
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: `In Progress (${statusCounts.in_progress || 0})`, value: "in_progress" },
+                { label: `Done (${statusCounts.done || 0})`, value: "done" },
+                { label: `Cancelled (${statusCounts.cancelled || 0})`, value: "cancelled" },
+              ].map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
+                  className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
+                    statusFilter === filter.value
+                      ? "bg-sky-500/15 text-sky-700 shadow-sm"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}>
+                  {filter.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -154,13 +206,21 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
             <div key={i} className="h-28 rounded-3xl bg-slate-100 animate-pulse" />
           ))}
         </div>
-      ) : filteredBookings.length === 0 ? (
+      ) : searchedBookings.length === 0 ? (
         <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-12 text-center">
           <Car className="h-12 w-12 text-slate-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 mb-2">No rides found</h3>
           <p className="text-sm text-slate-600 mb-4">
             {statusFilter === "all" ? "You haven’t booked any rides yet." : `No ${statusFilter.replace(/_/g, " ")} rides were found.`}
           </p>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="text-sky-300 text-sm font-semibold hover:underline"
+            >
+              Clear search and view all rides →
+            </button>
+          )}
           {statusFilter !== "all" && (
             <button
               onClick={() => setStatusFilter("all")}
@@ -172,7 +232,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredBookings.map((booking) => {
+          {paginatedBookings.map((booking) => {
             const pickupDateTime = new Date(`${booking.pickupDate}T${booking.pickupTime}`);
             const hoursUntilPickup = differenceInHours(pickupDateTime, new Date());
             const canReschedule = booking.status === "pending" && hoursUntilPickup >= 24;
@@ -295,7 +355,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                           <AlertDialogCancel>Keep</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => onCancel(booking.id, booking.reservationNumber)}
+                            onClick={() => onCancel(booking.id)}
                           >
                             Cancel Ride
                           </AlertDialogAction>
@@ -373,16 +433,16 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         </DialogContent>
       </Dialog>
 
-      {!loading && filteredBookings.length > 0 && (
+      {!loading && searchedBookings.length > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-white/10 text-slate-400">
           <p className="text-sm">
-            Showing {filteredBookings.length} of {bookings.length} rides · Page {page + 1}
+            Showing {paginatedBookings.length} of {searchedBookings.length} rides · Page {Math.min(page + 1, totalPages)} of {totalPages}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" disabled={page === 0} onClick={() => onPageChange(Math.max(page - 1, 0))}>
               Previous
             </Button>
-            <Button variant="outline" size="sm" disabled={bookings.length < pageSize} onClick={() => onPageChange(page + 1)}>
+            <Button variant="outline" size="sm" disabled={page + 1 >= totalPages} onClick={() => onPageChange(page + 1)}>
               Next
             </Button>
           </div>

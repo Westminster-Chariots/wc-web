@@ -28,9 +28,10 @@ export default function ClientAccountPage() {
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingsPage, setBookingsPage] = useState(0);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const pageSize = 10;
 
   useEffect(() => {
@@ -43,15 +44,23 @@ export default function ClientAccountPage() {
     }
 
     fetchProfile();
-    fetchBookingsPage(0);
+    fetchBookings();
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchProfile = async () => {
     try {
       const currentUser = await authService.me();
-      const profileData = (currentUser as any).profile;
+      const profileData = currentUser.profile;
       if (profileData) {
-        setProfile(profileData);
+        setProfile({
+          email: profileData.email ?? user?.email,
+          displayName: profileData.displayName ?? currentUser.fullName ?? user?.fullName ?? user?.email?.split("@")[0] ?? "",
+          phone: profileData.phone ?? "",
+          isCorporate: profileData.isCorporate ?? false,
+          corporateName: profileData.corporateName ?? "",
+          clientCode: profileData.clientCode ?? undefined,
+          avatarUrl: profileData.avatarUrl ?? undefined,
+        });
       } else {
         setProfile({
           email: user?.email,
@@ -77,17 +86,24 @@ export default function ClientAccountPage() {
     }
   };
 
-  const fetchBookingsPage = async (page: number) => {
+  const fetchBookings = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
-      const data = await bookingService.getAll();
-      const paginatedBookings = Array.isArray(data)
-        ? data.slice(page * pageSize, (page + 1) * pageSize)
-        : [];
-      setBookings(paginatedBookings);
-    } catch (error) {
+      const data = await bookingService.getMyBookings();
+      if (Array.isArray(data)) {
+        setAllBookings(data);
+      } else {
+        setAllBookings([]);
+      }
+    } catch (error: unknown) {
       console.error("Error fetching bookings:", error);
-      notify.error("Failed to load bookings");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to load bookings";
+      setFetchError("Unable to load ride history right now. Please try again later.");
+      notify.error(message);
     } finally {
       setLoading(false);
     }
@@ -102,8 +118,9 @@ export default function ClientAccountPage() {
       });
       setProfile((prev) => (prev ? { ...prev, ...data } : null));
       notify.success("Profile updated successfully");
-    } catch (error: any) {
-      notify.error(error.message || "Failed to update profile");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update profile";
+      notify.error(message);
       throw error;
     }
   };
@@ -123,7 +140,7 @@ export default function ClientAccountPage() {
         }
       );
       if (!response.ok) throw new Error("Failed to reschedule");
-      setBookings((prev) =>
+      setAllBookings((prev) =>
         prev.map((b) =>
           b.id === bookingId
             ? { ...b, pickupDate: date, pickupTime: time }
@@ -131,13 +148,14 @@ export default function ClientAccountPage() {
         )
       );
       notify.success("Booking rescheduled successfully");
-    } catch (error: any) {
-      notify.error(error.message || "Failed to reschedule");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to reschedule";
+      notify.error(message);
       throw error;
     }
   };
 
-  const handleCancelBooking = async (bookingId: string, reservationNumber: string) => {
+  const handleCancelBooking = async (bookingId: string) => {
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch(`https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`, {
@@ -149,12 +167,13 @@ export default function ClientAccountPage() {
         body: JSON.stringify({ status: "cancelled" })
       });
       if (!response.ok) throw new Error("Failed to cancel booking");
-      setBookings((prev) =>
+      setAllBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
       );
       notify.success("Reservation cancelled");
-    } catch (error: any) {
-      notify.error(error.message || "Failed to cancel booking");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to cancel booking";
+      notify.error(message);
       throw error;
     }
   };
@@ -180,8 +199,9 @@ export default function ClientAccountPage() {
       });
       if (!response.ok) throw new Error("Failed to change password");
       notify.success("Password updated successfully");
-    } catch (error: any) {
-      notify.error(error.message || "Failed to change password");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to change password";
+      notify.error(message);
       throw error;
     }
   };
@@ -215,8 +235,9 @@ export default function ClientAccountPage() {
       const data = await response.json();
       setProfile((prev) => (prev ? { ...prev, avatarUrl: data.url } : null));
       notify.success("Profile picture updated successfully");
-    } catch (error: any) {
-      notify.error(error.message || "Failed to upload profile picture");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to upload profile picture";
+      notify.error(message);
       throw error;
     }
   };
@@ -228,7 +249,6 @@ export default function ClientAccountPage() {
 
   const handlePageChange = (page: number) => {
     setBookingsPage(page);
-    fetchBookingsPage(page);
   };
 
   if (!user) return null;
@@ -261,11 +281,11 @@ export default function ClientAccountPage() {
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Active bookings</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{bookings.filter((b) => b.status !== "cancelled" && b.status !== "done").length}</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">{allBookings.filter((b) => b.status !== "cancelled" && b.status !== "done").length}</p>
                 </div>
                 <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Total rides</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{bookings.length}</p>
+                  <p className="mt-3 text-xl font-semibold text-slate-900">{allBookings.length}</p>
                 </div>
                 <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Account tier</p>
@@ -276,29 +296,42 @@ export default function ClientAccountPage() {
 
             <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-5">
               <Tabs defaultValue="rides" className="space-y-6">
-                <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-3xl bg-slate-100 p-2">
-                  <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg bg-transparent border-b border-slate-200 p-1">
+                  <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
                     <Car className="h-4 w-4" /> Rides
                   </TabsTrigger>
-                  <TabsTrigger value="invoices" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                  <TabsTrigger value="invoices" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
                     <FileText className="h-4 w-4" /> Invoices
                   </TabsTrigger>
-                  <TabsTrigger value="profile" className="flex items-center justify-center gap-2 rounded-2xl data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-sm text-sm font-semibold text-slate-600 py-3">
+                  <TabsTrigger value="profile" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
                     <Settings className="h-4 w-4" /> Profile
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="rides">
-                  <BookingsList
-                    bookings={bookings}
-                    loading={loading}
-                    page={bookingsPage}
-                    pageSize={pageSize}
-                    onPageChange={handlePageChange}
-                    onReschedule={handleReschedule}
-                    onCancel={handleCancelBooking}
-                  />
-                </TabsContent>
+                    {fetchError ? (
+                      <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-8 text-center">
+                        <p className="text-sm text-destructive font-semibold mb-3">{fetchError}</p>
+                        <p className="text-sm text-slate-600 mb-6">We couldn&apos;t load your ride history due to a server problem.</p>
+                        <button
+                          onClick={fetchBookings}
+                          className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : (
+                      <BookingsList
+                        bookings={allBookings}
+                        loading={loading}
+                        page={bookingsPage}
+                        pageSize={pageSize}
+                        onPageChange={handlePageChange}
+                        onReschedule={handleReschedule}
+                        onCancel={handleCancelBooking}
+                      />
+                    )}
+                  </TabsContent>
 
                 <TabsContent value="invoices">
                   <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">

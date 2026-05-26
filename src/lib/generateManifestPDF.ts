@@ -85,7 +85,7 @@ interface Palette {
 const DARK_PALETTE: Palette = {
   bg: [10, 10, 10],
   card: [26, 26, 26],
-  accent: [228, 214, 182],
+  accent: [59, 130, 246],
   text: [240, 240, 240],
   muted: [140, 140, 140],
   border: [50, 50, 50],
@@ -95,7 +95,7 @@ const DARK_PALETTE: Palette = {
 const LIGHT_PALETTE: Palette = {
   bg: [245, 245, 245],
   card: [255, 255, 255],
-  accent: [140, 120, 70],
+  accent: [26, 140, 255],
   text: [30, 30, 30],
   muted: [110, 110, 110],
   border: [210, 210, 210],
@@ -251,7 +251,7 @@ export async function generateManifestPDF(
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...P.muted);
-      doc.text(`Tail#: ${leg.tailNumber || 'N/A'}          FBO: ${leg.fboPhone || 'N/A'}`, innerMargin + 10, y + 40);
+      // doc.text(`Tail#: ${leg.tailNumber || 'N/A'}          FBO: ${leg.fboPhone || 'N/A'}`, innerMargin + 10, y + 40);
     }
     y += 56;
 

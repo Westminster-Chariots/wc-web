@@ -89,44 +89,21 @@ export default function BookingPage() {
     fetchFleet();
   }, []);
 
-  const vehiclesByType = useMemo(() => {
-    const grouped: Record<string, FleetVehicle[]> = { sedan: [], suv: [] };
-    fleetVehicles.forEach((v) => {
-      if (grouped[v.vehicleType]) {
-        grouped[v.vehicleType].push(v);
-      }
-    });
-    return grouped;
-  }, [fleetVehicles]);
-
   const vehicles = useMemo(() => {
-    const result = [];
-    if (vehiclesByType.sedan.length > 0) {
-      const sedan = vehiclesByType.sedan[0];
-      result.push({
-        type: "sedan" as const,
-        name: "Business Class",
-        subtitle: `${sedan.make} ${sedan.model} or similar`,
-        passengers: sedan.passengerCapacity || 3,
-        luggage: sedan.luggageCapacity || 2,
-        image: sedan.imageUrl || "/assets/sedan-profile.png",
-        features: ["Leather interior", "Bottled water", "WiFi available", "Privacy partition", "Professional chauffeur"],
-      });
-    }
-    if (vehiclesByType.suv.length > 0) {
-      const suv = vehiclesByType.suv[0];
-      result.push({
-        type: "suv" as const,
-        name: "Business SUV",
-        subtitle: `${suv.make} ${suv.model} or similar`,
-        passengers: suv.passengerCapacity || 5,
-        luggage: suv.luggageCapacity || 5,
-        image: suv.imageUrl || "/assets/suv-profile.png",
-        features: ["Extended legroom", "Extra luggage capacity", "Bottled water", "Executive seating", "Professional chauffeur"],
-      });
-    }
-    return result;
-  }, [vehiclesByType]);
+    return fleetVehicles
+      .filter((v) => v.status === "available")
+      .map((vehicle) => ({
+        type: vehicle.vehicleType,
+        name: vehicle.vehicleType === "sedan" ? "Business Class" : "Business SUV",
+        subtitle: `${vehicle.make} ${vehicle.model}${vehicle.plate ? ` • ${vehicle.plate}` : ""}`,
+        passengers: vehicle.passengerCapacity || (vehicle.vehicleType === "sedan" ? 3 : 5),
+        luggage: vehicle.luggageCapacity || (vehicle.vehicleType === "sedan" ? 2 : 5),
+        image: vehicle.imageUrl || (vehicle.vehicleType === "sedan" ? "/assets/sedan-profile.png" : "/assets/suv-profile.png"),
+        features: vehicle.vehicleType === "sedan"
+          ? ["Leather interior", "Bottled water", "WiFi available", "Privacy partition", "Professional chauffeur"]
+          : ["Extended legroom", "Extra luggage capacity", "Bottled water", "Executive seating", "Professional chauffeur"],
+      }));
+  }, [fleetVehicles]);
 
   const sedanPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "sedan") : null;
   const suvPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "suv") : null;
@@ -426,7 +403,7 @@ export default function BookingPage() {
 
                   return (
                     <VehiclePricingDisplay
-                      key={v.type}
+                      key={`${v.type}-${i}`}
                       vehicleType={v.type}
                       name={v.name}
                       subtitle={v.subtitle}

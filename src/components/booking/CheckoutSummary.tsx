@@ -374,7 +374,7 @@ const CheckoutSummary = ({
       </AnimatePresence>
 
       {/* Add Route Button / Form */}
-      {!showAddForm ? (
+      {/* {!showAddForm ? (
         <Button
           variant="outline"
           onClick={() => setShowAddForm(true)}
@@ -449,7 +449,7 @@ const CheckoutSummary = ({
 
           </div>
         </motion.div>
-      )}
+      )} */}
 
       <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
         <span className="text-foreground font-semibold">Total</span>

@@ -1038,7 +1038,7 @@ export default function ManifestsPage() {
                         ) : (
                           <p className="text-foreground font-medium text-xs mb-2">{leg.pickup || "—"}</p>
                         )}
-                        <div className="flex gap-6 text-xs text-muted-foreground">
+                        {/* <div className="flex gap-6 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <span>Tail#:</span>
                             {editing ? (
@@ -1055,7 +1055,7 @@ export default function ManifestsPage() {
                               <span>{leg.fboPhone || "N/A"}</span>
                             )}
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                       <div className="rounded-md border border-border bg-secondary/30 p-3">
                         <p className="text-[10px] uppercase tracking-wider text-primary mb-2 font-semibold">Drop-Off</p>

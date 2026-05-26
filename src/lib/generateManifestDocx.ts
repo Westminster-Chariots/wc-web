@@ -26,7 +26,7 @@ interface DocxPalette {
 }
 
 const DARK_DOCX: DocxPalette = {
-  accent: "E4D6B6",
+  accent: "3B82F6",
   text: "F0F0F0",
   muted: "8C8C8C",
   card: "1A1A1A",
@@ -36,7 +36,7 @@ const DARK_DOCX: DocxPalette = {
 };
 
 const LIGHT_DOCX: DocxPalette = {
-  accent: "8C7846",
+  accent: "1A8CFF",
   text: "1E1E1E",
   muted: "6E6E6E",
   card: "FFFFFF",
@@ -261,7 +261,7 @@ export async function generateManifestDocx(
           spacing: { after: 80 },
           shading: { type: ShadingType.SOLID, color: P.section, fill: P.section },
           border: { bottom: boxBorder.bottom, left: boxBorder.left, right: boxBorder.right },
-          children: [new TextRun({ text: `Tail#: ${leg.tailNumber || 'N/A'}          FBO: ${leg.fboPhone || 'N/A'}`, font: "Calibri", size: 15, color: P.muted })],
+          // children: [new TextRun({ text: `Tail#: ${leg.tailNumber || 'N/A'}          FBO: ${leg.fboPhone || 'N/A'}`, font: "Calibri", size: 15, color: P.muted })],
         })
       );
     } else {

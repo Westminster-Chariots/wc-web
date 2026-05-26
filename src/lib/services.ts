@@ -1,3 +1,4 @@
+import axios from "axios";
 import { api } from "./api";
 import type { Booking, Driver, FleetVehicle, User, Profile, Invoice } from "@/types";
 
@@ -112,8 +113,20 @@ export const bookingService = {
   },
   
   getMyBookings: async (): Promise<Booking[]> => {
-    const { data } = await api.get("/bookings/my");
-    return data;
+    try {
+      const { data } = await api.get("/bookings");
+      return data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 500) {
+        try {
+          const { data } = await api.get("/bookings/my");
+          return data;
+        } catch {
+          // fallback failed, rethrow original server error
+        }
+      }
+      throw error;
+    }
   },
 };
 
