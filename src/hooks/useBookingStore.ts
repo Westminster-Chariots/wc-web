@@ -20,6 +20,7 @@ export interface BookingData {
   pickupDate: string;
   pickupTime: string;
   selectedVehicle: "sedan" | "suv" | null;
+  selectedVehicleId: string | null;
   flightNumber: string;
   specialRequests: string;
   additionalLegs: TripLeg[];
@@ -33,6 +34,7 @@ export interface BookingData {
 const EMPTY: BookingData = {
   pickup: "", dropoff: "", isPickupAirport: false,
   pickupDate: "", pickupTime: "", selectedVehicle: null,
+  selectedVehicleId: null,
   flightNumber: "", specialRequests: "", additionalLegs: [],
   bookingForSomeoneElse: false, guestFirstName: "", guestLastName: "",
   guestEmail: "", guestPhone: "",

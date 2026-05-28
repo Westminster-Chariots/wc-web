@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Car, FileText, Settings } from "lucide-react";
 import AccountHeader from "@/components/account/AccountHeader";
 import ProfileHeader from "@/components/account/ProfileHeader";
-import BookingsList from "@/components/account/BookingsList";
+import BookingsListProfessional from "@/components/account/BookingsListProfessional";
 import ProfileSettings from "@/components/account/ProfileSettings";
 
 interface UserProfile {
@@ -259,69 +259,70 @@ export default function ClientAccountPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <AccountHeader onSignOut={handleSignOut} />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <ProfileHeader
-          displayName={displayName}
-          email={user.email || ""}
-          clientCode={profile?.clientCode}
-          avatarUrl={profile?.avatarUrl}
-          onAvatarUpload={handleAvatarUpload}
-        />
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="mb-8">
+          <ProfileHeader
+            displayName={displayName}
+            email={user.email || ""}
+            clientCode={profile?.clientCode}
+            avatarUrl={profile?.avatarUrl}
+            onAvatarUpload={handleAvatarUpload}
+          />
+        </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1.5fr_0.85fr] items-start mt-8">
-          <div className="space-y-6">
-            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6">
-              <div className="flex flex-wrap gap-4 items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Your account summary</p>
-                  <h2 className="mt-2 text-xl font-display font-semibold text-slate-900">Your dashboard</h2>
-                </div>
-                <p className="text-sm text-slate-600 max-w-xl">Manage upcoming rides, invoices, and account preferences with clean, consistent brand styling.</p>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Dashboard Stats */}
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-slate-900">Account Overview</h2>
+                <p className="mt-1 text-sm text-slate-600">Manage your rides and account preferences</p>
               </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Active bookings</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{allBookings.filter((b) => b.status !== "cancelled" && b.status !== "done").length}</p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl bg-slate-50 p-5">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Active Bookings</p>
+                  <p className="text-2xl font-semibold text-slate-900">{allBookings.filter((b) => b.status !== "cancelled" && b.status !== "done").length}</p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Total rides</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">{allBookings.length}</p>
+                <div className="rounded-xl bg-slate-50 p-5">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Total Rides</p>
+                  <p className="text-2xl font-semibold text-slate-900">{allBookings.length}</p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Account tier</p>
-                  <p className="mt-3 text-xl font-semibold text-slate-900">Executive</p>
+                <div className="rounded-xl bg-slate-50 p-5">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Account Tier</p>
+                  <p className="text-2xl font-semibold text-slate-900">Executive</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-5">
+            {/* Main Content Tabs */}
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
               <Tabs defaultValue="rides" className="space-y-6">
-                <TabsList className="grid grid-cols-1 sm:grid-cols-3 gap-2 rounded-lg bg-transparent border-b border-slate-200 p-1">
-                  <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
+                <TabsList className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+                  <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-md text-sm font-medium text-slate-700 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                     <Car className="h-4 w-4" /> Rides
                   </TabsTrigger>
-                  <TabsTrigger value="invoices" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
+                  <TabsTrigger value="invoices" className="flex items-center justify-center gap-2 rounded-md text-sm font-medium text-slate-700 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                     <FileText className="h-4 w-4" /> Invoices
                   </TabsTrigger>
-                  <TabsTrigger value="profile" className="flex items-center justify-center gap-2 rounded-none border-b-2 border-transparent text-sm font-semibold text-slate-600 py-3 data-[state=active]:border-sky-600 data-[state=active]:text-slate-900 data-[state=active]:bg-transparent">
+                  <TabsTrigger value="profile" className="flex items-center justify-center gap-2 rounded-md text-sm font-medium text-slate-700 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                     <Settings className="h-4 w-4" /> Profile
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="rides">
                     {fetchError ? (
-                      <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-8 text-center">
-                        <p className="text-sm text-destructive font-semibold mb-3">{fetchError}</p>
+                      <div className="rounded-2xl bg-white shadow-sm p-8 text-center">
+                        <p className="text-sm text-red-600 font-semibold mb-3">{fetchError}</p>
                         <p className="text-sm text-slate-600 mb-6">We couldn&apos;t load your ride history due to a server problem.</p>
                         <button
                           onClick={fetchBookings}
-                          className="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700"
+                          className="inline-flex items-center justify-center rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
                         >
                           Retry
                         </button>
                       </div>
                     ) : (
-                      <BookingsList
+                      <BookingsListProfessional
                         bookings={allBookings}
                         loading={loading}
                         page={bookingsPage}
@@ -334,10 +335,10 @@ export default function ClientAccountPage() {
                   </TabsContent>
 
                 <TabsContent value="invoices">
-                  <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
+                  <div className="rounded-xl bg-slate-50 p-12 text-center">
                     <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-white mb-2">Invoices coming soon</h3>
-                    <p className="text-sm text-slate-400">Your billing history will appear here after your first completed ride.</p>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Invoices coming soon</h3>
+                    <p className="text-sm text-slate-600">Your billing history will appear here after your first completed ride.</p>
                   </div>
                 </TabsContent>
 
@@ -361,21 +362,22 @@ export default function ClientAccountPage() {
             </div>
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6">
-              <h3 className="text-sm uppercase tracking-[0.3em] text-slate-500">Quick actions</h3>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Support</p>
-                  <p className="mt-2 text-sm text-slate-700">Need help with your ride or account? Contact our concierge team anytime.</p>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+              <div className="space-y-4">
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Support</p>
+                  <p className="text-sm text-slate-600">Need help with your ride or account? Contact our concierge team anytime.</p>
                 </div>
-                <div className="rounded-3xl bg-slate-50 p-4 shadow-sm ring-1 ring-slate-200">
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Payment method</p>
-                  <p className="mt-2 text-sm text-slate-700">Secure card vault and priority invoicing for corporate clients.</p>
+                <div className="rounded-lg bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-900 mb-2">Payment Method</p>
+                  <p className="text-sm text-slate-600">Secure card vault and priority invoicing for corporate clients.</p>
                 </div>
               </div>
             </div>
-          </aside>
+          </div>
         </div>
       </main>
     </div>

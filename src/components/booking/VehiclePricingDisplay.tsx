@@ -15,10 +15,14 @@ interface VehiclePricingDisplayProps {
   features: string[];
   distance: number;
   duration: number;
+  price: number | null;
+  priceLoading?: boolean;
+  taxPercent?: number;
   isSelected: boolean;
   isExpanded: boolean;
   onSelect: () => void;
   onToggleExpand: () => void;
+  vehicleId?: string;
 }
 
 // Fallback pricing formulas (same as in usePricing)
@@ -47,94 +51,26 @@ export default function VehiclePricingDisplay({
   features,
   distance,
   duration,
+  price,
+  priceLoading = false,
+  taxPercent: propTaxPercent,
   isSelected,
   isExpanded,
   onSelect,
   onToggleExpand,
+  vehicleId,
 }: VehiclePricingDisplayProps) {
-  const [price, setPrice] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Calculate price using fallback formula immediately
-  const calculateFallbackPrice = useMemo(() => {
-    const config = FALLBACK_PRICING[vehicleType];
-    const basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
-    return Math.round(basePrice * 100) / 100;
-  }, [vehicleType, distance, duration]);
-
-  // Try to fetch from API, but always have fallback ready
-  useEffect(() => {
-    let mounted = true;
-    
-    const fetchPricing = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1";
-        const response = await fetch(`${backendUrl}/pricing/calculate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            pickup: "dummy", // We don't need actual locations for pricing config
-            dropoff: "dummy",
-            vehicleType,
-            pickupTime: new Date().toISOString(),
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (mounted && data.price) {
-            setPrice(data.price);
-          } else if (mounted) {
-            setPrice(calculateFallbackPrice);
-          }
-        } else {
-          if (mounted) {
-            setPrice(calculateFallbackPrice);
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setPrice(calculateFallbackPrice);
-          console.log("Using fallback pricing due to error:", err);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    // Always set fallback price immediately
-    if (mounted) {
-      setPrice(calculateFallbackPrice);
-    }
-
-    // Then try to fetch from API
-    fetchPricing();
-
-    return () => {
-      mounted = false;
-    };
-  }, [vehicleType, distance, duration, calculateFallbackPrice]);
-
-  const taxPercent = FALLBACK_PRICING[vehicleType].taxPercent;
+  const taxPercent = propTaxPercent || FALLBACK_PRICING[vehicleType].taxPercent;
   const tax = price ? price * (taxPercent / 100) : 0;
   const total = price ? price + tax : 0;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-      <button
+      <div
         onClick={() => {
           onSelect();
-          onToggleExpand();
         }}
-        className={`w-full rounded-xl p-4 sm:p-6 text-left transition-all duration-300 group ${
+        className={`w-full rounded-xl p-4 sm:p-6 text-left transition-all duration-300 group cursor-pointer ${
           isSelected 
             ? "glass-strong border-primary/40 shadow-blue scale-[1.02]" 
             : "glass-card hover:shadow-blue hover:scale-[1.01] hover:border-primary/30"
@@ -160,19 +96,33 @@ export default function VehiclePricingDisplay({
               <p className="text-[11px] sm:text-xs text-muted-foreground font-body mt-1 hidden sm:block">{subtitle}</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {!loading && price !== null ? (
+              {isSelected && (
+                <div className="flex items-center gap-1 text-xs text-primary font-semibold">
+                  <Check className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Selected</span>
+                </div>
+              )}
+              {!priceLoading && price !== null ? (
                 <span className={`text-lg sm:text-xl font-display font-bold ${isSelected ? "text-primary" : "text-foreground"}`}>
                   US${total.toFixed(2)}
                 </span>
               ) : (
                 <div className="h-6 w-20 sm:w-24 rounded bg-secondary animate-pulse" />
               )}
-              <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpand();
+                }}
+                className="p-1 hover:bg-secondary/50 rounded transition-colors cursor-pointer"
+              >
+                <ChevronDown className={`h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+              </div>
             </div>
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground font-body mt-2 sm:hidden">{subtitle}</p>
-      </button>
+      </div>
 
       {isExpanded && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
@@ -186,7 +136,7 @@ export default function VehiclePricingDisplay({
               ))}
             </div>
             
-            {!loading && price !== null ? (
+            {!priceLoading && price !== null ? (
               <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
                 <div className="flex justify-between text-xs font-body">
                   <span className="text-muted-foreground">Base fare</span>

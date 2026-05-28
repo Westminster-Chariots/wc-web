@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Car, ChevronRight, CalendarDays, XCircle, Filter } from "lucide-react";
+import { Car, ChevronRight, CalendarDays, XCircle, User, Phone, Star, MapPin, Clock, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +32,7 @@ interface BookingsListProps {
   onCancel: (bookingId: string) => Promise<void>;
 }
 
-export default function BookingsList({ bookings, loading, page, pageSize, onPageChange, onReschedule, onCancel }: BookingsListProps) {
+export default function BookingsListResponsive({ bookings, loading, page, pageSize, onPageChange, onReschedule, onCancel }: BookingsListProps) {
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
@@ -166,7 +166,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         }
       }
       
-      // Fetch vehicle info (we need to get fleet data first)
+      // Fetch vehicle info
       const token = localStorage.getItem("access_token");
       const fleetResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/fleet`,
@@ -177,7 +177,6 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
       
       if (fleetResponse.ok) {
         const fleetData = await fleetResponse.json();
-        // Try to find vehicle by type or use first matching vehicle
         const vehicle = fleetData.find((v: any) => v.vehicleType === booking.vehicleType);
         if (vehicle) {
           setVehicleInfo({
@@ -202,11 +201,14 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
 
   return (
     <section className="space-y-4 md:space-y-6">
+      {/* Header Section */}
       <div className="rounded-2xl md:rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-4 md:p-5">
         <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg md:text-xl font-display font-semibold text-slate-900">Ride History</h2>
-            <p className="mt-1 text-xs md:text-sm text-slate-600 max-w-2xl">Track upcoming trips, review completed rides, and manage scheduling in one polished view.</p>
+            <p className="mt-1 text-xs md:text-sm text-slate-600 max-w-2xl">
+              Track upcoming trips, review completed rides, and manage scheduling in one polished view.
+            </p>
           </div>
         </div>
 
@@ -245,6 +247,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         </div>
       </div>
 
+      {/* Loading State */}
       {loading ? (
         <div className="space-y-3 md:space-y-4">
           {[1, 2, 3].map((i) => (
@@ -252,28 +255,30 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
           ))}
         </div>
       ) : searchedBookings.length === 0 ? (
-        <div className="rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-12 text-center">
-          <Car className="h-12 w-12 text-slate-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">No rides found</h3>
-          <p className="text-sm text-slate-600 mb-4">
-            {statusFilter === "all" ? "You haven’t booked any rides yet." : `No ${statusFilter.replace(/_/g, " ")} rides were found.`}
+        <div className="rounded-2xl md:rounded-4xl bg-white shadow-sm ring-1 ring-slate-200 p-6 md:p-12 text-center">
+          <Car className="h-8 w-8 md:h-12 md:w-12 text-slate-500 mx-auto mb-3 md:mb-4" />
+          <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-1 md:mb-2">No rides found</h3>
+          <p className="text-xs md:text-sm text-slate-600 mb-3 md:mb-4">
+            {statusFilter === "all" ? "You haven't booked any rides yet." : `No ${statusFilter.replace(/_/g, " ")} rides were found.`}
           </p>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="text-sky-300 text-sm font-semibold hover:underline"
-            >
-              Clear search and view all rides →
-            </button>
-          )}
-          {statusFilter !== "all" && (
-            <button
-              onClick={() => setStatusFilter("all")}
-              className="text-sky-300 text-sm font-semibold hover:underline"
-            >
-              View all rides →
-            </button>
-          )}
+          <div className="flex flex-col gap-2 md:flex-row md:gap-4 justify-center">
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="text-sky-300 text-xs md:text-sm font-semibold hover:underline"
+              >
+                Clear search →
+              </button>
+            )}
+            {statusFilter !== "all" && (
+              <button
+                onClick={() => setStatusFilter("all")}
+                className="text-sky-300 text-xs md:text-sm font-semibold hover:underline"
+              >
+                View all rides →
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-3 md:space-y-4">
@@ -384,128 +389,103 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                 </div>
 
                 {/* Desktop Layout */}
-                <div className="hidden md:flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="text-xs font-mono uppercase tracking-[0.3em] text-sky-300">{booking.reservationNumber}</span>
-                          <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${statusColors[booking.status] || statusColors.pending}`}>
-                            {statusTitles[booking.status] || booking.status.replace(/_/g, " ")}
-                          </span>
-                        </div>
-                        <p className="mt-3 text-sm text-slate-600 max-w-2xl">{statusNextSteps[booking.status]}</p>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => handleBookingSelect(booking)} className="gap-2 self-start">
-                        View details
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Pickup</p>
-                        <p className="mt-2 text-sm text-slate-900 truncate">{booking.pickupLocation}</p>
-                      </div>
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Drop-off</p>
-                        <p className="mt-2 text-sm text-slate-900 truncate">{booking.dropoffLocation}</p>
-                      </div>
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Pickup time</p>
-                        <p className="mt-2 text-sm text-slate-900">{booking.pickupDate ? format(parseISO(booking.pickupDate), "MMM d, yyyy") : "—"} · {booking.pickupTime?.slice(0, 5) || "00:00"}</p>
-                      </div>
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Vehicle</p>
-                        <div className="mt-3 flex items-center gap-3">
-                          <div className="relative h-16 w-24 overflow-hidden rounded-3xl bg-slate-100">
-                            <Image src={thumbnail} alt={booking.vehicleType} fill className="object-cover" />
+                <div className="hidden md:block">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex-1 space-y-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-xs font-mono uppercase tracking-[0.3em] text-sky-300">{booking.reservationNumber}</span>
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${statusColors[booking.status] || statusColors.pending}`}>
+                              {statusTitles[booking.status] || booking.status.replace(/_/g, " ")}
+                            </span>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{vehicleNames[booking.vehicleType]}</p>
-                            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{booking.vehicleType}</p>
-                          </div>
+                          <p className="mt-3 text-sm text-slate-600 max-w-2xl">{statusNextSteps[booking.status]}</p>
                         </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 lg:grid-cols-[1.4fr_0.9fr]">
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <RouteVisualization pickup={booking.pickupLocation} dropoff={booking.dropoffLocation} />
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Distance</p>
-                            <p className="mt-2 text-sm text-slate-900">{booking.distanceMiles || "—"} mi</p>
-                          </div>
-                          <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Duration</p>
-                            <p className="mt-2 text-sm text-slate-900">{booking.durationMinutes ? `${booking.durationMinutes} mins` : "—"}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Ride overview</p>
-                        <div className="mt-4 space-y-2 text-sm text-slate-700">
-                          <p><span className="font-semibold text-slate-900">Client:</span> {booking.clientName || "Guest"}</p>
-                          <p><span className="font-semibold text-slate-900">Phone:</span> {booking.clientPhone || "—"}</p>
-                          <p><span className="font-semibold text-slate-900">Flight:</span> {booking.flightNumber || "N/A"}</p>
-                          <p><span className="font-semibold text-slate-900">Requests:</span> {booking.specialRequests || "None"}</p>
-                        </div>
-                        <div className="mt-4 rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
-                          <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Next step</p>
-                          <p className="mt-2 text-sm text-slate-700">{statusNextSteps[booking.status]}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4 shrink-0 text-right">
-                    <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                      <p className="text-2xl font-display font-semibold text-slate-900">${booking.totalPrice ? Number(booking.totalPrice).toFixed(0) : "0"}</p>
-                      <p className="text-xs uppercase tracking-[0.24em] text-slate-500 mt-1">{booking.vehicleType}</p>
-                    </div>
-                    <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200 text-left">
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Status details</p>
-                      <p className="mt-2 text-sm text-slate-700">{statusTitles[booking.status]}</p>
-                    </div>
-                    {booking.status === "pending" && canReschedule && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => {
-                          setRescheduleBooking(booking);
-                          setRescheduleDate(booking.pickupDate);
-                          setRescheduleTime(booking.pickupTime || "");
-                        }}
-                      >
-                        <CalendarDays className="h-4 w-4" /> Reschedule
-                      </Button>
-                    )}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:bg-destructive/10">
-                          <XCircle className="h-4 w-4" /> Cancel
+                        <Button variant="outline" size="sm" onClick={() => handleBookingSelect(booking)} className="gap-2 self-start">
+                          View details
+                          <ChevronRight className="h-4 w-4" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="glass-heavy border-border">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Cancel Ride?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will cancel <span className="text-primary font-mono font-medium">{booking.reservationNumber}</span>.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Keep</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => onCancel(booking.id)}
-                          >
-                            Cancel Ride
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+                          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Pickup</p>
+                          <p className="mt-2 text-sm text-slate-900 truncate">{booking.pickupLocation}</p>
+                        </div>
+                        <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+                          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Drop-off</p>
+                          <p className="mt-2 text-sm text-slate-900 truncate">{booking.dropoffLocation}</p>
+                        </div>
+                        <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+                          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Pickup time</p>
+                          <p className="mt-2 text-sm text-slate-900">
+                            {booking.pickupDate ? format(parseISO(booking.pickupDate), "MMM d, yyyy") : "—"} · {booking.pickupTime?.slice(0, 5) || "00:00"}
+                          </p>
+                        </div>
+                        <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+                          <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Vehicle</p>
+                          <div className="mt-3 flex items-center gap-3">
+                            <div className="relative h-16 w-24 overflow-hidden rounded-3xl bg-slate-100">
+                              <Image src={thumbnail} alt={booking.vehicleType} fill className="object-cover" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{vehicleNames[booking.vehicleType]}</p>
+                              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">{booking.vehicleType}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 shrink-0 text-right">
+                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
+                        <p className="text-2xl font-display font-semibold text-slate-900">${booking.totalPrice ? Number(booking.totalPrice).toFixed(0) : "0"}</p>
+                        <p className="text-xs uppercase tracking-[0.24em] text-slate-500 mt-1">{booking.vehicleType}</p>
+                      </div>
+                      <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200 text-left">
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Status details</p>
+                        <p className="mt-2 text-sm text-slate-700">{statusTitles[booking.status]}</p>
+                      </div>
+                      {booking.status === "pending" && canReschedule && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => {
+                            setRescheduleBooking(booking);
+                            setRescheduleDate(booking.pickupDate);
+                            setRescheduleTime(booking.pickupTime || "");
+                          }}
+                        >
+                          <CalendarDays className="h-4 w-4" /> Reschedule
+                        </Button>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:bg-destructive/10">
+                            <XCircle className="h-4 w-4" /> Cancel
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="glass-heavy border-border">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Ride?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will cancel <span className="text-primary font-mono font-medium">{booking.reservationNumber}</span>.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Keep</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => onCancel(booking.id)}
+                            >
+                              Cancel Ride
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -514,6 +494,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         </div>
       )}
 
+      {/* Details Dialog */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
         <DialogContent className="glass-heavy border-border max-w-5xl">
           <DialogHeader>
@@ -585,9 +566,22 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Driver Information</p>
                       {driverInfo ? (
                         <div className="mt-2 space-y-2">
-                          <p className="text-sm font-semibold text-slate-900">{driverInfo.name}</p>
-                          {driverInfo.phone && <p className="text-sm text-slate-700">Phone: {driverInfo.phone}</p>}
-                          {driverInfo.rating && <p className="text-sm text-slate-700">Rating: {driverInfo.rating}/5</p>}
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-slate-500" />
+                            <p className="text-sm font-semibold text-slate-900">{driverInfo.name}</p>
+                          </div>
+                          {driverInfo.phone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-slate-500" />
+                              <p className="text-sm text-slate-700">{driverInfo.phone}</p>
+                            </div>
+                          )}
+                          {driverInfo.rating && (
+                            <div className="flex items-center gap-2">
+                              <Star className="h-4 w-4 text-slate-500" />
+                              <p className="text-sm text-slate-700">Rating: {driverInfo.rating}/5</p>
+                            </div>
+                          )}
                         </div>
                       ) : selectedBooking.driverId ? (
                         <p className="mt-2 text-sm text-slate-700">Driver assigned (details loading...)</p>
@@ -597,7 +591,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                     </div>
                     <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Client Details</p>
-                      <div className="mt-2 space-y-1">
+                      <div className="mt-2 space-y-2">
                         <p className="text-sm text-slate-700"><span className="font-semibold">Name:</span> {selectedBooking.clientName || "Guest"}</p>
                         <p className="text-sm text-slate-700"><span className="font-semibold">Phone:</span> {selectedBooking.clientPhone || "—"}</p>
                         <p className="text-sm text-slate-700"><span className="font-semibold">Email:</span> {selectedBooking.clientEmail || "—"}</p>
@@ -647,6 +641,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
         </DialogContent>
       </Dialog>
 
+      {/* Pagination */}
       {!loading && searchedBookings.length > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between mt-4 pt-4 border-t border-slate-200 text-slate-600">
           <p className="text-xs md:text-sm">

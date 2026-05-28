@@ -19,10 +19,53 @@ export default function BookingCheckoutPage() {
   const { data, update, addLeg, removeLeg, updateLeg } = useBookingStore();
   const { vehicles } = useFleet();
   const [loading, setLoading] = useState(false);
-  const { calculatePrice, getTaxPercent } = usePricing();
+  const { calculatePrice, calculateVehicleSpecificPrice, getTaxPercent } = usePricing();
 
   const { route } = useRouteDetails(data.pickup, data.dropoff);
-  const basePrice = route && data.selectedVehicle ? calculatePrice(route.distance, route.duration, data.selectedVehicle) || 0 : 0;
+  
+  // State for vehicle-specific pricing
+  const [vehicleSpecificPrice, setVehicleSpecificPrice] = useState<number | null>(null);
+  const [loadingPrice, setLoadingPrice] = useState(false);
+
+  // Calculate base price - try to use vehicle-specific pricing if vehicleId is available
+  useEffect(() => {
+    if (!route || !data.selectedVehicle) {
+      setVehicleSpecificPrice(null);
+      return;
+    }
+
+    const fetchVehicleSpecificPrice = async () => {
+      if (data.selectedVehicleId) {
+        setLoadingPrice(true);
+        try {
+          const price = await calculateVehicleSpecificPrice(
+            route.distance,
+            route.duration,
+            data.selectedVehicle!,
+            data.selectedVehicleId
+          );
+          setVehicleSpecificPrice(price);
+        } catch (error) {
+          console.error("Failed to fetch vehicle-specific price:", error);
+          setVehicleSpecificPrice(null);
+        } finally {
+          setLoadingPrice(false);
+        }
+      } else {
+        setVehicleSpecificPrice(null);
+      }
+    };
+
+    fetchVehicleSpecificPrice();
+  }, [route, data.selectedVehicle, data.selectedVehicleId, calculateVehicleSpecificPrice]);
+
+  // Use vehicle-specific price if available, otherwise use category pricing
+  const basePrice = useMemo(() => {
+    if (vehicleSpecificPrice !== null) return vehicleSpecificPrice;
+    if (!route || !data.selectedVehicle) return 0;
+    return calculatePrice(route.distance, route.duration, data.selectedVehicle) || 0;
+  }, [vehicleSpecificPrice, route, data.selectedVehicle, calculatePrice]);
+  
   const taxPercent = data.selectedVehicle ? getTaxPercent(data.selectedVehicle) / 100 : 0.2;
   const tax = basePrice * taxPercent;
   const total = basePrice + tax;
@@ -55,6 +98,10 @@ export default function BookingCheckoutPage() {
   const legPrices = useMemo(() => {
     const additionalLegsCount = (data.additionalLegs || []).length;
     if (legRoutes.length !== additionalLegsCount) return [];
+    
+    // For additional legs, use the same pricing logic as the main leg
+    // If we have vehicle-specific pricing for the main leg, use category pricing for additional legs
+    // (or we could fetch vehicle-specific pricing for each leg, but that's more complex)
     return legRoutes.map(legRoute =>
       calculatePrice(legRoute.distance, legRoute.duration, data.selectedVehicle || "sedan") || 0
     );
@@ -62,9 +109,12 @@ export default function BookingCheckoutPage() {
 
   const vehicleImage = useMemo(() => {
     if (!data.selectedVehicle || vehicles.length === 0) return null;
-    const vehicle = vehicles.find((v) => v.vehicleType === data.selectedVehicle);
+    // Try to find the specific vehicle by ID first, then by type
+    const vehicle = data.selectedVehicleId 
+      ? vehicles.find((v) => v.id === data.selectedVehicleId)
+      : vehicles.find((v) => v.vehicleType === data.selectedVehicle);
     return vehicle?.imageUrl || null;
-  }, [vehicles, data.selectedVehicle]);
+  }, [vehicles, data.selectedVehicle, data.selectedVehicleId]);
 
   const grandTotal = basePrice + (legPrices?.reduce((a, b) => a + b, 0) || 0);
 
@@ -90,6 +140,7 @@ export default function BookingCheckoutPage() {
         pickupDate: data.pickupDate,
         pickupTime: data.pickupTime,
         vehicleType: data.selectedVehicle,
+        vehicleId: data.selectedVehicleId || undefined,
         distanceMiles: route.distance,
         durationMinutes: route.duration,
         isAirportPickup: data.isPickupAirport,

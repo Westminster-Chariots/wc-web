@@ -441,8 +441,39 @@ export default function AdminPricingPage() {
                 </div>
               </div>
 
+              <div className="pt-2">
+                <Button 
+                  onClick={() => {
+                    if (!calcPickup || !calcDropoff || !calcVehicle) {
+                      toast.error("Please fill in pickup, dropoff, and select a vehicle");
+                      return;
+                    }
+                    // The calculation will happen automatically when route is available
+                  }}
+                  disabled={!calcPickup || !calcDropoff || !calcVehicle || routeLoading}
+                  className="w-full gap-2 bg-blue-gradient shadow-blue hover:scale-[1.02] transition-all duration-300"
+                  size="lg"
+                >
+                  {routeLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Calculating...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="h-4 w-4" />
+                      Calculate Price
+                    </>
+                  )}
+                </Button>
+              </div>
+
               {route && (
-                <div className="glass-card rounded-lg p-4 space-y-3">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card rounded-lg p-4 space-y-3"
+                >
                   <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                     <ArrowRight className="h-4 w-4 text-primary" />
                     Route Details
@@ -457,7 +488,7 @@ export default function AdminPricingPage() {
                       <p className="font-semibold text-foreground">{route.duration} minutes</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {calculatedPrice && (
@@ -480,6 +511,13 @@ export default function AdminPricingPage() {
                     <div className="flex justify-between">
                       <span className="text-base font-semibold text-foreground">Total</span>
                       <span className="text-2xl font-display font-bold text-primary">${calculatedPrice.total.toFixed(2)}</span>
+                    </div>
+                    
+                    {/* Show which pricing was used */}
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        Using: {vehiclePricing[calcVehicle] ? "Vehicle-specific pricing" : "Category pricing"}
+                      </p>
                     </div>
                   </div>
                 </motion.div>

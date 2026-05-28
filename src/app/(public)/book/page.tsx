@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone, MapPin, Clock, X, Edit2, Save, Car } from "lucide-react";
 import Link from "next/link";
@@ -37,7 +37,8 @@ export default function BookingPage() {
 
   const [currentStep] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
-  const [expandedVehicle, setExpandedVehicle] = useState<"sedan" | "suv" | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(data.selectedVehicleId);
+  const [expandedVehicleId, setExpandedVehicleId] = useState<string | null>(null);
   const [showTerms, setShowTerms] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
@@ -56,7 +57,13 @@ export default function BookingPage() {
   });
 
   const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
-  const { calculatePrice, getTaxPercent, loading: pricingLoading, error: pricingError } = usePricing();
+  const { calculatePrice, calculateVehicleSpecificPrice, getTaxPercent, getVehicleTaxPercent, loading: pricingLoading, error: pricingError } = usePricing();
+
+  // Track if we've already calculated prices to prevent infinite loops
+  const hasCalculatedPrices = useRef(false);
+  const lastRouteDistance = useRef<number | null>(null);
+  const lastRouteDuration = useRef<number | null>(null);
+  const lastVehiclesCount = useRef<number>(0);
 
   // Show loading state while redirecting
   if (!pickup || !dropoff) {
@@ -93,26 +100,141 @@ export default function BookingPage() {
     return fleetVehicles
       .filter((v) => v.status === "available")
       .map((vehicle) => ({
+        id: vehicle.id,
         type: vehicle.vehicleType,
-        name: vehicle.vehicleType === "sedan" ? "Business Class" : "Business SUV",
-        subtitle: `${vehicle.make} ${vehicle.model}${vehicle.plate ? ` • ${vehicle.plate}` : ""}`,
+        name: `${vehicle.make} ${vehicle.model}${vehicle.year ? ` (${vehicle.year})` : ""}`,
+        subtitle: `${vehicle.vehicleType === "sedan" ? "Business Class" : "Business SUV"}${vehicle.color ? ` • ${vehicle.color}` : ""}${vehicle.plate ? ` • ${vehicle.plate}` : ""}`,
         passengers: vehicle.passengerCapacity || (vehicle.vehicleType === "sedan" ? 3 : 5),
         luggage: vehicle.luggageCapacity || (vehicle.vehicleType === "sedan" ? 2 : 5),
         image: vehicle.imageUrl || (vehicle.vehicleType === "sedan" ? "/assets/sedan-profile.png" : "/assets/suv-profile.png"),
-        features: vehicle.vehicleType === "sedan"
-          ? ["Leather interior", "Bottled water", "WiFi available", "Privacy partition", "Professional chauffeur"]
-          : ["Extended legroom", "Extra luggage capacity", "Bottled water", "Executive seating", "Professional chauffeur"],
+        features: [
+          `${vehicle.make} ${vehicle.model}`,
+          vehicle.color ? `${vehicle.color} exterior` : "Premium exterior",
+          `Seats ${vehicle.passengerCapacity || (vehicle.vehicleType === "sedan" ? 3 : 5)} passengers`,
+          `Fits ${vehicle.luggageCapacity || (vehicle.vehicleType === "sedan" ? 2 : 5)} luggage pieces`,
+          "Professional chauffeur",
+          "Bottled water & amenities",
+        ],
       }));
   }, [fleetVehicles]);
 
-  const sedanPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "sedan") : null;
-  const suvPrice = route && !pricingLoading ? calculatePrice(route.distance, route.duration, "suv") : null;
+  // State for individual vehicle prices
+  const [vehiclePrices, setVehiclePrices] = useState<Record<string, number | null>>({});
+  const [loadingVehiclePrices, setLoadingVehiclePrices] = useState<Record<string, boolean>>({});
+
   const gatekeeperStatus = useMemo(() => getGatekeeperStatus(pickupDate, pickupTime), [pickupDate, pickupTime]);
 
-  const selectedPrice = selectedVehicle === "sedan" ? sedanPrice : selectedVehicle === "suv" ? suvPrice : null;
+  // Calculate prices for each vehicle when route or vehicles change
+  useEffect(() => {
+    // Skip if no route or vehicles
+    if (!route || vehicles.length === 0) return;
+    
+    // Check if we need to recalculate (route changed or vehicles changed)
+    const routeChanged = 
+      lastRouteDistance.current !== route.distance || 
+      lastRouteDuration.current !== route.duration;
+    const vehiclesChanged = lastVehiclesCount.current !== vehicles.length;
+    
+    // If nothing changed and we've already calculated, skip
+    if (hasCalculatedPrices.current && !routeChanged && !vehiclesChanged) {
+      return;
+    }
+
+    let isActive = true;
+
+    const calculateAllPrices = async () => {
+      if (!isActive) return;
+      
+      // Mark as calculating
+      hasCalculatedPrices.current = true;
+      lastRouteDistance.current = route.distance;
+      lastRouteDuration.current = route.duration;
+      lastVehiclesCount.current = vehicles.length;
+      
+      const newPrices: Record<string, number | null> = {};
+      const newLoadingStates: Record<string, boolean> = {};
+      
+      // Set all to loading initially
+      vehicles.forEach(vehicle => {
+        newLoadingStates[vehicle.id] = true;
+      });
+      setLoadingVehiclePrices(prev => ({ ...prev, ...newLoadingStates }));
+      
+      // Use simple fallback pricing if API calls fail
+      const fallbackPrices: Record<string, number> = {};
+      vehicles.forEach(vehicle => {
+        // Simple fallback pricing formula
+        const baseRate = vehicle.type === "sedan" ? 30 : 37;
+        const ratePerMile = vehicle.type === "sedan" ? 4.0 : 4.5;
+        const ratePerMinute = vehicle.type === "sedan" ? 1.25 : 1.55;
+        fallbackPrices[vehicle.id] = Math.round(
+          (baseRate + (ratePerMile * route.distance) + (ratePerMinute * route.duration)) * 100
+        ) / 100;
+      });
+      
+      // Try to calculate prices with API, fall back to simple calculation
+      for (const vehicle of vehicles) {
+        try {
+          // Try to get vehicle-specific pricing with timeout
+          const pricePromise = calculateVehicleSpecificPrice(
+            route.distance, 
+            route.duration, 
+            vehicle.type, 
+            vehicle.id
+          );
+          
+          // Add timeout to prevent hanging
+          const timeoutPromise = new Promise<number | null>((_, reject) => 
+            setTimeout(() => reject(new Error("Price calculation timeout")), 5000)
+          );
+          
+          const price = await Promise.race([pricePromise, timeoutPromise]);
+          
+          if (price !== null && price !== undefined) {
+            newPrices[vehicle.id] = price;
+          } else {
+            newPrices[vehicle.id] = fallbackPrices[vehicle.id];
+          }
+        } catch (error) {
+          console.error(`Error calculating price for vehicle ${vehicle.id}:`, error);
+          // Use fallback pricing
+          newPrices[vehicle.id] = fallbackPrices[vehicle.id];
+        }
+      }
+      
+      if (!isActive) return;
+      
+      // Update all prices at once
+      setVehiclePrices(prev => ({ ...prev, ...newPrices }));
+      
+      // Set all to not loading
+      const finishedLoadingStates: Record<string, boolean> = {};
+      vehicles.forEach(vehicle => {
+        finishedLoadingStates[vehicle.id] = false;
+      });
+      setLoadingVehiclePrices(prev => ({ ...prev, ...finishedLoadingStates }));
+    };
+
+    calculateAllPrices();
+    
+    // Cleanup function
+    return () => {
+      isActive = false;
+      // Only reset calculation flag if route or vehicles actually changed
+      if (routeChanged || vehiclesChanged) {
+        hasCalculatedPrices.current = false;
+      }
+    };
+  }, [route, vehicles.length, calculatePrice, calculateVehicleSpecificPrice]);
+
+  const selectedPrice = selectedVehicleId ? vehiclePrices[selectedVehicleId] : null;
   const taxPercent = selectedVehicle ? getTaxPercent(selectedVehicle) / 100 : 0.2;
   const tax = selectedPrice ? selectedPrice * taxPercent : 0;
   const total = selectedPrice ? selectedPrice + tax : 0;
+  
+  // Check if prices are loaded for the selected vehicle
+  const isPriceLoaded = selectedVehicleId ? vehiclePrices[selectedVehicleId] !== undefined && vehiclePrices[selectedVehicleId] !== null : false;
+  const isPriceLoading = selectedVehicleId ? loadingVehiclePrices[selectedVehicleId] : false;
 
   const formattedDate = pickupDate ? format(new Date(pickupDate + "T00:00:00"), "EEE, MMM d, yyyy") : null;
   const formattedTime = pickupTime ? format(new Date(`2000-01-01T${pickupTime}`), "h:mm a") : null;
@@ -126,12 +248,12 @@ export default function BookingPage() {
       : null;
 
   const handleVehicleContinue = () => {
-    if (!selectedVehicle) return;
+    if (!selectedVehicle || !selectedVehicleId) return;
     if (route && route.distance < 0.1) {
       notify.error("Pickup and dropoff locations are too close or identical. Please select different locations.");
       return;
     }
-    update({ selectedVehicle });
+    update({ selectedVehicle, selectedVehicleId });
     router.push("/book/details");
   };
 
@@ -180,10 +302,7 @@ export default function BookingPage() {
     setupAutocomplete(dropoffInputRef.current, setEditDropoff);
   }, [isLoaded, isEditingTrip]);
 
-  const vehiclesWithPrices = vehicles.map((v) => ({
-    ...v,
-    price: v.type === "sedan" ? sedanPrice : suvPrice,
-  }));
+
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
@@ -292,7 +411,7 @@ export default function BookingPage() {
               </div>
             )}
             {!isEditingTrip && (
-              <button
+              <div
                 onClick={() => setShowMapModal(true)}
                 className="mt-3 w-full rounded-lg overflow-hidden border border-border bg-secondary/30 h-32 relative group cursor-pointer hover:border-primary/40 transition-colors"
               >
@@ -308,7 +427,7 @@ export default function BookingPage() {
                     Click to view larger
                   </span>
                 </div>
-              </button>
+              </div>
             )}
           </motion.div>
         )}
@@ -398,12 +517,14 @@ export default function BookingPage() {
 
               <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
                 {vehicles.map((v, i) => {
-                  const isSelected = selectedVehicle === v.type;
-                  const isExpanded = expandedVehicle === v.type;
+                  const isSelected = selectedVehicleId === v.id;
+                  const isExpanded = expandedVehicleId === v.id;
+                  const vehiclePrice = vehiclePrices[v.id];
+                  const isLoadingPrice = loadingVehiclePrices[v.id] || false;
 
                   return (
                     <VehiclePricingDisplay
-                      key={`${v.type}-${i}`}
+                      key={`${v.id}-${i}`}
                       vehicleType={v.type}
                       name={v.name}
                       subtitle={v.subtitle}
@@ -413,10 +534,19 @@ export default function BookingPage() {
                       features={v.features}
                       distance={route?.distance || 0}
                       duration={route?.duration || 0}
+                      price={vehiclePrice}
+                      priceLoading={isLoadingPrice}
+                      taxPercent={getVehicleTaxPercent(v.id)}
                       isSelected={isSelected}
                       isExpanded={isExpanded}
-                      onSelect={() => setSelectedVehicle(v.type)}
-                      onToggleExpand={() => setExpandedVehicle(expandedVehicle === v.type ? null : v.type)}
+                      onSelect={() => {
+                        setSelectedVehicle(v.type);
+                        setSelectedVehicleId(v.id);
+                        // Collapse other vehicles when selecting a new one
+                        setExpandedVehicleId(v.id);
+                      }}
+                      onToggleExpand={() => setExpandedVehicleId(expandedVehicleId === v.id ? null : v.id)}
+                      vehicleId={v.id}
                     />
                   );
                 })}
@@ -439,11 +569,20 @@ export default function BookingPage() {
             <Button 
               size="lg" 
               className="gap-2 px-8 sm:px-12 bg-blue-gradient shadow-blue hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
-              disabled={!selectedVehicle || !!routeError} 
+              disabled={!selectedVehicle || !selectedVehicleId || !!routeError || !isPriceLoaded || isPriceLoading} 
               onClick={handleVehicleContinue}
             >
-              Continue
-              <ArrowRight className="h-4 w-4" />
+              {isPriceLoading ? (
+                <>
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Calculating...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>
