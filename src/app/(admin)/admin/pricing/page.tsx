@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight, AlertCircle, CheckCircle2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { pricingService, fleetService } from "@/lib/services";
 import { useRouteDetails } from "@/hooks/useRouteDetails";
+import { usePricing } from "@/hooks/usePricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -73,11 +74,15 @@ export default function AdminPricingPage() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [shouldFetchRoute, setShouldFetchRoute] = useState(false);
+  const [vehiclePrices, setVehiclePrices] = useState<Record<string, { basePrice: number; tax: number; total: number; taxPercent: number } | null>>({});
+  const [loadingVehiclePrices, setLoadingVehiclePrices] = useState<Record<string, boolean>>({});
 
-  const { route, isLoading: routeLoading } = useRouteDetails(
-    calcPickup && calcDropoff && shouldFetchRoute ? calcPickup : "",
-    calcDropoff && shouldFetchRoute ? calcDropoff : ""
+  const { route, isLoading: routeLoading, error: routeError } = useRouteDetails(
+    shouldFetchRoute ? calcPickup : "",
+    shouldFetchRoute ? calcDropoff : ""
   );
+
+  const { calculateVehicleSpecificPrice, getTaxPercent, getVehicleTaxPercent } = usePricing();
 
   useEffect(() => {
     loadPricingData();
@@ -339,10 +344,6 @@ export default function AdminPricingPage() {
       errors.time = "Time is required";
     }
 
-    if (!calcVehicle) {
-      errors.vehicle = "Vehicle selection is required";
-    }
-
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -352,7 +353,9 @@ export default function AdminPricingPage() {
       toast.error("Please fill in all required fields");
       return;
     }
-    setShouldFetchRoute(true);
+    // Reset route first to ensure fresh calculation
+    setShouldFetchRoute(false);
+    setTimeout(() => setShouldFetchRoute(true), 0);
   };
 
   const clearCalculator = () => {
@@ -365,7 +368,78 @@ export default function AdminPricingPage() {
     setShouldFetchRoute(false);
   };
 
-  const calculatedPrice = route && calcVehicle && calcPickup && calcDropoff && !validationErrors.pickup && !validationErrors.dropoff ? calculatePrice(route.distance, route.duration, calcVehicle) : null;
+  // Calculate prices for all vehicles when route is available
+  useEffect(() => {
+    if (!route || !shouldFetchRoute || vehicles.length === 0) {
+      setVehiclePrices({});
+      return;
+    }
+
+    let isActive = true;
+
+    const calculateAllPrices = async () => {
+      const newPrices: Record<string, { basePrice: number; tax: number; total: number; taxPercent: number } | null> = {};
+      const newLoadingStates: Record<string, boolean> = {};
+      
+      // Set all to loading
+      vehicles.forEach(vehicle => {
+        newLoadingStates[vehicle.id] = true;
+      });
+      setLoadingVehiclePrices(newLoadingStates);
+      
+      // Calculate price for each vehicle using the same logic as booking page
+      for (const vehicle of vehicles) {
+        if (!isActive) break;
+        
+        try {
+          // Use calculateVehicleSpecificPrice which fetches from API
+          const basePrice = await calculateVehicleSpecificPrice(
+            route.distance,
+            route.duration,
+            vehicle.vehicleType as "sedan" | "suv",
+            vehicle.id
+          );
+          
+          if (basePrice !== null && basePrice !== undefined) {
+            const taxPercent = getVehicleTaxPercent(vehicle.id);
+            const tax = basePrice * (taxPercent / 100);
+            const total = basePrice + tax;
+            
+            newPrices[vehicle.id] = {
+              basePrice,
+              tax,
+              total,
+              taxPercent
+            };
+          } else {
+            // Fallback calculation if API fails
+            const price = calculatePrice(route.distance, route.duration, vehicle.id);
+            newPrices[vehicle.id] = price;
+          }
+        } catch (error) {
+          console.error(`Error calculating price for vehicle ${vehicle.id}:`, error);
+          // Fallback calculation
+          const price = calculatePrice(route.distance, route.duration, vehicle.id);
+          newPrices[vehicle.id] = price;
+        }
+        
+        newLoadingStates[vehicle.id] = false;
+      }
+      
+      if (isActive) {
+        setVehiclePrices(newPrices);
+        setLoadingVehiclePrices(newLoadingStates);
+      }
+    };
+
+    calculateAllPrices();
+    
+    return () => {
+      isActive = false;
+    };
+  }, [route, shouldFetchRoute, vehicles.length, calculateVehicleSpecificPrice, getVehicleTaxPercent]);
+
+  const calculatedPrice = calcVehicle && vehiclePrices[calcVehicle] ? vehiclePrices[calcVehicle] : null;
 
   const minDate = format(new Date(), "yyyy-MM-dd");
   const maxDate = format(addDays(new Date(), 365), "yyyy-MM-dd");
@@ -493,8 +567,8 @@ export default function AdminPricingPage() {
                 </div>
               </div>
 
-              {/* Date, Time, Vehicle */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Date, Time */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <Calendar className="h-3.5 w-3.5 text-primary" />
@@ -546,7 +620,14 @@ export default function AdminPricingPage() {
                   <div className="relative">
                     <Input
                       type="text"
-                      value={calcTime ? format(new Date(`2000-01-01T${calcTime}`), "h:mm a") : ""}
+                      value={calcTime && calcTime.includes(':') ? (() => {
+                        try {
+                          const timeWithSeconds = calcTime.split(':').length === 2 ? `${calcTime}:00` : calcTime;
+                          return format(new Date(`2000-01-01T${timeWithSeconds}`), "h:mm a");
+                        } catch {
+                          return "";
+                        }
+                      })() : ""}
                       onClick={() => setShowTimePicker(!showTimePicker)}
                       readOnly
                       placeholder="Select time"
@@ -579,50 +660,17 @@ export default function AdminPricingPage() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <Label className="text-xs flex items-center gap-1.5 mb-2">
-                    <Car className="h-3.5 w-3.5 text-primary" />
-                    Vehicle *
-                  </Label>
-                  <select
-                    value={calcVehicle}
-                    onChange={(e) => {
-                      setCalcVehicle(e.target.value);
-                      if (validationErrors.vehicle) {
-                        setValidationErrors(prev => {
-                          const updated = { ...prev };
-                          delete updated.vehicle;
-                          return updated;
-                        });
-                      }
-                    }}
-                    className={`w-full h-10 rounded-md border bg-background px-3 text-sm ${validationErrors.vehicle ? 'border-destructive' : 'border-input'}`}
-                  >
-                    <option value="">Select vehicle...</option>
-                    {vehicles.filter(v => v.status === "available").map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.make} {v.model} ({v.plate}) - {v.vehicleType.toUpperCase()}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.vehicle && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
-                      <AlertCircle className="h-3 w-3" />
-                      {validationErrors.vehicle}
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Calculate Button */}
               <div className="pt-2">
                 <Button 
                   onClick={handleCalculate}
-                  disabled={routeLoading}
+                  disabled={routeLoading || (shouldFetchRoute && routeLoading)}
                   className="w-full gap-2 bg-blue-gradient shadow-blue hover:scale-[1.02] transition-all duration-300"
                   size="lg"
                 >
-                  {routeLoading ? (
+                  {(routeLoading && shouldFetchRoute) ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Calculating...
@@ -637,44 +685,159 @@ export default function AdminPricingPage() {
               </div>
 
               {/* Route Details */}
-              <AnimatePresence>
-                {route && calcPickup && calcDropoff && (
+              <AnimatePresence mode="wait">
+                {routeLoading && shouldFetchRoute && (
                   <motion.div
+                    key="loading"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="glass-card rounded-lg p-4 space-y-3"
+                    className="glass-card rounded-lg p-6 text-center"
                   >
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      Route Details
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
+                    <p className="text-sm font-medium text-foreground">Calculating route and pricing...</p>
+                    <p className="text-xs text-muted-foreground mt-1">This may take a few seconds</p>
+                  </motion.div>
+                )}
+                {routeError && shouldFetchRoute && !routeLoading && (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="glass-card rounded-lg p-4 border border-destructive/30 bg-destructive/5"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-destructive mb-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Route Calculation Failed
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Distance</p>
-                        <p className="font-semibold text-foreground">{route.distance.toFixed(2)} miles</p>
+                    <p className="text-xs text-muted-foreground">{routeError}</p>
+                    <p className="text-xs text-muted-foreground mt-2">Please check that the addresses are valid and try again.</p>
+                  </motion.div>
+                )}
+                {route && calcPickup && calcDropoff && !routeLoading && !routeError && (
+                  <motion.div
+                    key="results"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-4"
+                  >
+                    {/* Route Summary */}
+                    <div className="glass-card rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-3">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        Route Details
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Duration</p>
-                        <p className="font-semibold text-foreground">{route.duration} minutes</p>
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-2">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0" />
-                        <div className="space-y-1">
-                          <p><span className="font-semibold">From:</span> {calcPickup}</p>
-                          <p><span className="font-semibold">To:</span> {calcDropoff}</p>
+                      <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Distance</p>
+                          <p className="font-semibold text-foreground">{route.distance.toFixed(2)} miles</p>
                         </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Duration</p>
+                          <p className="font-semibold text-foreground">{route.duration} minutes</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-2">
+                        <div className="flex items-start gap-2">
+                          <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                          <div className="space-y-1">
+                            <p><span className="font-semibold">From:</span> {calcPickup}</p>
+                            <p><span className="font-semibold">To:</span> {calcDropoff}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vehicle Pricing Cards */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Car className="h-4 w-4 text-primary" />
+                        Available Vehicles & Pricing
+                      </h4>
+                      <div className="space-y-3">
+                        {vehicles.filter(v => v.status === "available").length === 0 ? (
+                          <div className="glass-card rounded-lg p-6 text-center">
+                            <Car className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No vehicles available</p>
+                          </div>
+                        ) : (
+                          vehicles.filter(v => v.status === "available").map((vehicle) => {
+                            const price = vehiclePrices[vehicle.id];
+                            const isLoading = loadingVehiclePrices[vehicle.id];
+                            const isSelected = calcVehicle === vehicle.id;
+
+                            return (
+                              <motion.div
+                                key={vehicle.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`glass-card rounded-lg p-4 cursor-pointer transition-all duration-300 ${
+                                  isSelected ? 'ring-2 ring-primary shadow-blue' : 'hover:shadow-glass'
+                                }`}
+                                onClick={() => setCalcVehicle(vehicle.id)}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h5 className="text-sm font-semibold text-foreground">
+                                        {vehicle.make} {vehicle.model}
+                                      </h5>
+                                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                                        vehicle.vehicleType === 'sedan' 
+                                          ? 'bg-blue-500/10 text-blue-500' 
+                                          : 'bg-purple-500/10 text-purple-500'
+                                      }`}>
+                                        {vehicle.vehicleType.toUpperCase()}
+                                      </span>
+                                      {isSelected && (
+                                        <Check className="h-4 w-4 text-primary" />
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      {vehicle.plate ? `${vehicle.plate} • ` : ''}
+                                      {vehicle.color || 'Premium'}
+                                    </p>
+                                    {vehiclePricing[vehicle.id] && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
+                                        <Car className="h-3 w-3" />
+                                        Custom Pricing
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    {isLoading ? (
+                                      <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                        <span className="text-xs text-muted-foreground">Calculating...</span>
+                                      </div>
+                                    ) : price ? (
+                                      <div>
+                                        <p className="text-xs text-muted-foreground mb-1">Total Price</p>
+                                        <p className="text-2xl font-bold text-primary">${price.total.toFixed(2)}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-1">
+                                          Base: ${price.basePrice.toFixed(2)} + Tax: ${price.tax.toFixed(2)}
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-muted-foreground">—</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Calculated Price */}
+              {/* Selected Vehicle Price Breakdown */}
               <AnimatePresence>
-                {calculatedPrice && (
+                {calculatedPrice && calcVehicle && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -683,9 +846,15 @@ export default function AdminPricingPage() {
                   >
                     <h4 className="text-base font-display font-semibold text-foreground mb-4 flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-primary" />
-                      Calculated Pricing
+                      Selected Vehicle Price Breakdown
                     </h4>
                     <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Vehicle</span>
+                        <span className="font-semibold text-foreground">
+                          {vehicles.find(v => v.id === calcVehicle)?.make} {vehicles.find(v => v.id === calcVehicle)?.model}
+                        </span>
+                      </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Base Fare</span>
                         <span className="font-semibold text-foreground">${calculatedPrice.basePrice.toFixed(2)}</span>
@@ -727,7 +896,7 @@ export default function AdminPricingPage() {
               </AnimatePresence>
 
               {/* Loading State */}
-              {routeLoading && calcPickup && calcDropoff && (
+              {routeLoading && shouldFetchRoute && (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">Calculating route...</span>

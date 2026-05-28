@@ -155,14 +155,58 @@ export default function ManifestsPage() {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    // Parse date and time properly - booking data comes in YYYY-MM-DD and HH:MM format
+    console.log('Raw booking data:', { pickupDate: booking.pickupDate, pickupTime: booking.pickupTime });
+
+    // Parse date and time properly - handle multiple formats
     const pickupDate = booking.pickupDate; // YYYY-MM-DD
-    const pickupTime = booking.pickupTime; // HH:MM
+    let pickupTime = booking.pickupTime; // Could be HH:MM:SS, HH:MM, or "h:mm a"
     
-    // Create Date object for display formatting
+    // Handle different time formats
+    if (pickupTime) {
+      // If time is in 12-hour format like "6:50 AM", convert to 24-hour
+      if (pickupTime.includes('AM') || pickupTime.includes('PM') || pickupTime.includes('am') || pickupTime.includes('pm')) {
+        try {
+          const timeStr = pickupTime.trim();
+          const isPM = timeStr.toLowerCase().includes('pm');
+          const isAM = timeStr.toLowerCase().includes('am');
+          const timeOnly = timeStr.replace(/AM|PM|am|pm/gi, '').trim();
+          const timeParts = timeOnly.split(':');
+          let hours = parseInt(timeParts[0]);
+          const minutes = parseInt(timeParts[1] || '0');
+          
+          if (isPM && hours !== 12) {
+            hours = hours + 12;
+          } else if (isAM && hours === 12) {
+            hours = 0;
+          }
+          
+          pickupTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        } catch (err) {
+          console.error('Error parsing 12-hour time:', err);
+          toast.error('Invalid time format');
+          return;
+        }
+      } else if (pickupTime.split(':').length === 3) {
+        // Remove seconds if present (convert HH:MM:SS to HH:MM)
+        const parts = pickupTime.split(':');
+        pickupTime = `${parts[0]}:${parts[1]}`;
+      }
+    }
+    
+    console.log('Converted time:', pickupTime);
+    
+    // Create Date object for display formatting - ensure proper ISO format
     const pickupDateTime = new Date(`${pickupDate}T${pickupTime}:00`);
+    
+    // Check if date is valid
+    if (isNaN(pickupDateTime.getTime())) {
+      console.error('Invalid date after conversion:', pickupDate, pickupTime);
+      toast.error('Invalid booking date format');
+      return;
+    }
+    
     const spotTime = new Date(pickupDateTime.getTime() - 15 * 60000);
-    const bookedOnDate = new Date(booking.createdAt);
+    const bookedOnDate = booking.createdAt ? new Date(booking.createdAt) : new Date();
 
     const groupBookings = booking.groupId 
       ? bookings.filter(b => b.groupId === booking.groupId).sort((a, b) => (a.legOrder || 0) - (b.legOrder || 0))
@@ -177,14 +221,14 @@ export default function ManifestsPage() {
 
     setManifestData({
       reservationNumber: booking.reservationNumber,
-      pickupDate: pickupDateTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }),
-      pickupTime: pickupDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      spotTime: spotTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      pickupDate: format(pickupDateTime, 'EEEE, MM/dd/yyyy'),
+      pickupTime: format(pickupDateTime, 'HH:mm'),
+      spotTime: format(spotTime, 'HH:mm'),
       billTo: booking.clientName,
       address: "",
       phone: "(571) 426-6338",
       passenger: booking.clientName,
-      bookedOn: bookedOnDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + bookedOnDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      bookedOn: format(bookedOnDate, 'MM/dd/yyyy HH:mm'),
       pax: booking.paxCount,
       vehicleType: `${booking.vehicleType.toUpperCase()}${booking.vehicleNumber ? ` (${booking.vehicleNumber})` : ''}`,
       affiliateName: "",
@@ -194,14 +238,23 @@ export default function ManifestsPage() {
     });
 
     // Generate invoice data from booking - keep dates in YYYY-MM-DD format for date inputs
-    const invoiceItems: InvoiceItem[] = groupBookings.map(b => ({
-      pickupDate: b.pickupDate, // Keep as YYYY-MM-DD
-      pickupTime: b.pickupTime, // Keep as HH:MM
-      passengerName: b.clientName,
-      pickup: b.pickupLocation,
-      dropoff: b.dropoffLocation,
-      price: parseFloat(b.price.toString()),
-    }));
+    const invoiceItems: InvoiceItem[] = groupBookings.map(b => {
+      // Handle time format - remove seconds if present
+      let itemPickupTime = b.pickupTime;
+      if (itemPickupTime && itemPickupTime.split(':').length === 3) {
+        const parts = itemPickupTime.split(':');
+        itemPickupTime = `${parts[0]}:${parts[1]}`;
+      }
+      
+      return {
+        pickupDate: b.pickupDate, // Keep as YYYY-MM-DD
+        pickupTime: itemPickupTime, // Keep as HH:MM
+        passengerName: b.clientName,
+        pickup: b.pickupLocation,
+        dropoff: b.dropoffLocation,
+        price: parseFloat(b.price.toString()),
+      };
+    });
 
     const subtotal = invoiceItems.reduce((sum, item) => sum + item.price, 0);
     const tax = 0;
