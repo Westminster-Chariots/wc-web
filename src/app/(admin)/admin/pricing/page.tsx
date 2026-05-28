@@ -50,6 +50,7 @@ interface FleetVehicle {
   make: string;
   model: string;
   plate: string | null;
+  color: string | null;
   status: string;
 }
 
