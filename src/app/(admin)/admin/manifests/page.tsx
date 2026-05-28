@@ -13,6 +13,7 @@ import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
 import { bookingService, invoiceService, pricingService, documentService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
+import { format } from "date-fns";
 
 const libraries: ("places")[] = ["places"];
 
@@ -154,12 +155,12 @@ export default function ManifestsPage() {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    // Parse date and time properly
-    const pickupDate = booking.pickupDate; // Already in YYYY-MM-DD format
-    const pickupTime = booking.pickupTime; // Already in HH:MM format
+    // Parse date and time properly - booking data comes in YYYY-MM-DD and HH:MM format
+    const pickupDate = booking.pickupDate; // YYYY-MM-DD
+    const pickupTime = booking.pickupTime; // HH:MM
     
-    // Create Date object for calculations
-    const pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
+    // Create Date object for display formatting
+    const pickupDateTime = new Date(`${pickupDate}T${pickupTime}:00`);
     const spotTime = new Date(pickupDateTime.getTime() - 15 * 60000);
     const bookedOnDate = new Date(booking.createdAt);
 
@@ -177,13 +178,13 @@ export default function ManifestsPage() {
     setManifestData({
       reservationNumber: booking.reservationNumber,
       pickupDate: pickupDateTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' }),
-      pickupTime: pickupDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      spotTime: spotTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      pickupTime: pickupDateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      spotTime: spotTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
       billTo: booking.clientName,
       address: "",
       phone: "(571) 426-6338",
       passenger: booking.clientName,
-      bookedOn: bookedOnDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + bookedOnDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      bookedOn: bookedOnDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + bookedOnDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
       pax: booking.paxCount,
       vehicleType: `${booking.vehicleType.toUpperCase()}${booking.vehicleNumber ? ` (${booking.vehicleNumber})` : ''}`,
       affiliateName: "",
@@ -192,10 +193,10 @@ export default function ManifestsPage() {
       specialRequests: booking.specialRequests || "",
     });
 
-    // Generate invoice data from booking
+    // Generate invoice data from booking - keep dates in YYYY-MM-DD format for date inputs
     const invoiceItems: InvoiceItem[] = groupBookings.map(b => ({
-      pickupDate: b.pickupDate,
-      pickupTime: b.pickupTime,
+      pickupDate: b.pickupDate, // Keep as YYYY-MM-DD
+      pickupTime: b.pickupTime, // Keep as HH:MM
       passengerName: b.clientName,
       pickup: b.pickupLocation,
       dropoff: b.dropoffLocation,
@@ -222,8 +223,8 @@ export default function ManifestsPage() {
       clientAddress: booking.clientAddress || "",
       clientPhone: booking.clientPhone || "",
       clientEmail: booking.clientEmail || "",
-      invoiceDate: invoiceDate.toLocaleDateString('en-US'),
-      dueDate: dueDate.toLocaleDateString('en-US'),
+      invoiceDate: format(invoiceDate, 'yyyy-MM-dd'),
+      dueDate: format(dueDate, 'yyyy-MM-dd'),
       paymentTerms: "NET30",
       items: invoiceItems,
       subtotal,
