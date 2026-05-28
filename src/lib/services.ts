@@ -353,3 +353,65 @@ export const uploadService = {
     return data;
   },
 };
+
+// ─── Document Services ───────────────────────────────────────────────────────
+export interface Document {
+  id: string;
+  documentType: "driver_manifest" | "client_invoice" | "trip_confirmation";
+  documentNumber: string;
+  clientEmail: string;
+  clientName: string;
+  bookingId?: string;
+  userId?: string;
+  documentData: any;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDocumentPayload {
+  documentType: "driver_manifest" | "client_invoice" | "trip_confirmation";
+  documentNumber: string;
+  clientEmail: string;
+  clientName: string;
+  bookingId?: string;
+  userId?: string;
+  documentData: any;
+}
+
+export const documentService = {
+  create: async (payload: CreateDocumentPayload): Promise<Document> => {
+    const { data } = await api.post("/documents", payload);
+    return data;
+  },
+
+  getAll: async (filters?: {
+    type?: string;
+    search?: string;
+    clientEmail?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<Document[]> => {
+    const { data } = await api.get("/documents", { params: filters });
+    return data;
+  },
+
+  getMyDocuments: async (): Promise<Document[]> => {
+    const { data } = await api.get("/documents/my-documents");
+    return data;
+  },
+
+  getById: async (id: string): Promise<Document> => {
+    const { data } = await api.get(`/documents/${id}`);
+    return data;
+  },
+
+  update: async (id: string, payload: Partial<CreateDocumentPayload>): Promise<Document> => {
+    const { data } = await api.patch(`/documents/${id}`, payload);
+    return data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/documents/${id}`);
+  },
+};

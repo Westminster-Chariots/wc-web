@@ -1,18 +1,19 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight } from "lucide-react";
+import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { pricingService, fleetService } from "@/lib/services";
-import { useLoadScript } from "@react-google-maps/api";
 import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { X } from "lucide-react";
-
-const libraries: ("places")[] = ["places"];
+import { format, addDays, parseISO } from "date-fns";
+import DatePicker from "@/components/ui/date-picker";
+import TimePicker from "@/components/ui/time-picker";
+import LocationInput from "@/components/booking/LocationInput";
 
 interface PricingConfig {
   id: string;
@@ -68,44 +69,37 @@ export default function AdminPricingPage() {
   const [calcDate, setCalcDate] = useState("");
   const [calcTime, setCalcTime] = useState("");
   const [calcVehicle, setCalcVehicle] = useState<string>("");
-  const pickupRef = useRef<HTMLInputElement>(null);
-  const dropoffRef = useRef<HTMLInputElement>(null);
-
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "",
-    libraries,
-  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [shouldFetchRoute, setShouldFetchRoute] = useState(false);
 
   const { route, isLoading: routeLoading } = useRouteDetails(
-    calcPickup || "",
-    calcDropoff || ""
+    calcPickup && calcDropoff && shouldFetchRoute ? calcPickup : "",
+    calcDropoff && shouldFetchRoute ? calcDropoff : ""
   );
 
   useEffect(() => {
     loadPricingData();
   }, []);
 
+  // Close date/time pickers when clicking outside
   useEffect(() => {
-    if (!isLoaded) return;
-
-    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void) => {
-      if (!input || !window.google) return;
-      
-      const autocomplete = new window.google.maps.places.Autocomplete(input, {
-        fields: ["formatted_address"],
-      });
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (place.formatted_address) {
-          setter(place.formatted_address);
-        }
-      });
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.date-picker-container') && !target.closest('input[type="text"]')) {
+        setShowDatePicker(false);
+        setShowTimePicker(false);
+      }
     };
 
-    setupAutocomplete(pickupRef.current, setCalcPickup);
-    setupAutocomplete(dropoffRef.current, setCalcDropoff);
-  }, [isLoaded]);
+    if (showDatePicker || showTimePicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showDatePicker, showTimePicker]);
+
+
 
   const loadPricingData = async () => {
     setLoading(true);
@@ -315,7 +309,66 @@ export default function AdminPricingPage() {
     return { basePrice, tax, total, taxPercent };
   };
 
-  const calculatedPrice = route && calcVehicle && calcPickup && calcDropoff ? calculatePrice(route.distance, route.duration, calcVehicle) : null;
+  const validateCalculator = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!calcPickup.trim()) {
+      errors.pickup = "Pickup location is required";
+    }
+
+    if (!calcDropoff.trim()) {
+      errors.dropoff = "Dropoff location is required";
+    }
+
+    if (calcPickup.trim() && calcDropoff.trim() && calcPickup.toLowerCase() === calcDropoff.toLowerCase()) {
+      errors.dropoff = "Dropoff must be different from pickup";
+    }
+
+    if (!calcDate) {
+      errors.date = "Date is required";
+    } else {
+      const selectedDate = new Date(calcDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        errors.date = "Date cannot be in the past";
+      }
+    }
+
+    if (!calcTime) {
+      errors.time = "Time is required";
+    }
+
+    if (!calcVehicle) {
+      errors.vehicle = "Vehicle selection is required";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCalculate = () => {
+    if (!validateCalculator()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    setShouldFetchRoute(true);
+  };
+
+  const clearCalculator = () => {
+    setCalcPickup("");
+    setCalcDropoff("");
+    setCalcDate("");
+    setCalcTime("");
+    setCalcVehicle("");
+    setValidationErrors({});
+    setShouldFetchRoute(false);
+  };
+
+  const calculatedPrice = route && calcVehicle && calcPickup && calcDropoff && !validationErrors.pickup && !validationErrors.dropoff ? calculatePrice(route.distance, route.duration, calcVehicle) : null;
+
+  const minDate = format(new Date(), "yyyy-MM-dd");
+  const maxDate = format(addDays(new Date(), 365), "yyyy-MM-dd");
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -360,76 +413,190 @@ export default function AdminPricingPage() {
       ) : activeTab === "calculator" ? (
         <div className="max-w-4xl space-y-6">
           <div className="glass-card rounded-xl p-6 shadow-glass">
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-display font-semibold text-foreground">Test Pricing Calculator</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-display font-semibold text-foreground">Test Pricing Calculator</h3>
+              </div>
+              {(calcPickup || calcDropoff || calcDate || calcTime || calcVehicle) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearCalculator}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  Clear All
+                </Button>
+              )}
             </div>
             <p className="text-sm text-muted-foreground mb-6">Enter trip details to calculate pricing and test your configurations</p>
 
             <div className="space-y-4">
+              {/* Location Inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <MapPin className="h-3.5 w-3.5 text-primary" />
-                    Pickup Location
+                    Pickup Location *
                   </Label>
-                  <Input
-                    ref={pickupRef}
-                    value={calcPickup}
-                    onChange={(e) => setCalcPickup(e.target.value)}
+                  <LocationInput
                     placeholder="Enter pickup address"
-                    className="h-10"
+                    value={calcPickup}
+                    onChange={(value) => {
+                      setCalcPickup(value);
+                      if (validationErrors.pickup) {
+                        setValidationErrors(prev => {
+                          const updated = { ...prev };
+                          delete updated.pickup;
+                          return updated;
+                        });
+                      }
+                    }}
+                    icon="pickup"
+                    light
                   />
+                  {validationErrors.pickup && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.pickup}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <MapPin className="h-3.5 w-3.5 text-primary" />
-                    Dropoff Location
+                    Dropoff Location *
                   </Label>
-                  <Input
-                    ref={dropoffRef}
-                    value={calcDropoff}
-                    onChange={(e) => setCalcDropoff(e.target.value)}
+                  <LocationInput
                     placeholder="Enter dropoff address"
-                    className="h-10"
+                    value={calcDropoff}
+                    onChange={(value) => {
+                      setCalcDropoff(value);
+                      if (validationErrors.dropoff) {
+                        setValidationErrors(prev => {
+                          const updated = { ...prev };
+                          delete updated.dropoff;
+                          return updated;
+                        });
+                      }
+                    }}
+                    icon="dropoff"
+                    light
                   />
+                  {validationErrors.dropoff && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.dropoff}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Date, Time, Vehicle */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+                <div className="relative">
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <Calendar className="h-3.5 w-3.5 text-primary" />
-                    Date
+                    Date *
                   </Label>
-                  <Input
-                    type="date"
-                    value={calcDate}
-                    onChange={(e) => setCalcDate(e.target.value)}
-                    className="h-10"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={calcDate ? format(parseISO(calcDate), "MMM d, yyyy") : ""}
+                      onClick={() => setShowDatePicker(!showDatePicker)}
+                      readOnly
+                      placeholder="Select date"
+                      className={`h-10 cursor-pointer ${validationErrors.date ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                  {validationErrors.date && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.date}
+                    </div>
+                  )}
+                  {showDatePicker && (
+                    <div className="absolute z-50 mt-2 date-picker-container">
+                      <DatePicker
+                        value={calcDate}
+                        onChange={(date) => {
+                          setCalcDate(date);
+                          setShowDatePicker(false);
+                          if (validationErrors.date) {
+                            setValidationErrors(prev => {
+                              const updated = { ...prev };
+                              delete updated.date;
+                              return updated;
+                            });
+                          }
+                        }}
+                        minDate={minDate}
+                        maxDate={maxDate}
+                      />
+                    </div>
+                  )}
                 </div>
-                <div>
+                <div className="relative">
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <Clock className="h-3.5 w-3.5 text-primary" />
-                    Time
+                    Time *
                   </Label>
-                  <Input
-                    type="time"
-                    value={calcTime}
-                    onChange={(e) => setCalcTime(e.target.value)}
-                    className="h-10"
-                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={calcTime ? format(new Date(`2000-01-01T${calcTime}`), "h:mm a") : ""}
+                      onClick={() => setShowTimePicker(!showTimePicker)}
+                      readOnly
+                      placeholder="Select time"
+                      className={`h-10 cursor-pointer ${validationErrors.time ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                    />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                  {validationErrors.time && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.time}
+                    </div>
+                  )}
+                  {showTimePicker && (
+                    <div className="absolute z-50 mt-2 date-picker-container">
+                      <TimePicker
+                        value={calcTime}
+                        onChange={(time) => {
+                          setCalcTime(time);
+                          setShowTimePicker(false);
+                          if (validationErrors.time) {
+                            setValidationErrors(prev => {
+                              const updated = { ...prev };
+                              delete updated.time;
+                              return updated;
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs flex items-center gap-1.5 mb-2">
                     <Car className="h-3.5 w-3.5 text-primary" />
-                    Vehicle
+                    Vehicle *
                   </Label>
                   <select
                     value={calcVehicle}
-                    onChange={(e) => setCalcVehicle(e.target.value)}
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    onChange={(e) => {
+                      setCalcVehicle(e.target.value);
+                      if (validationErrors.vehicle) {
+                        setValidationErrors(prev => {
+                          const updated = { ...prev };
+                          delete updated.vehicle;
+                          return updated;
+                        });
+                      }
+                    }}
+                    className={`w-full h-10 rounded-md border bg-background px-3 text-sm ${validationErrors.vehicle ? 'border-destructive' : 'border-input'}`}
                   >
                     <option value="">Select vehicle...</option>
                     {vehicles.filter(v => v.status === "available").map((v) => (
@@ -438,19 +605,20 @@ export default function AdminPricingPage() {
                       </option>
                     ))}
                   </select>
+                  {validationErrors.vehicle && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {validationErrors.vehicle}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Calculate Button */}
               <div className="pt-2">
                 <Button 
-                  onClick={() => {
-                    if (!calcPickup || !calcDropoff || !calcVehicle) {
-                      toast.error("Please fill in pickup, dropoff, and select a vehicle");
-                      return;
-                    }
-                    // The calculation will happen automatically when route is available
-                  }}
-                  disabled={!calcPickup || !calcDropoff || !calcVehicle || routeLoading}
+                  onClick={handleCalculate}
+                  disabled={routeLoading}
                   className="w-full gap-2 bg-blue-gradient shadow-blue hover:scale-[1.02] transition-all duration-300"
                   size="lg"
                 >
@@ -468,62 +636,98 @@ export default function AdminPricingPage() {
                 </Button>
               </div>
 
-              {route && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-card rounded-lg p-4 space-y-3"
-                >
-                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <ArrowRight className="h-4 w-4 text-primary" />
-                    Route Details
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Distance</p>
-                      <p className="font-semibold text-foreground">{route.distance.toFixed(2)} miles</p>
+              {/* Route Details */}
+              <AnimatePresence>
+                {route && calcPickup && calcDropoff && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="glass-card rounded-lg p-4 space-y-3"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Route Details
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Duration</p>
-                      <p className="font-semibold text-foreground">{route.duration} minutes</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Distance</p>
+                        <p className="font-semibold text-foreground">{route.distance.toFixed(2)} miles</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Duration</p>
+                        <p className="font-semibold text-foreground">{route.duration} minutes</p>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                    <div className="text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-2">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                        <div className="space-y-1">
+                          <p><span className="font-semibold">From:</span> {calcPickup}</p>
+                          <p><span className="font-semibold">To:</span> {calcDropoff}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {calculatedPrice && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-strong rounded-xl p-6 shadow-blue"
-                >
-                  <h4 className="text-base font-display font-semibold text-foreground mb-4">Calculated Pricing</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Base Fare</span>
-                      <span className="font-semibold text-foreground">${calculatedPrice.basePrice.toFixed(2)}</span>
+              {/* Calculated Price */}
+              <AnimatePresence>
+                {calculatedPrice && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="glass-strong rounded-xl p-6 shadow-blue"
+                  >
+                    <h4 className="text-base font-display font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                      Calculated Pricing
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Base Fare</span>
+                        <span className="font-semibold text-foreground">${calculatedPrice.basePrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Tax ({calculatedPrice.taxPercent}%)</span>
+                        <span className="font-semibold text-foreground">${calculatedPrice.tax.toFixed(2)}</span>
+                      </div>
+                      <div className="h-px bg-border" />
+                      <div className="flex justify-between">
+                        <span className="text-base font-semibold text-foreground">Total</span>
+                        <span className="text-2xl font-display font-bold text-primary">${calculatedPrice.total.toFixed(2)}</span>
+                      </div>
+                      
+                      {/* Show which pricing was used */}
+                      <div className="pt-3 border-t border-border">
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          {vehiclePricing[calcVehicle] ? (
+                            <>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                                <Car className="h-3 w-3" />
+                                Vehicle-Specific
+                              </span>
+                              Using custom pricing for this vehicle
+                            </>
+                          ) : (
+                            <>
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
+                                Category Default
+                              </span>
+                              Using standard {vehicles.find(v => v.id === calcVehicle)?.vehicleType} pricing
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Tax ({calculatedPrice.taxPercent}%)</span>
-                      <span className="font-semibold text-foreground">${calculatedPrice.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="h-px bg-border" />
-                    <div className="flex justify-between">
-                      <span className="text-base font-semibold text-foreground">Total</span>
-                      <span className="text-2xl font-display font-bold text-primary">${calculatedPrice.total.toFixed(2)}</span>
-                    </div>
-                    
-                    {/* Show which pricing was used */}
-                    <div className="pt-3 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Using: {vehiclePricing[calcVehicle] ? "Vehicle-specific pricing" : "Category pricing"}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {routeLoading && (
+              {/* Loading State */}
+              {routeLoading && calcPickup && calcDropoff && (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">Calculating route...</span>

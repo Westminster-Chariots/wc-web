@@ -2,15 +2,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { authService, bookingService } from "@/lib/services";
+import { authService, bookingService, documentService, type Document } from "@/lib/services";
 import { notify } from "@/lib/notify";
 import type { Booking } from "@/types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Car, FileText, Settings } from "lucide-react";
+import { Car, FileText, Settings, Download, Eye, Calendar } from "lucide-react";
 import AccountHeader from "@/components/account/AccountHeader";
 import ProfileHeader from "@/components/account/ProfileHeader";
 import BookingsListProfessional from "@/components/account/BookingsListProfessional";
 import ProfileSettings from "@/components/account/ProfileSettings";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 interface UserProfile {
   id?: string;
@@ -29,7 +31,9 @@ export default function ClientAccountPage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
+  const [myDocuments, setMyDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
   const [bookingsPage, setBookingsPage] = useState(0);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageSize = 10;
@@ -45,7 +49,20 @@ export default function ClientAccountPage() {
 
     fetchProfile();
     fetchBookings();
+    fetchDocuments();
   }, [user, authLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchDocuments = async () => {
+    setDocumentsLoading(true);
+    try {
+      const data = await documentService.getMyDocuments();
+      setMyDocuments(data.filter(d => d.documentType === "client_invoice" || d.documentType === "trip_confirmation"));
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+    } finally {
+      setDocumentsLoading(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -297,7 +314,7 @@ export default function ClientAccountPage() {
             {/* Main Content Tabs */}
             <div className="rounded-2xl bg-white p-6 shadow-sm">
               <Tabs defaultValue="rides" className="space-y-6">
-                <TabsList className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1">
+                <TabsList className="grid grid-cols-3 h-12 gap-1 rounded-lg bg-slate-100 p-1">
                   <TabsTrigger value="rides" className="flex items-center justify-center gap-2 rounded-md text-sm font-medium text-slate-700 py-2.5 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                     <Car className="h-4 w-4" /> Rides
                   </TabsTrigger>
@@ -335,11 +352,121 @@ export default function ClientAccountPage() {
                   </TabsContent>
 
                 <TabsContent value="invoices">
-                  <div className="rounded-xl bg-slate-50 p-12 text-center">
-                    <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Invoices coming soon</h3>
-                    <p className="text-sm text-slate-600">Your billing history will appear here after your first completed ride.</p>
-                  </div>
+                  {documentsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600"></div>
+                    </div>
+                  ) : myDocuments.length === 0 ? (
+                    <div className="rounded-xl bg-slate-50 p-12 text-center">
+                      <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-900 mb-2">No documents yet</h3>
+                      <p className="text-sm text-slate-600">Your invoices and trip confirmations will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {myDocuments.map((doc) => (
+                        <div key={doc.id} className="rounded-xl bg-slate-50 p-4 hover:bg-slate-100 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  doc.documentType === "client_invoice" 
+                                    ? "bg-green-100 text-green-800" 
+                                    : "bg-purple-100 text-purple-800"
+                                }`}>
+                                  {doc.documentType === "client_invoice" ? "Invoice" : "Trip Confirmation"}
+                                </span>
+                                <span className="font-mono text-sm font-semibold text-slate-900">
+                                  #{doc.documentNumber}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {format(new Date(doc.createdAt), "MMM d, yyyy")}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const { documentData } = doc;
+                                    if (doc.documentType === "client_invoice") {
+                                      const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
+                                      const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-full.png", "light");
+                                      const blob = pdfDoc.output("blob");
+                                      const url = URL.createObjectURL(blob);
+                                      window.open(url, "_blank");
+                                    } else {
+                                      const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+                                      const confirmationData = {
+                                        confirmationNumber: documentData.invoiceData.invoiceNumber,
+                                        clientName: documentData.invoiceData.clientName,
+                                        clientAddress: documentData.invoiceData.clientAddress,
+                                        clientPhone: documentData.invoiceData.clientPhone,
+                                        clientEmail: documentData.invoiceData.clientEmail,
+                                        driverName: documentData.driverInfo?.driverName,
+                                        vehicleType: documentData.driverInfo?.vehicleType,
+                                        vehicleTag: documentData.driverInfo?.vehicleTag,
+                                        items: documentData.invoiceData.items,
+                                      };
+                                      const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", "light");
+                                      const blob = pdfDoc.output("blob");
+                                      const url = URL.createObjectURL(blob);
+                                      window.open(url, "_blank");
+                                    }
+                                  } catch (error) {
+                                    notify.error("Failed to preview document");
+                                  }
+                                }}
+                                className="gap-1.5"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const { documentData } = doc;
+                                    if (doc.documentType === "client_invoice") {
+                                      const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
+                                      const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-full.png", "light");
+                                      pdfDoc.save(`${doc.documentNumber}-Invoice.pdf`);
+                                    } else {
+                                      const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
+                                      const confirmationData = {
+                                        confirmationNumber: documentData.invoiceData.invoiceNumber,
+                                        clientName: documentData.invoiceData.clientName,
+                                        clientAddress: documentData.invoiceData.clientAddress,
+                                        clientPhone: documentData.invoiceData.clientPhone,
+                                        clientEmail: documentData.invoiceData.clientEmail,
+                                        driverName: documentData.driverInfo?.driverName,
+                                        vehicleType: documentData.driverInfo?.vehicleType,
+                                        vehicleTag: documentData.driverInfo?.vehicleTag,
+                                        items: documentData.invoiceData.items,
+                                      };
+                                      const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", "light");
+                                      pdfDoc.save(`${doc.documentNumber}-Confirmation.pdf`);
+                                    }
+                                    notify.success("Document downloaded");
+                                  } catch (error) {
+                                    notify.error("Failed to download document");
+                                  }
+                                }}
+                                className="gap-1.5"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Download
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="profile">

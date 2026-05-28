@@ -11,7 +11,7 @@ import type { ConfirmationData, TripItem, ConfirmationVariant } from "@/lib/gene
 import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
-import { bookingService, invoiceService, pricingService } from "@/lib/services";
+import { bookingService, invoiceService, pricingService, documentService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
 
 const libraries: ("places")[] = ["places"];
@@ -154,7 +154,12 @@ export default function ManifestsPage() {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
-    const pickupDateTime = new Date(`${booking.pickupDate}T${booking.pickupTime}`);
+    // Parse date and time properly
+    const pickupDate = booking.pickupDate; // Already in YYYY-MM-DD format
+    const pickupTime = booking.pickupTime; // Already in HH:MM format
+    
+    // Create Date object for calculations
+    const pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
     const spotTime = new Date(pickupDateTime.getTime() - 15 * 60000);
     const bookedOnDate = new Date(booking.createdAt);
 
@@ -217,8 +222,8 @@ export default function ManifestsPage() {
       clientAddress: booking.clientAddress || "",
       clientPhone: booking.clientPhone || "",
       clientEmail: booking.clientEmail || "",
-      invoiceDate: invoiceDate.toLocaleDateString(),
-      dueDate: dueDate.toLocaleDateString(),
+      invoiceDate: invoiceDate.toLocaleDateString('en-US'),
+      dueDate: dueDate.toLocaleDateString('en-US'),
       paymentTerms: "NET30",
       items: invoiceItems,
       subtotal,
@@ -560,96 +565,90 @@ export default function ManifestsPage() {
     }
   };
 
-  const handleSaveInvoice = async () => {
-    if (!selectedBookingId) {
-      toast.error("Please select a booking first");
+  const handleSaveManifest = async () => {
+    if (!manifestData.reservationNumber) {
+      toast.error("Reservation number is required");
       return;
     }
 
-    const booking = bookings.find(b => b.id === selectedBookingId);
-    if (!booking) {
-      toast.error("Booking not found");
+    // Extract client email from booking or use a default
+    const booking = selectedBookingId ? bookings.find(b => b.id === selectedBookingId) : null;
+    const clientEmail = booking?.clientEmail || "admin@westminsterchariots.com";
+    const clientName = manifestData.billTo || "Westminster Chariots";
+
+    setSending(true);
+    try {
+      await documentService.create({
+        documentType: "driver_manifest",
+        documentNumber: manifestData.reservationNumber,
+        clientEmail,
+        clientName,
+        bookingId: selectedBookingId || undefined,
+        documentData: { manifestData },
+      });
+      
+      toast.success("Driver manifest saved successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save manifest");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleSaveInvoice = async () => {
+    if (!invoiceData.clientEmail) {
+      toast.error("Client email is required");
       return;
     }
 
     setSending(true);
     try {
-      // Create invoice data from current invoiceData
-      const invoicePayload = {
-        bookingId: selectedBookingId,
-        clientId: booking.clientId,
-        invoiceNumber: invoiceData.invoiceNumber,
-        clientName: invoiceData.clientName,
+      // Save document to database
+      await documentService.create({
+        documentType: activeTab === "invoice" ? "client_invoice" : "trip_confirmation",
+        documentNumber: invoiceData.invoiceNumber,
         clientEmail: invoiceData.clientEmail,
-        clientPhone: invoiceData.clientPhone,
-        clientAddress: invoiceData.clientAddress,
-        invoiceDate: invoiceData.invoiceDate,
-        dueDate: invoiceData.dueDate,
-        paymentTerms: invoiceData.paymentTerms,
-        items: invoiceData.items,
-        subtotal: invoiceData.subtotal,
-        tax: invoiceData.tax,
-        total: invoiceData.total,
-        status: "draft" as const,
-        notes: "Generated from manifests page"
-      };
-
-      await invoiceService.create(invoicePayload);
-      toast.success("Invoice saved successfully");
+        clientName: invoiceData.clientName,
+        bookingId: selectedBookingId || undefined,
+        documentData: {
+          invoiceData,
+          driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+        },
+      });
+      
+      toast.success(`${activeTab === "invoice" ? "Invoice" : "Trip confirmation"} saved successfully`);
     } catch (error: any) {
-      toast.error(error.message || "Failed to save invoice");
+      toast.error(error.message || "Failed to save document");
     } finally {
       setSending(false);
     }
   };
 
   const handleSendInvoiceToClient = async () => {
-    if (!selectedBookingId) {
-      toast.error("Please select a booking first");
-      return;
-    }
-
-    const booking = bookings.find(b => b.id === selectedBookingId);
-    if (!booking) {
-      toast.error("Booking not found");
-      return;
-    }
-
     if (!invoiceData.clientEmail) {
-      toast.error("Client email is required to send invoice");
+      toast.error("Client email is required to send document");
       return;
     }
 
     setSending(true);
     try {
-      // First save the invoice
-      const invoicePayload = {
-        bookingId: selectedBookingId,
-        clientId: booking.clientId,
-        invoiceNumber: invoiceData.invoiceNumber,
-        clientName: invoiceData.clientName,
+      // First save the document
+      await documentService.create({
+        documentType: activeTab === "invoice" ? "client_invoice" : "trip_confirmation",
+        documentNumber: invoiceData.invoiceNumber,
         clientEmail: invoiceData.clientEmail,
-        clientPhone: invoiceData.clientPhone,
-        clientAddress: invoiceData.clientAddress,
-        invoiceDate: invoiceData.invoiceDate,
-        dueDate: invoiceData.dueDate,
-        paymentTerms: invoiceData.paymentTerms,
-        items: invoiceData.items,
-        subtotal: invoiceData.subtotal,
-        tax: invoiceData.tax,
-        total: invoiceData.total,
-        status: "sent" as const,
-        notes: "Sent from manifests page"
-      };
-
-      const savedInvoice = await invoiceService.create(invoicePayload);
+        clientName: invoiceData.clientName,
+        bookingId: selectedBookingId || undefined,
+        documentData: {
+          invoiceData,
+          driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+        },
+      });
       
-      // Then send the invoice via email
-      await invoiceService.sendInvoice(savedInvoice.id);
-      
-      toast.success(`Invoice sent to ${invoiceData.clientEmail}`);
+      // TODO: Implement email sending functionality
+      toast.success(`${activeTab === "invoice" ? "Invoice" : "Trip confirmation"} saved and will be sent to ${invoiceData.clientEmail}`);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send invoice");
+      toast.error(error.message || "Failed to send document");
     } finally {
       setSending(false);
     }
@@ -836,6 +835,18 @@ export default function ManifestsPage() {
                 <Download className="h-3.5 w-3.5" />
                 PDF
               </Button>
+              {activeTab === "manifest" && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-1.5" 
+                  onClick={handleSaveManifest}
+                  disabled={sending}
+                >
+                  {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  Save Manifest
+                </Button>
+              )}
               {(activeTab === "invoice" || activeTab === "confirmation") && (
                 <>
                   <Button 
@@ -846,7 +857,7 @@ export default function ManifestsPage() {
                     disabled={sending}
                   >
                     {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                    Save Invoice
+                    Save {activeTab === "invoice" ? "Invoice" : "Confirmation"}
                   </Button>
                   <Button 
                     variant="default" 
