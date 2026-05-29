@@ -117,6 +117,18 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
+
   // Modal functions
   const openModal = (type: ModalType, event: React.MouseEvent) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -321,7 +333,7 @@ export default function Home() {
       /> */}
 
       {/* Audio Player */}
-      <AudioPlayer isMuted={isMuted} setIsMuted={setIsMuted} />
+      {/* <AudioPlayer isMuted={isMuted} setIsMuted={setIsMuted} /> */}
     </div>
   );
 }

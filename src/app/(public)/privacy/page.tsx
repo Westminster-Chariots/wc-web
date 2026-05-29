@@ -4,23 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import SimpleNavigation from "@/components/home/navigation/SimpleNavigation";
+import Footer from "@/components/home/sections/Footer";
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="fixed top-0 w-full z-50 glass-frosted border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Back to Home</span>
-          </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} className="object-contain" />
-            <span className="text-xs font-display font-semibold text-foreground uppercase tracking-wider">Westminster Chariots</span>
-          </Link>
-          <div className="w-20" />
-        </div>
-      </header>
+    <>
+      <SimpleNavigation />
+      <div className="min-h-screen bg-background">
 
       <main className="pt-20 sm:pt-24 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-10">
@@ -193,5 +184,7 @@ export default function PrivacyPage() {
         </div>
       </main>
     </div>
+    <Footer />
+    </>
   );
 }

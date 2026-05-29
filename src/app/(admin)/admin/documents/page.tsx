@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { FileText, Search, Loader2, Download, Eye, Filter, Calendar } from "lucide-react";
+import { FileText, Search, Loader2, Download, Eye, Filter, Calendar, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { documentService, type Document } from "@/lib/services";
@@ -10,6 +10,7 @@ import { format } from "date-fns";
 export default function DocumentHistoryPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
@@ -19,6 +20,7 @@ export default function DocumentHistoryPage() {
 
   const loadDocuments = async () => {
     setLoading(true);
+    setRefreshing(true);
     try {
       const filters: any = {};
       if (typeFilter !== "all") {
@@ -26,10 +28,12 @@ export default function DocumentHistoryPage() {
       }
       const data = await documentService.getAll(filters);
       setDocuments(data);
+      toast.success(`Loaded ${data.length} document${data.length !== 1 ? 's' : ''}`);
     } catch (error: any) {
       toast.error(error.message || "Failed to load documents");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -137,9 +141,21 @@ export default function DocumentHistoryPage() {
   return (
     <div className="p-4 md:p-8 space-y-6">
       <div>
-        <div className="flex items-center gap-2 mb-2">
-          <FileText className="h-5 w-5 text-primary" />
-          <h1 className="text-2xl font-display font-bold text-foreground">Document History</h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" />
+            <h1 className="text-2xl font-display font-bold text-foreground">Document History</h1>
+          </div>
+          <Button
+            onClick={loadDocuments}
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">View and manage all saved documents</p>
       </div>

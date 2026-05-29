@@ -1,0 +1,733 @@
+export type Language = "EN" | "ES" | "DE";
+
+export const translations = {
+  EN: {
+    // Navigation
+    nav: {
+      services: "Services",
+      fleet: "Our Fleet",
+      help: "Help",
+      signIn: "Sign In",
+      signOut: "Sign Out",
+      dashboard: "Dashboard",
+      account: "Account",
+      language: "Language",
+    },
+    
+    // Hero Section
+    hero: {
+      title: "Premium Chauffeur Service",
+      subtitle: "Experience luxury transportation in the Washington DC Metropolitan Area",
+      bookNow: "Book Now",
+      learnMore: "Learn More",
+      available247: "Available 24/7",
+      professionalDrivers: "Professional Drivers",
+      luxuryFleet: "Luxury Fleet",
+    },
+    
+    // Services
+    services: {
+      title: "Our Services",
+      subtitle: "Tailored transportation solutions for every occasion",
+      viewAll: "View All Services",
+      bookService: "Book This Service",
+      learnMore: "Learn More",
+      airport: "Airport Transfer",
+      corporate: "Corporate Car Service",
+      hourly: "Hourly Car Service",
+      longDistance: "Long Distance",
+      nightOut: "Night Out",
+      concert: "Concert Transportation",
+      wedding: "Wedding Transportation",
+      cityTours: "City Tours",
+      prom: "Prom Limo Service",
+      dateNight: "Date Night",
+    },
+    
+    // Fleet
+    fleet: {
+      title: "Our Fleet",
+      subtitle: "Luxury vehicles for every occasion",
+      sedan: "Luxury Sedan",
+      suv: "Premium SUV",
+      passengers: "Passengers",
+      luggage: "Luggage",
+      bookNow: "Book Now",
+      features: "Features",
+    },
+    
+    // Booking
+    booking: {
+      title: "Book Your Ride",
+      selectVehicle: "Select Vehicle",
+      tripDetails: "Trip Details",
+      authentication: "Authentication",
+      checkout: "Checkout",
+      pickupLocation: "Pickup Location",
+      dropoffLocation: "Dropoff Location",
+      pickupDate: "Pickup Date",
+      pickupTime: "Pickup Time",
+      passengers: "Passengers",
+      luggage: "Luggage",
+      specialRequests: "Special Requests",
+      continue: "Continue",
+      back: "Back",
+      confirmBooking: "Confirm Booking",
+      totalPrice: "Total Price",
+      bookingConfirmed: "Booking Confirmed",
+      bookingNumber: "Booking Number",
+      calculateRoute: "Calculate Route",
+      distance: "Distance",
+      duration: "Duration",
+      estimatedPrice: "Estimated Price",
+    },
+    
+    // Contact
+    contact: {
+      title: "Contact Westminster Chariots",
+      subtitle: "Have questions or ready to book? Reach out to our team for personalized service.",
+      getInTouch: "Get in Touch",
+      contactInfo: "Contact Information",
+      phone: "Phone",
+      email: "Email",
+      hours: "Hours",
+      available247: "24/7 Service Available",
+      serviceAreas: "Service Areas",
+      serviceAreasDesc: "Serving the entire Washington DC Metropolitan Area including Northern Virginia, Maryland, and surrounding regions.",
+      sendMessage: "Send us a message",
+      firstName: "First Name",
+      lastName: "Last Name",
+      message: "Message",
+      send: "Send Message",
+      sending: "Sending...",
+      messagePlaceholder: "Tell us about your transportation needs...",
+      successMessage: "Message sent successfully! We'll get back to you soon.",
+      errorMessage: "Failed to send message. Please try again.",
+      fillAllFields: "Please fill in all fields",
+      messageMinLength: "Message must be at least 10 characters",
+    },
+    
+    // Testimonials
+    testimonials: {
+      title: "What Our Clients Say",
+      subtitle: "Trusted by executives, diplomats, and luxury travelers",
+    },
+    
+    // Why Westminster
+    whyWestminster: {
+      title: "Why Choose Westminster Chariots",
+      subtitle: "Excellence in every journey",
+      professional: "Professional Chauffeurs",
+      professionalDesc: "Licensed, uniformed drivers with extensive local knowledge",
+      luxury: "Luxury Fleet",
+      luxuryDesc: "Mercedes-Benz sedans and SUVs with premium amenities",
+      reliable: "24/7 Reliability",
+      reliableDesc: "Round-the-clock service with guaranteed on-time performance",
+      technology: "Technology-Driven",
+      technologyDesc: "Real-time tracking and seamless booking experience",
+    },
+    
+    // CTA Section
+    cta: {
+      title: "Ready to Experience Luxury?",
+      subtitle: "Book your premium chauffeur service today",
+      bookNow: "Book Now",
+      callUs: "Call Us",
+    },
+    
+    // Footer
+    footer: {
+      tagline: "Premium chauffeur service in the Washington DC Metropolitan Area",
+      quickLinks: "Quick Links",
+      services: "Services",
+      legal: "Legal",
+      contact: "Contact",
+      about: "About",
+      fleet: "Fleet",
+      help: "Help",
+      careers: "Careers",
+      privacy: "Privacy Policy",
+      terms: "Terms & Conditions",
+      phone: "Phone",
+      email: "Email",
+      address: "Address",
+      addressLine: "Triangle, VA · Washington DC Metro",
+      followUs: "Follow Us",
+      allRightsReserved: "All rights reserved.",
+    },
+    
+    // Account
+    account: {
+      title: "My Account",
+      profile: "Profile",
+      bookings: "My Bookings",
+      settings: "Settings",
+      logout: "Logout",
+      upcomingBookings: "Upcoming Bookings",
+      pastBookings: "Past Bookings",
+      noBookings: "No bookings found",
+      bookingDetails: "Booking Details",
+      status: "Status",
+      viewDetails: "View Details",
+      cancelBooking: "Cancel Booking",
+      reschedule: "Reschedule",
+    },
+    
+    // Auth
+    auth: {
+      signIn: "Sign In",
+      signUp: "Sign Up",
+      email: "Email",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      forgotPassword: "Forgot Password?",
+      noAccount: "Don't have an account?",
+      haveAccount: "Already have an account?",
+      resetPassword: "Reset Password",
+      sendResetLink: "Send Reset Link",
+      backToSignIn: "Back to Sign In",
+    },
+    
+    // Admin
+    admin: {
+      dashboard: "Dashboard",
+      bookings: "Bookings",
+      clients: "Clients",
+      drivers: "Drivers",
+      fleet: "Fleet",
+      pricing: "Pricing",
+      manifests: "Manifests",
+      documents: "Documents",
+      analytics: "Analytics",
+      settings: "Settings",
+      totalBookings: "Total Bookings",
+      activeBookings: "Active Bookings",
+      totalRevenue: "Total Revenue",
+      totalClients: "Total Clients",
+    },
+    
+    // Help
+    help: {
+      title: "Help Center",
+      subtitle: "Find answers to common questions",
+      faq: "Frequently Asked Questions",
+      contactSupport: "Contact Support",
+      searchPlaceholder: "Search for help...",
+    },
+    
+    // Common
+    common: {
+      loading: "Loading...",
+      error: "Error",
+      success: "Success",
+      cancel: "Cancel",
+      confirm: "Confirm",
+      save: "Save",
+      edit: "Edit",
+      delete: "Delete",
+      close: "Close",
+      search: "Search",
+      filter: "Filter",
+      sort: "Sort",
+      viewMore: "View More",
+      viewLess: "View Less",
+      download: "Download",
+      upload: "Upload",
+      refresh: "Refresh",
+      print: "Print",
+      share: "Share",
+      copy: "Copy",
+      copied: "Copied!",
+      yes: "Yes",
+      no: "No",
+    },
+  },
+  
+  ES: {
+    // Navigation
+    nav: {
+      services: "Servicios",
+      fleet: "Nuestra Flota",
+      help: "Ayuda",
+      signIn: "Iniciar Sesión",
+      signOut: "Cerrar Sesión",
+      dashboard: "Panel",
+      account: "Cuenta",
+      language: "Idioma",
+    },
+    
+    // Hero Section
+    hero: {
+      title: "Servicio Premium de Chofer",
+      subtitle: "Experimente transporte de lujo en el Área Metropolitana de Washington DC",
+      bookNow: "Reservar Ahora",
+      learnMore: "Más Información",
+      available247: "Disponible 24/7",
+      professionalDrivers: "Choferes Profesionales",
+      luxuryFleet: "Flota de Lujo",
+    },
+    
+    // Services
+    services: {
+      title: "Nuestros Servicios",
+      subtitle: "Soluciones de transporte personalizadas para cada ocasión",
+      viewAll: "Ver Todos los Servicios",
+      bookService: "Reservar Este Servicio",
+      learnMore: "Más Información",
+      airport: "Traslado al Aeropuerto",
+      corporate: "Servicio Corporativo",
+      hourly: "Servicio por Horas",
+      longDistance: "Larga Distancia",
+      nightOut: "Noche de Fiesta",
+      concert: "Transporte a Conciertos",
+      wedding: "Transporte de Bodas",
+      cityTours: "Tours de la Ciudad",
+      prom: "Servicio de Limosina para Graduación",
+      dateNight: "Noche Romántica",
+    },
+    
+    // Fleet
+    fleet: {
+      title: "Nuestra Flota",
+      subtitle: "Vehículos de lujo para cada ocasión",
+      sedan: "Sedán de Lujo",
+      suv: "SUV Premium",
+      passengers: "Pasajeros",
+      luggage: "Equipaje",
+      bookNow: "Reservar Ahora",
+      features: "Características",
+    },
+    
+    // Booking
+    booking: {
+      title: "Reserve Su Viaje",
+      selectVehicle: "Seleccionar Vehículo",
+      tripDetails: "Detalles del Viaje",
+      authentication: "Autenticación",
+      checkout: "Pagar",
+      pickupLocation: "Lugar de Recogida",
+      dropoffLocation: "Lugar de Destino",
+      pickupDate: "Fecha de Recogida",
+      pickupTime: "Hora de Recogida",
+      passengers: "Pasajeros",
+      luggage: "Equipaje",
+      specialRequests: "Solicitudes Especiales",
+      continue: "Continuar",
+      back: "Atrás",
+      confirmBooking: "Confirmar Reserva",
+      totalPrice: "Precio Total",
+      bookingConfirmed: "Reserva Confirmada",
+      bookingNumber: "Número de Reserva",
+      calculateRoute: "Calcular Ruta",
+      distance: "Distancia",
+      duration: "Duración",
+      estimatedPrice: "Precio Estimado",
+    },
+    
+    // Contact
+    contact: {
+      title: "Contactar Westminster Chariots",
+      subtitle: "¿Tiene preguntas o está listo para reservar? Comuníquese con nuestro equipo para un servicio personalizado.",
+      getInTouch: "Póngase en Contacto",
+      contactInfo: "Información de Contacto",
+      phone: "Teléfono",
+      email: "Correo Electrónico",
+      hours: "Horario",
+      available247: "Servicio Disponible 24/7",
+      serviceAreas: "Áreas de Servicio",
+      serviceAreasDesc: "Sirviendo toda el Área Metropolitana de Washington DC incluyendo el Norte de Virginia, Maryland y regiones circundantes.",
+      sendMessage: "Envíenos un mensaje",
+      firstName: "Nombre",
+      lastName: "Apellido",
+      message: "Mensaje",
+      send: "Enviar Mensaje",
+      sending: "Enviando...",
+      messagePlaceholder: "Cuéntenos sobre sus necesidades de transporte...",
+      successMessage: "¡Mensaje enviado con éxito! Nos pondremos en contacto pronto.",
+      errorMessage: "Error al enviar el mensaje. Por favor, inténtelo de nuevo.",
+      fillAllFields: "Por favor complete todos los campos",
+      messageMinLength: "El mensaje debe tener al menos 10 caracteres",
+    },
+    
+    // Testimonials
+    testimonials: {
+      title: "Lo Que Dicen Nuestros Clientes",
+      subtitle: "Confiado por ejecutivos, diplomáticos y viajeros de lujo",
+    },
+    
+    // Why Westminster
+    whyWestminster: {
+      title: "Por Qué Elegir Westminster Chariots",
+      subtitle: "Excelencia en cada viaje",
+      professional: "Choferes Profesionales",
+      professionalDesc: "Conductores licenciados y uniformados con amplio conocimiento local",
+      luxury: "Flota de Lujo",
+      luxuryDesc: "Sedanes y SUVs Mercedes-Benz con comodidades premium",
+      reliable: "Confiabilidad 24/7",
+      reliableDesc: "Servicio las 24 horas con rendimiento puntual garantizado",
+      technology: "Impulsado por Tecnología",
+      technologyDesc: "Seguimiento en tiempo real y experiencia de reserva sin problemas",
+    },
+    
+    // CTA Section
+    cta: {
+      title: "¿Listo para Experimentar el Lujo?",
+      subtitle: "Reserve su servicio premium de chofer hoy",
+      bookNow: "Reservar Ahora",
+      callUs: "Llámenos",
+    },
+    
+    // Footer
+    footer: {
+      tagline: "Servicio premium de chofer en el Área Metropolitana de Washington DC",
+      quickLinks: "Enlaces Rápidos",
+      services: "Servicios",
+      legal: "Legal",
+      contact: "Contacto",
+      about: "Acerca de",
+      fleet: "Flota",
+      help: "Ayuda",
+      careers: "Carreras",
+      privacy: "Política de Privacidad",
+      terms: "Términos y Condiciones",
+      phone: "Teléfono",
+      email: "Correo",
+      address: "Dirección",
+      addressLine: "Triangle, VA · Metro de Washington DC",
+      followUs: "Síguenos",
+      allRightsReserved: "Todos los derechos reservados.",
+    },
+    
+    // Account
+    account: {
+      title: "Mi Cuenta",
+      profile: "Perfil",
+      bookings: "Mis Reservas",
+      settings: "Configuración",
+      logout: "Cerrar Sesión",
+      upcomingBookings: "Próximas Reservas",
+      pastBookings: "Reservas Pasadas",
+      noBookings: "No se encontraron reservas",
+      bookingDetails: "Detalles de la Reserva",
+      status: "Estado",
+      viewDetails: "Ver Detalles",
+      cancelBooking: "Cancelar Reserva",
+      reschedule: "Reprogramar",
+    },
+    
+    // Auth
+    auth: {
+      signIn: "Iniciar Sesión",
+      signUp: "Registrarse",
+      email: "Correo Electrónico",
+      password: "Contraseña",
+      confirmPassword: "Confirmar Contraseña",
+      forgotPassword: "¿Olvidó su Contraseña?",
+      noAccount: "¿No tiene una cuenta?",
+      haveAccount: "¿Ya tiene una cuenta?",
+      resetPassword: "Restablecer Contraseña",
+      sendResetLink: "Enviar Enlace de Restablecimiento",
+      backToSignIn: "Volver a Iniciar Sesión",
+    },
+    
+    // Admin
+    admin: {
+      dashboard: "Panel",
+      bookings: "Reservas",
+      clients: "Clientes",
+      drivers: "Conductores",
+      fleet: "Flota",
+      pricing: "Precios",
+      manifests: "Manifiestos",
+      documents: "Documentos",
+      analytics: "Analíticas",
+      settings: "Configuración",
+      totalBookings: "Total de Reservas",
+      activeBookings: "Reservas Activas",
+      totalRevenue: "Ingresos Totales",
+      totalClients: "Total de Clientes",
+    },
+    
+    // Help
+    help: {
+      title: "Centro de Ayuda",
+      subtitle: "Encuentre respuestas a preguntas comunes",
+      faq: "Preguntas Frecuentes",
+      contactSupport: "Contactar Soporte",
+      searchPlaceholder: "Buscar ayuda...",
+    },
+    
+    // Common
+    common: {
+      loading: "Cargando...",
+      error: "Error",
+      success: "Éxito",
+      cancel: "Cancelar",
+      confirm: "Confirmar",
+      save: "Guardar",
+      edit: "Editar",
+      delete: "Eliminar",
+      close: "Cerrar",
+      search: "Buscar",
+      filter: "Filtrar",
+      sort: "Ordenar",
+      viewMore: "Ver Más",
+      viewLess: "Ver Menos",
+      download: "Descargar",
+      upload: "Subir",
+      refresh: "Actualizar",
+      print: "Imprimir",
+      share: "Compartir",
+      copy: "Copiar",
+      copied: "¡Copiado!",
+      yes: "Sí",
+      no: "No",
+    },
+  },
+  
+  DE: {
+    // Navigation
+    nav: {
+      services: "Dienstleistungen",
+      fleet: "Unsere Flotte",
+      help: "Hilfe",
+      signIn: "Anmelden",
+      signOut: "Abmelden",
+      dashboard: "Dashboard",
+      account: "Konto",
+      language: "Sprache",
+    },
+    
+    // Hero Section
+    hero: {
+      title: "Premium Chauffeur-Service",
+      subtitle: "Erleben Sie Luxustransport im Großraum Washington DC",
+      bookNow: "Jetzt Buchen",
+      learnMore: "Mehr Erfahren",
+      available247: "24/7 Verfügbar",
+      professionalDrivers: "Professionelle Fahrer",
+      luxuryFleet: "Luxus-Flotte",
+    },
+    
+    // Services
+    services: {
+      title: "Unsere Dienstleistungen",
+      subtitle: "Maßgeschneiderte Transportlösungen für jeden Anlass",
+      viewAll: "Alle Dienstleistungen Anzeigen",
+      bookService: "Diesen Service Buchen",
+      learnMore: "Mehr Erfahren",
+      airport: "Flughafentransfer",
+      corporate: "Firmen-Fahrdienst",
+      hourly: "Stündlicher Fahrdienst",
+      longDistance: "Langstrecke",
+      nightOut: "Abendausflug",
+      concert: "Konzert-Transport",
+      wedding: "Hochzeitstransport",
+      cityTours: "Stadttouren",
+      prom: "Abschlussball-Limousine",
+      dateNight: "Date-Abend",
+    },
+    
+    // Fleet
+    fleet: {
+      title: "Unsere Flotte",
+      subtitle: "Luxusfahrzeuge für jeden Anlass",
+      sedan: "Luxus-Limousine",
+      suv: "Premium-SUV",
+      passengers: "Passagiere",
+      luggage: "Gepäck",
+      bookNow: "Jetzt Buchen",
+      features: "Merkmale",
+    },
+    
+    // Booking
+    booking: {
+      title: "Buchen Sie Ihre Fahrt",
+      selectVehicle: "Fahrzeug Auswählen",
+      tripDetails: "Reisedetails",
+      authentication: "Authentifizierung",
+      checkout: "Zur Kasse",
+      pickupLocation: "Abholort",
+      dropoffLocation: "Zielort",
+      pickupDate: "Abholdatum",
+      pickupTime: "Abholzeit",
+      passengers: "Passagiere",
+      luggage: "Gepäck",
+      specialRequests: "Besondere Wünsche",
+      continue: "Weiter",
+      back: "Zurück",
+      confirmBooking: "Buchung Bestätigen",
+      totalPrice: "Gesamtpreis",
+      bookingConfirmed: "Buchung Bestätigt",
+      bookingNumber: "Buchungsnummer",
+      calculateRoute: "Route Berechnen",
+      distance: "Entfernung",
+      duration: "Dauer",
+      estimatedPrice: "Geschätzter Preis",
+    },
+    
+    // Contact
+    contact: {
+      title: "Westminster Chariots Kontaktieren",
+      subtitle: "Haben Sie Fragen oder sind Sie bereit zu buchen? Kontaktieren Sie unser Team für persönlichen Service.",
+      getInTouch: "Kontakt Aufnehmen",
+      contactInfo: "Kontaktinformationen",
+      phone: "Telefon",
+      email: "E-Mail",
+      hours: "Öffnungszeiten",
+      available247: "24/7 Service Verfügbar",
+      serviceAreas: "Servicegebiete",
+      serviceAreasDesc: "Bedienung des gesamten Großraums Washington DC einschließlich Nord-Virginia, Maryland und umliegender Regionen.",
+      sendMessage: "Senden Sie uns eine Nachricht",
+      firstName: "Vorname",
+      lastName: "Nachname",
+      message: "Nachricht",
+      send: "Nachricht Senden",
+      sending: "Wird Gesendet...",
+      messagePlaceholder: "Erzählen Sie uns von Ihren Transportbedürfnissen...",
+      successMessage: "Nachricht erfolgreich gesendet! Wir melden uns bald bei Ihnen.",
+      errorMessage: "Nachricht konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+      fillAllFields: "Bitte füllen Sie alle Felder aus",
+      messageMinLength: "Die Nachricht muss mindestens 10 Zeichen lang sein",
+    },
+    
+    // Testimonials
+    testimonials: {
+      title: "Was Unsere Kunden Sagen",
+      subtitle: "Vertraut von Führungskräften, Diplomaten und Luxusreisenden",
+    },
+    
+    // Why Westminster
+    whyWestminster: {
+      title: "Warum Westminster Chariots Wählen",
+      subtitle: "Exzellenz auf jeder Reise",
+      professional: "Professionelle Chauffeure",
+      professionalDesc: "Lizenzierte, uniformierte Fahrer mit umfassender Ortskenntnis",
+      luxury: "Luxus-Flotte",
+      luxuryDesc: "Mercedes-Benz Limousinen und SUVs mit Premium-Ausstattung",
+      reliable: "24/7 Zuverlässigkeit",
+      reliableDesc: "Rund-um-die-Uhr-Service mit garantierter pünktlicher Leistung",
+      technology: "Technologiegetrieben",
+      technologyDesc: "Echtzeit-Tracking und nahtloses Buchungserlebnis",
+    },
+    
+    // CTA Section
+    cta: {
+      title: "Bereit, Luxus zu Erleben?",
+      subtitle: "Buchen Sie heute Ihren Premium-Chauffeur-Service",
+      bookNow: "Jetzt Buchen",
+      callUs: "Rufen Sie Uns An",
+    },
+    
+    // Footer
+    footer: {
+      tagline: "Premium-Chauffeur-Service im Großraum Washington DC",
+      quickLinks: "Schnelllinks",
+      services: "Dienstleistungen",
+      legal: "Rechtliches",
+      contact: "Kontakt",
+      about: "Über Uns",
+      fleet: "Flotte",
+      help: "Hilfe",
+      careers: "Karriere",
+      privacy: "Datenschutz",
+      terms: "Geschäftsbedingungen",
+      phone: "Telefon",
+      email: "E-Mail",
+      address: "Adresse",
+      addressLine: "Triangle, VA · Washington DC Metro",
+      followUs: "Folgen Sie Uns",
+      allRightsReserved: "Alle Rechte vorbehalten.",
+    },
+    
+    // Account
+    account: {
+      title: "Mein Konto",
+      profile: "Profil",
+      bookings: "Meine Buchungen",
+      settings: "Einstellungen",
+      logout: "Abmelden",
+      upcomingBookings: "Bevorstehende Buchungen",
+      pastBookings: "Vergangene Buchungen",
+      noBookings: "Keine Buchungen gefunden",
+      bookingDetails: "Buchungsdetails",
+      status: "Status",
+      viewDetails: "Details Anzeigen",
+      cancelBooking: "Buchung Stornieren",
+      reschedule: "Umbuchen",
+    },
+    
+    // Auth
+    auth: {
+      signIn: "Anmelden",
+      signUp: "Registrieren",
+      email: "E-Mail",
+      password: "Passwort",
+      confirmPassword: "Passwort Bestätigen",
+      forgotPassword: "Passwort Vergessen?",
+      noAccount: "Noch kein Konto?",
+      haveAccount: "Bereits ein Konto?",
+      resetPassword: "Passwort Zurücksetzen",
+      sendResetLink: "Reset-Link Senden",
+      backToSignIn: "Zurück zur Anmeldung",
+    },
+    
+    // Admin
+    admin: {
+      dashboard: "Dashboard",
+      bookings: "Buchungen",
+      clients: "Kunden",
+      drivers: "Fahrer",
+      fleet: "Flotte",
+      pricing: "Preise",
+      manifests: "Manifeste",
+      documents: "Dokumente",
+      analytics: "Analysen",
+      settings: "Einstellungen",
+      totalBookings: "Gesamtbuchungen",
+      activeBookings: "Aktive Buchungen",
+      totalRevenue: "Gesamtumsatz",
+      totalClients: "Gesamtkunden",
+    },
+    
+    // Help
+    help: {
+      title: "Hilfezentrum",
+      subtitle: "Finden Sie Antworten auf häufige Fragen",
+      faq: "Häufig Gestellte Fragen",
+      contactSupport: "Support Kontaktieren",
+      searchPlaceholder: "Nach Hilfe suchen...",
+    },
+    
+    // Common
+    common: {
+      loading: "Wird Geladen...",
+      error: "Fehler",
+      success: "Erfolg",
+      cancel: "Abbrechen",
+      confirm: "Bestätigen",
+      save: "Speichern",
+      edit: "Bearbeiten",
+      delete: "Löschen",
+      close: "Schließen",
+      search: "Suchen",
+      filter: "Filtern",
+      sort: "Sortieren",
+      viewMore: "Mehr Anzeigen",
+      viewLess: "Weniger Anzeigen",
+      download: "Herunterladen",
+      upload: "Hochladen",
+      refresh: "Aktualisieren",
+      print: "Drucken",
+      share: "Teilen",
+      copy: "Kopieren",
+      copied: "Kopiert!",
+      yes: "Ja",
+      no: "Nein",
+    },
+  },
+} as const;
+
+export function getTranslation(lang: Language) {
+  return translations[lang];
+}

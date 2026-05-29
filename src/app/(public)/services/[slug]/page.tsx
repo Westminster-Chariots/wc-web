@@ -11,6 +11,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import SimpleNavigation from "@/components/home/navigation/SimpleNavigation";
+import Footer from "@/components/home/sections/Footer";
 
 export function generateStaticParams() {
   return SERVICES.map((service) => ({
@@ -30,7 +32,9 @@ export default function ServiceDetailPage({ params }: { params: { slug: string }
 
 function ServiceDetailContent({ service }: { service: any }) {
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SimpleNavigation />
+      <div className="min-h-screen bg-background">
       {/* Hero Section with Background Image */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -303,5 +307,7 @@ function ServiceDetailContent({ service }: { service: any }) {
         </div>
       </section>
     </div>
+    <Footer />
+    </>
   );
 }

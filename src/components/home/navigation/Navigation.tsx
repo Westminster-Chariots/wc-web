@@ -311,7 +311,7 @@ export default function Navigation({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
+              className="fixed h-[100vh] inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div 
@@ -319,34 +319,35 @@ export default function Navigation({
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden mt-4 border border-white/10 glass-card rounded-3xl relative z-50 overflow-y-auto shadow-glass max-h-[80vh] w-full"
+              className={`md:hidden mt-4 border rounded-3xl relative z-50 overflow-y-auto shadow-glass max-h-[80vh] w-full ${
+                useDarkTheme 
+                  ? ' border-white/10 backdrop-blur-xl' 
+                  : 'bg-white border-white/10'
+              }`}
             >
               <div className="px-5 py-6 space-y-5 sm:px-6">
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-foreground/60 mb-2">Services</p>
-                  <a href="/services#airport-transfer" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Airport Transfer</a>
-                  <a href="/services#corporate-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Corporate Car Service</a>
-                  <a href="/services#hourly-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Hourly Car Service</a>
-                  <a href="/services#long-distance-car-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Long Distance Car Service</a>
-                  <a href="/services#night-out" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Night out</a>
-                  <a href="/services#concert-transportation" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Concert Transportation</a>
-                  <a href="/services#transportation-for-wedding" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Transportation for Wedding</a>
-                  <a href="/services#city-tours" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">City Tours</a>
-                  <a href="/services#prom-limo-service" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Prom Limo Service</a>
-                  <a href="/services#date-night" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 pl-4 py-3">Date Night</a>
-                </div>
-                
-                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 py-3">Our Fleet</a>
-                <a href="/help" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-foreground/90 hover:text-primary transition-colors duration-200 py-3">Help</a>
+                <a href="/services" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
+                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                }`}>Services</a>
+                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
+                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                }`}>Our Fleet</a>
+                <a href="/help" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
+                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                }`}>Help</a>
                 
                 {user ? (
                   <>
-                    <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-base text-foreground py-2">
+                    <Link href="/account" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-base py-2 ${
+                      useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                    }`}>
                       <UserCircle className="h-5 w-5" />
                       {displayName}
                     </Link>
                     {isAdmin && (
-                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-base text-foreground font-medium py-2">Dashboard</Link>
+                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium py-2 ${
+                        useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                      }`}>Dashboard</Link>
                     )}
                     <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="flex items-center gap-2 text-base text-destructive py-2">
                       <LogOut className="h-5 w-5" /> Sign Out
@@ -357,10 +358,14 @@ export default function Navigation({
                 )}
                 
                 {/* Language Toggle in Mobile */}
-                <div className="pt-4 border-t border-white/10">
+                <div className={`pt-4 border-t ${
+                  useDarkTheme ? 'border-white/10' : 'border-gray-200'
+                }`}>
                   <button
                     onClick={cycleLang}
-                    className="flex items-center gap-2 text-base font-semibold text-foreground/80 hover:text-foreground transition-all duration-300"
+                    className={`flex items-center gap-2 text-base font-semibold hover:text-primary transition-all duration-300 ${
+                      useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                    }`}
                   >
                     <Globe className="h-5 w-5" />
                     <span>Language: {lang}</span>

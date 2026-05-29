@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { FileText, Download, Eye, FileType, Edit2, Save, Send, Search, Loader2, Plus, X, Receipt } from "lucide-react";
+import { FileText, Download, Eye, FileType, Edit2, Save, Send, Search, Loader2, Plus, X, Receipt, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { bookingService, invoiceService, pricingService, documentService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
 import { format } from "date-fns";
+import Link from "next/link";
 
 const libraries: ("places")[] = ["places"];
 
@@ -718,6 +719,12 @@ export default function ManifestsPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <Link href="/admin/documents">
+            <Button variant="outline" size="sm" className="gap-2">
+              <History className="h-4 w-4" />
+              Document History
+            </Button>
+          </Link>
           <div className="flex gap-3">
             {/* <label className="flex items-center gap-1.5 cursor-pointer">
               <input

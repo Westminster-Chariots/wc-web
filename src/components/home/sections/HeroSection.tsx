@@ -4,6 +4,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Shield, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface HeroSectionProps {
   heroRef: React.RefObject<HTMLDivElement | null>;
@@ -32,6 +33,8 @@ export default function HeroSection({
   openModal,
   handleSearch,
 }: HeroSectionProps) {
+  const { t } = useLanguage();
+  
   return (
     <section ref={heroRef} className="relative min-h-screen flex items-center pt-20" data-theme="dark">
       <div className="absolute inset-0 z-0">
@@ -115,7 +118,7 @@ export default function HeroSection({
                 onClick={(e) => openModal("pickup", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
               >
-                <div className="text-[12px] font-semibold text-white">Pickup location</div>
+                <div className="text-[12px] font-semibold text-white">{t.booking.pickupLocation}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
                   <div className="text-[14px] text-white">
                     {pickup || <span className="text-white/50">Address, airport, hotel, …</span>}
@@ -133,7 +136,7 @@ export default function HeroSection({
                     onClick={(e) => openModal("dropoff", e)}
                     className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
                   >
-                    <div className="text-[12px] font-semibold text-white">Drop-off location</div>
+                    <div className="text-[12px] font-semibold text-white">{t.booking.dropoffLocation}</div>
                     <div className="mt-1 border-b border-white/15 pb-1">
                       <div className="text-[14px] text-white">
                         {dropoff || <span className="text-white/50">Address, airport, hotel, …</span>}
@@ -150,7 +153,7 @@ export default function HeroSection({
                 onClick={(e) => openModal("date", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
               >
-                <div className="text-[12px] font-semibold text-white">Date</div>
+                <div className="text-[12px] font-semibold text-white">{t.booking.pickupDate}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
                   <div className="text-[14px] text-white">
                     {pickupDate || <span className="text-white/50">Select a date</span>}
@@ -166,7 +169,7 @@ export default function HeroSection({
                 onClick={(e) => openModal("time", e)}
                 className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
               >
-                <div className="text-[12px] font-semibold text-white">Pickup time</div>
+                <div className="text-[12px] font-semibold text-white">{t.booking.pickupTime}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
                   <div className="text-[14px] text-white">
                     {pickupTime || <span className="text-white/50">Select time</span>}
@@ -181,7 +184,7 @@ export default function HeroSection({
                   className="bg-blue-gradient shadow-blue w-full md:w-auto rounded-full px-8 py-4 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!pickup || (bookingMode === "oneway" && !dropoff) || !pickupDate || !pickupTime}
                 >
-                  View options
+                  {t.hero.bookNow}
                 </Button>
               </div>
             </div>
