@@ -237,13 +237,51 @@ export default function BookingPage() {
   const isPriceLoading = selectedVehicleId ? loadingVehiclePrices[selectedVehicleId] : false;
 
   const formattedDate = pickupDate ? format(new Date(pickupDate + "T00:00:00"), "EEE, MMM d, yyyy") : null;
-  const formattedTime = pickupTime ? format(new Date(`2000-01-01T${pickupTime}`), "h:mm a") : null;
+  const formattedTime = pickupTime ? (() => {
+    try {
+      // Handle both 12-hour (h:mm a) and 24-hour (HH:mm) formats
+      if (pickupTime.includes('AM') || pickupTime.includes('PM') || pickupTime.includes('am') || pickupTime.includes('pm')) {
+        // Already formatted, return as is
+        return pickupTime;
+      }
+      // 24-hour format, convert to 12-hour
+      return format(new Date(`2000-01-01T${pickupTime}`), "h:mm a");
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return pickupTime; // Return original if formatting fails
+    }
+  })() : null;
   const estimatedArrival =
     route && pickupTime
       ? (() => {
-          const [h, m] = pickupTime.split(":").map(Number);
-          const arrival = new Date(2000, 0, 1, h, m + route.duration);
-          return format(arrival, "h:mm a");
+          try {
+            // Parse time handling both formats
+            let hours = 0;
+            let minutes = 0;
+            
+            if (pickupTime.includes('AM') || pickupTime.includes('PM') || pickupTime.includes('am') || pickupTime.includes('pm')) {
+              // 12-hour format
+              const timeMatch = pickupTime.match(/(\d+):(\d+)\s*(AM|PM|am|pm)/i);
+              if (timeMatch) {
+                hours = parseInt(timeMatch[1]);
+                minutes = parseInt(timeMatch[2]);
+                const period = timeMatch[3].toUpperCase();
+                if (period === 'PM' && hours !== 12) hours += 12;
+                if (period === 'AM' && hours === 12) hours = 0;
+              }
+            } else {
+              // 24-hour format
+              const [h, m] = pickupTime.split(":").map(Number);
+              hours = h;
+              minutes = m;
+            }
+            
+            const arrival = new Date(2000, 0, 1, hours, minutes + route.duration);
+            return format(arrival, "h:mm a");
+          } catch (error) {
+            console.error('Error calculating arrival:', error);
+            return null;
+          }
         })()
       : null;
 
