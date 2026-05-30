@@ -102,8 +102,12 @@ export const bookingService = {
     return data;
   },
   
-  sendPaymentLink: async (id: string, finalPrice: number) => {
-    const { data } = await api.post(`/bookings/${id}/send-payment-link`, { finalPrice });
+  sendPaymentLink: async (id: string, finalPrice: number, paymentLink: string, emailMessage?: string) => {
+    const { data } = await api.post(`/bookings/${id}/send-payment-link`, { 
+      finalPrice, 
+      paymentLink,
+      emailMessage 
+    });
     return data;
   },
   

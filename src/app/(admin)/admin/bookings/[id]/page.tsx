@@ -260,8 +260,8 @@ export default function BookingDetailPage() {
               pickupLocation: booking.pickupLocation,
               dropoffLocation: booking.dropoffLocation,
             }}
-            onConfirm={async (finalPrice) => {
-              await bookingService.sendPaymentLink(booking.id, finalPrice);
+            onConfirm={async (finalPrice, paymentLink, emailMessage) => {
+              await bookingService.sendPaymentLink(booking.id, finalPrice, paymentLink, emailMessage);
               // Refetch to update email phase
               window.location.reload();
             }}
