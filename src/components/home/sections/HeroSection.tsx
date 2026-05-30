@@ -181,7 +181,7 @@ export default function HeroSection({
               <div className="p-3 md:p-4">
                 <Button
                   onClick={handleSearch}
-                  className="bg-blue-gradient shadow-blue w-full md:w-auto rounded-full px-8 py-4 text-sm font-semibold text-white transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/50 w-full md:w-auto rounded-full px-10 py-5 text-base font-bold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-blue-500/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   disabled={!pickup || (bookingMode === "oneway" && !dropoff) || !pickupDate || !pickupTime}
                 >
                   {t.hero.bookNow}

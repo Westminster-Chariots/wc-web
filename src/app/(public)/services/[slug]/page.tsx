@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,15 +15,11 @@ import {
 } from "@/components/ui/accordion";
 import SimpleNavigation from "@/components/home/navigation/SimpleNavigation";
 import Footer from "@/components/home/sections/Footer";
+import { use } from "react";
 
-export function generateStaticParams() {
-  return SERVICES.map((service) => ({
-    slug: service.slug,
-  }));
-}
-
-export default function ServiceDetailPage({ params }: { params: { slug: string } }) {
-  const service = getServiceBySlug(params.slug);
+export default function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  const service = getServiceBySlug(slug);
 
   if (!service) {
     notFound();
