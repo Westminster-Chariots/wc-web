@@ -120,31 +120,39 @@ export default function BookingDetailPage() {
             </div>
 
             {/* Action Buttons */}
-            {booking.status === "pending" && (
-              <Button onClick={() => setShowPaymentDialog(true)} className="w-full gap-2" size="sm">
-                <Send className="h-3.5 w-3.5" />
-                Send Payment Link
-              </Button>
-            )}
-            {booking.driverId && booking.status !== "done" && booking.status !== "cancelled" && (
-              <Button
-                onClick={async () => {
-                  try {
-                    await bookingService.sendManifest(booking.id);
-                    toast.success("Manifest sent to driver");
-                    window.location.reload();
-                  } catch (error) {
-                    toast.error("Failed to send manifest");
-                  }
-                }}
-                variant="outline"
-                className="w-full gap-2 mt-2"
+            <div className="space-y-2">
+              {/* Always show Send Payment Link button */}
+              <Button 
+                onClick={() => setShowPaymentDialog(true)} 
+                className="w-full gap-2" 
                 size="sm"
+                variant={booking.emailPhase === "payment_requested" ? "outline" : "default"}
               >
-                <Mail className="h-3.5 w-3.5" />
-                Send Manifest to Driver
+                <Send className="h-3.5 w-3.5" />
+                {booking.emailPhase === "payment_requested" ? "Resend Payment Link" : "Send Payment Link"}
               </Button>
-            )}
+              
+              {/* Send Manifest button - only show when driver is assigned */}
+              {booking.driverId && booking.status !== "done" && booking.status !== "cancelled" && (
+                <Button
+                  onClick={async () => {
+                    try {
+                      await bookingService.sendManifest(booking.id);
+                      toast.success("Manifest sent to driver");
+                      window.location.reload();
+                    } catch (error) {
+                      toast.error("Failed to send manifest");
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full gap-2"
+                  size="sm"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  {booking.emailPhase === "manifest_sent" ? "Resend Manifest" : "Send Manifest to Driver"}
+                </Button>
+              )}
+            </div>
           </motion.div>
 
           {/* Details */}
