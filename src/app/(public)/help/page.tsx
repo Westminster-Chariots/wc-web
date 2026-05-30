@@ -154,14 +154,14 @@ const contactOptions = [
     href: "mailto:info@westminsterchariots.com",
     available: "Response within 2 hours"
   },
-  {
-    icon: MessageCircle,
-    title: "Live Chat",
-    description: "Chat with support",
-    action: "Start Chat",
-    href: "#contact",
-    available: "Mon-Fri, 9am-6pm"
-  }
+  // {
+  //   icon: MessageCircle,
+  //   title: "Live Chat",
+  //   description: "Chat with support",
+  //   action: "Start Chat",
+  //   href: "#contact",
+  //   available: "Mon-Fri, 9am-6pm"
+  // }
 ];
 
 export default function HelpPage() {

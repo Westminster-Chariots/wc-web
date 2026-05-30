@@ -206,7 +206,7 @@ export default function AuthPage() {
                 </div>
               </motion.div>
 
-              <div className="flex gap-4">
+              {/* <div className="flex gap-4">
                 <div className="rounded-3xl bg-slate-50 p-3 flex-1 border border-slate-200/50 shadow-sm">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Member since</p>
                   <p className="text-sm text-slate-900 mt-1 font-medium">Elite access</p>
@@ -215,7 +215,7 @@ export default function AuthPage() {
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Status</p>
                   <p className="text-sm text-slate-900 mt-1 font-medium">Executive access</p>
                 </div>
-              </div>
+              </div> */}
 
             </motion.div>
           </div>
