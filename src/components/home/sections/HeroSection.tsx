@@ -67,7 +67,7 @@ export default function HeroSection({
             transition={{ duration: 0.6, delay: 0.2 }}
             className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
           >
-            Your chariot awaits.
+            Your Chariot Awaits.
           </motion.h1>
           <motion.div
             initial={{ opacity: 0 }}

@@ -14,8 +14,8 @@ export const FLEET: Vehicle[] = [
     slug: "mercedes-benz-sedan",
     name: "Mercedes-Benz Sedan",
     category: "Luxury Sedan",
-    passengers: 4,
-    luggage: 4,
+    passengers: 2,
+    luggage: 2,
     image: "/assets/fleet/fleet-mercedes.jpg",
     gallery: [
       { src: "/assets/fleet/fleet-mercedes.jpg", label: "Exterior" },
