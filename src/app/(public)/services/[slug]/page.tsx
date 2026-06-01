@@ -59,7 +59,7 @@ function ServiceDetailContent({ service }: { service: any }) {
         </motion.div>
 
         {/* Back Button */}
-        <div className="absolute top-8 left-8 z-20">
+        {/* <div className="absolute top-8 left-8 z-20">
           <Link
             href="/services"
             className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20"
@@ -67,7 +67,7 @@ function ServiceDetailContent({ service }: { service: any }) {
             <ArrowLeft className="h-4 w-4" />
             All Services
           </Link>
-        </div>
+        </div> */}
 
         {/* Hero Content */}
         <div className="absolute inset-0 flex items-end">
@@ -219,7 +219,7 @@ function ServiceDetailContent({ service }: { service: any }) {
               className="relative aspect-[4/3] rounded-2xl overflow-hidden"
             >
               <Image
-                src={service.image}
+                src={service.detailImage}
                 alt={service.title}
                 fill
                 className="object-cover"

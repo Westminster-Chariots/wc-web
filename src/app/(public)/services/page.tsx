@@ -127,7 +127,7 @@ export default function ServicesPage() {
           >
             <Link
               href="/book"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
+              className="bg-blue-gradient inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
             >
               Book a ride <ArrowRight className="h-4 w-4" />
             </Link>

@@ -46,7 +46,7 @@ export default function FleetPage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="/assets/fleet/fleet-hero.jpg"
+            src="/assets/fleet/fleet-banner-image.png"
             alt="Westminster Chariots luxury fleet lineup"
             fill
             className="object-cover"

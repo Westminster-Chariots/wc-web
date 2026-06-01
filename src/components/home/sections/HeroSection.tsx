@@ -39,7 +39,7 @@ export default function HeroSection({
     <section ref={heroRef} className="relative min-h-screen flex items-center pt-20" data-theme="dark">
       <div className="absolute inset-0 z-0">
         <Image 
-          src="/assets/hero-car.jpg" 
+          src="/assets/home-banner-image.png" 
           alt="Your chauffeur awaits" 
           fill 
           className="object-cover brightness-125" 

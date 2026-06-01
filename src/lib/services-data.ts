@@ -4,7 +4,8 @@ export type ServiceDetail = {
   tagline: string;
   shortDesc: string;
   longDesc: string;
-  image: string;
+  image: string; // Used for service card/widget on listing page
+  detailImage: string; // Used for hero banner on detail page
   highlights: { title: string; desc: string }[];
   benefits: string[];
   faqs: { q: string; a: string }[];
@@ -19,7 +20,8 @@ export const SERVICES: ServiceDetail[] = [
       "Flight-tracked pickups to DCA, IAD, BWI, RIC and beyond — your chauffeur is waiting before you land.",
     longDesc:
       "Reliable, stress-free airport transportation to and from DCA, IAD, BWI, Richmond (RIC), Manassas (HEF) and Stafford (RMN). Professional chauffeurs track your flight, monitor traffic, and assist with luggage — every step is built around an effortless arrival or departure.",
-    image: "/assets/svc-airport.jpg",
+    image: "/assets/services/airport-transfers.png",
+    detailImage: "/assets/services/everything-you-need-section.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Live flight tracking", desc: "We adjust your pickup automatically — early arrivals, delays, gate changes." },
       { title: "Complimentary wait time", desc: "Up to 60 minutes after landing, so you never feel rushed off the plane." },
@@ -45,6 +47,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Professional, on-time and confidential ground transportation for executives, visiting clients and corporate events throughout Washington DC, Maryland and Virginia. Our chauffeurs know the metro intimately and treat your time, and your guests, with the discretion they expect.",
     image: "/assets/svc-corporate.jpg",
+    detailImage: "/assets/svc-corporate.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Account billing", desc: "Centralized monthly invoicing with cost-center and traveler tagging." },
       { title: "Dedicated coordinators", desc: "A single point of contact for road shows, conferences and recurring runs." },
@@ -70,6 +73,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Complete flexibility for your day. Whether it's back-to-back meetings, a personal schedule or a VIP itinerary, your chauffeur stays with you across Washington DC, Maryland and Virginia — productive between stops, ready at every doorstep.",
     image: "/assets/svc-hourly.jpg",
+    detailImage: "/assets/svc-hourly.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Two-hour minimum", desc: "Book as little as two hours or hold the car for a full day." },
       { title: "Stay with the same chauffeur", desc: "Consistency, familiarity and zero re-explaining." },
@@ -94,7 +98,8 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Skip the airport. Travel between DC, Virginia, Maryland and beyond in unhurried comfort.",
     longDesc:
       "Secure, comfortable long-distance ground transport across the East Coast. Skip the airport hassle and travel door-to-door in a premium sedan or SUV — chauffeurs trained for long-haul routes, vehicles prepared for the distance.",
-    image: "/assets/svc-longdistance.jpg",
+    image: "/assets/services/long-distance-transfers.png",
+    detailImage: "/assets/services/long-distance-transfers.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Door-to-door comfort", desc: "No terminals, no security lines, no transfers." },
       { title: "Long-haul-trained chauffeurs", desc: "Rest-rotated for safety on extended routes." },
@@ -120,6 +125,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Make the night about the night. Your chauffeur handles parking, traffic and the route between clubs, lounges and restaurants — so the only thing you have to plan is what to wear.",
     image: "/assets/svc-nightout.jpg",
+    detailImage: "/assets/svc-nightout.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Same driver all evening", desc: "One number, one chauffeur, one car ready when you are." },
       { title: "Safety first", desc: "Trained, screened chauffeurs and tracked trips for total peace of mind." },
@@ -145,6 +151,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Concert nights, without the parking, traffic or rideshare scramble. We drop you at the venue door and stage nearby for an effortless exit when the lights come up.",
     image: "/assets/svc-concert.jpg",
+    detailImage: "/assets/svc-concert.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "VIP drop and pickup", desc: "Coordinated curbside arrival and an organized exit after the show." },
       { title: "Post-show staging", desc: "Driver positions ahead of the encore so you skip the rush." },
@@ -170,6 +177,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Wedding-day transportation that just works. Detailed timelines, immaculate vehicles and chauffeurs who understand the choreography — from first-look photos to the grand exit.",
     image: "/assets/svc-wedding.jpg",
+    detailImage: "/assets/svc-wedding.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Detailed timeline planning", desc: "We map every pickup and drop-off with your planner ahead of time." },
       { title: "Immaculate presentation", desc: "Polished vehicles, polished chauffeurs — wedding-photo ready." },
@@ -195,6 +203,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Prom should feel unforgettable for students and reassuring for parents. Our vetted chauffeurs, tracked trips and elegant vehicles deliver both — across the entire DMV.",
     image: "/assets/svc-prom.jpg",
+    detailImage: "/assets/svc-prom.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Parent peace of mind", desc: "Live trip tracking and direct chauffeur contact throughout the night." },
       { title: "Vetted, professional chauffeurs", desc: "Background-checked drivers trained for student transport." },
@@ -220,6 +229,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Skip the tour buses. Explore Washington's monuments, museums and neighborhoods in a private vehicle with a chauffeur who knows the city. Customize your stops, pace and timing — including evening monument tours.",
     image: "/assets/svc-citytour.jpg",
+    detailImage: "/assets/svc-citytour.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Custom itineraries", desc: "Build your own route or work from our most-loved tour templates." },
       { title: "Evening monument tour", desc: "DC's monuments look entirely different at night — let us show you." },
@@ -244,7 +254,8 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Anniversaries, proposals and quiet evenings — arrive together, leave the driving to us.",
     longDesc:
       "Make the evening about the two of you. Skip the parking, the rideshare wait and the navigation — your chauffeur handles every detail so the moment stays uninterrupted.",
-    image: "/assets/svc-datenight.jpg",
+    image: "/assets/services/date-night-out-widget.png",
+    detailImage: "/assets/services/date-night-out-banner.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Total privacy", desc: "Quiet cabin, discreet chauffeur, the evening is yours." },
       { title: "Surprise-friendly planning", desc: "Proposals, anniversaries, special routes — we coordinate quietly." },
@@ -270,6 +281,7 @@ export const SERVICES: ServiceDetail[] = [
     longDesc:
       "Safe, comfortable and respectful transportation to your place of worship — Sunday services, weekly gatherings, baptisms, weddings and special events. Quiet vehicles, considerate chauffeurs, on time every time.",
     image: "/assets/svc-church.jpg",
+    detailImage: "/assets/svc-church.jpg", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Quiet, dignified ride", desc: "A peaceful cabin to prepare your mind for the service ahead." },
       { title: "Family-friendly fleet", desc: "Sedans for couples, SUVs for families and small groups." },
