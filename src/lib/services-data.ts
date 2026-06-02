@@ -143,32 +143,32 @@ export const SERVICES: ServiceDetail[] = [
       { q: "Is the driver waiting between stops?", a: "Yes — staged nearby, on call within minutes." },
     ],
   },
-  {
-    slug: "concert-transportation",
-    title: "Concert Transportation",
-    tagline: "Front-row entrance, every time.",
-    shortDesc: "Skip the traffic at Capital One Arena, The Anthem and MGM — arrive and depart in style.",
-    longDesc:
-      "Concert nights, without the parking, traffic or rideshare scramble. We drop you at the venue door and stage nearby for an effortless exit when the lights come up.",
-    image: "/assets/svc-concert.jpg",
-    detailImage: "/assets/svc-concert.jpg", // TODO: Replace with dedicated detail page image
-    highlights: [
-      { title: "VIP drop and pickup", desc: "Coordinated curbside arrival and an organized exit after the show." },
-      { title: "Post-show staging", desc: "Driver positions ahead of the encore so you skip the rush." },
-      { title: "All major DC venues", desc: "Capital One Arena, The Anthem, MGM Theater, Wolf Trap and more." },
-    ],
-    benefits: [
-      "Couples, friends or large groups",
-      "Mixed-event nights (dinner + show)",
-      "No parking fees or post-show traffic",
-      "Premium, climate-controlled cabin",
-    ],
-    faqs: [
-      { q: "When should I book?", a: "As early as possible for major shows — vehicles fill quickly on event nights." },
-      { q: "Will the driver be there right after the show?", a: "Yes. We stage nearby and meet you at a pre-agreed pickup spot." },
-      { q: "Can you handle large groups?", a: "Sprinters seat up to 14 — bigger groups are no problem with multi-vehicle dispatch." },
-    ],
-  },
+  // {
+  //   slug: "concert-transportation",
+  //   title: "Concert Transportation",
+  //   tagline: "Front-row entrance, every time.",
+  //   shortDesc: "Skip the traffic at Capital One Arena, The Anthem and MGM — arrive and depart in style.",
+  //   longDesc:
+  //     "Concert nights, without the parking, traffic or rideshare scramble. We drop you at the venue door and stage nearby for an effortless exit when the lights come up.",
+  //   image: "/assets/svc-concert.jpg",
+  //   detailImage: "/assets/svc-concert.jpg", // TODO: Replace with dedicated detail page image
+  //   highlights: [
+  //     { title: "VIP drop and pickup", desc: "Coordinated curbside arrival and an organized exit after the show." },
+  //     { title: "Post-show staging", desc: "Driver positions ahead of the encore so you skip the rush." },
+  //     { title: "All major DC venues", desc: "Capital One Arena, The Anthem, MGM Theater, Wolf Trap and more." },
+  //   ],
+  //   benefits: [
+  //     "Couples, friends or large groups",
+  //     "Mixed-event nights (dinner + show)",
+  //     "No parking fees or post-show traffic",
+  //     "Premium, climate-controlled cabin",
+  //   ],
+  //   faqs: [
+  //     { q: "When should I book?", a: "As early as possible for major shows — vehicles fill quickly on event nights." },
+  //     { q: "Will the driver be there right after the show?", a: "Yes. We stage nearby and meet you at a pre-agreed pickup spot." },
+  //     { q: "Can you handle large groups?", a: "Sprinters seat up to 14 — bigger groups are no problem with multi-vehicle dispatch." },
+  //   ],
+  // },
   {
     slug: "wedding-transportation",
     title: "Wedding Transportation",
@@ -176,8 +176,8 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Immaculate vehicles and graceful chauffeurs for the couple, the party and the guests.",
     longDesc:
       "Wedding-day transportation that just works. Detailed timelines, immaculate vehicles and chauffeurs who understand the choreography — from first-look photos to the grand exit.",
-    image: "/assets/svc-wedding.jpg",
-    detailImage: "/assets/svc-wedding.jpg", // TODO: Replace with dedicated detail page image
+    image: "/assets/services/wedding-pic.png",
+    detailImage: "/assets/services/wedding-pic.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Detailed timeline planning", desc: "We map every pickup and drop-off with your planner ahead of time." },
       { title: "Immaculate presentation", desc: "Polished vehicles, polished chauffeurs — wedding-photo ready." },
@@ -202,8 +202,8 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Elegant SUVs and professional chauffeurs that give teens a memorable night and parents real peace of mind.",
     longDesc:
       "Prom should feel unforgettable for students and reassuring for parents. Our vetted chauffeurs, tracked trips and elegant vehicles deliver both — across the entire DMV.",
-    image: "/assets/svc-prom.jpg",
-    detailImage: "/assets/svc-prom.jpg", // TODO: Replace with dedicated detail page image
+    image: "/assets/services/prom-night.png",
+    detailImage: "/assets/services/prom-night.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Parent peace of mind", desc: "Live trip tracking and direct chauffeur contact throughout the night." },
       { title: "Vetted, professional chauffeurs", desc: "Background-checked drivers trained for student transport." },
