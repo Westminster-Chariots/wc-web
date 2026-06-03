@@ -186,7 +186,7 @@ export default function Navigation({
                 )}
                 
                 {/* Language Toggle */}
-                <div className={`border-l pl-2.5 ${
+                {/* <div className={`border-l pl-2.5 ${
                   useDarkTheme ? 'border-white/20' : 'border-white/10'
                 }`}>
                   <button
@@ -199,7 +199,7 @@ export default function Navigation({
                     <Globe className="h-3 w-3 group-hover:rotate-12 transition-all duration-300" />
                     <span>{lang}</span>
                   </button>
-                </div>
+                </div> */}
               </div>
             </motion.div>
           </div>
@@ -289,14 +289,14 @@ export default function Navigation({
               )}
               
               {/* Language Toggle */}
-              <button
+              {/* <button
                 onClick={cycleLang}
                 className="group flex items-center gap-1.5 text-sm font-semibold text-foreground/80 hover:text-foreground transition-all duration-300 hover:scale-110"
                 aria-label={`Switch language - Current: ${lang}`}
               >
                 <Globe className="h-4 w-4 group-hover:rotate-12 transition-all duration-300" />
                 <span>{lang}</span>
-              </button>
+              </button> */}
             </div>
           </motion.div>
         )}
@@ -358,7 +358,7 @@ export default function Navigation({
                 )}
                 
                 {/* Language Toggle in Mobile */}
-                <div className={`pt-4 border-t ${
+                {/* <div className={`pt-4 border-t ${
                   useDarkTheme ? 'border-white/10' : 'border-gray-200'
                 }`}>
                   <button
@@ -370,7 +370,7 @@ export default function Navigation({
                     <Globe className="h-5 w-5" />
                     <span>Language: {lang}</span>
                   </button>
-                </div>
+                </div> */}
               </div>
             </motion.div>
           </>

@@ -81,7 +81,7 @@ export default function ServicesPage() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/assets/benz-c350.jpg"
+            src="/assets/services/hourly-car-service.png"
             alt="Premium chauffeur service"
             fill
             priority
