@@ -263,7 +263,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
       
       <div className="p-6">
         <h3 className="font-serif text-2xl">{v.name}</h3>
-        <p className="mt-2 line-clamp-3 text-sm text-foreground/65">{v.description}</p>
+        <p className="mt-2 text-sm text-foreground/65 leading-relaxed">{v.description}</p>
 
         <div className="mt-5 flex items-center gap-5 border-t border-white/10 pt-5 text-sm text-foreground/80">
           <div className="flex items-center gap-2">

@@ -11,9 +11,9 @@ export type Vehicle = {
 
 export const FLEET: Vehicle[] = [
   {
-    slug: "mercedes-benz-sedan",
-    name: "Mercedes-Benz Sedan",
-    category: "Luxury Sedan",
+    slug: "first-class-sedan",
+    name: "First Class Sedan",
+    category: "Chariot",
     passengers: 2,
     luggage: 2,
     image: "/assets/fleet/fleet-mercedes.jpg",
@@ -23,12 +23,12 @@ export const FLEET: Vehicle[] = [
       { src: "/assets/fleet/fleet-mercedes-rear.jpg", label: "Rear" },
     ],
     description:
-      "Executive S-Class refinement with whisper-quiet comfort, leather interiors and impeccable ride quality — the signature of professional chauffeured travel.",
+      "Travel in refined luxury with our First Class Sedan fleet, featuring prestigious vehicles such as the Mercedes-Benz S-Class and BMW 7 Series for a smooth, seamless, and exceptionally comfortable ride.",
   },
   {
-    slug: "cadillac-escalade",
-    name: "Cadillac Escalade",
-    category: "Luxury SUV",
+    slug: "first-class-suv",
+    name: "First Class SUV",
+    category: "Grand Chariot",
     passengers: 4,
     luggage: 4,
     image: "/assets/fleet/fleet-escalade.jpg",
@@ -38,12 +38,12 @@ export const FLEET: Vehicle[] = [
       { src: "/assets/fleet/fleet-escalade-rear.jpg", label: "Rear" },
     ],
     description:
-      "Commanding presence and first-class space. The Escalade Platinum pairs bold styling with premium materials for VIP travel and special events.",
+      "Experience elevated travel with our First Class SUV fleet, featuring prestigious vehicles such as the Cadillac Escalade and Lincoln Navigator delivering spacious luxury, refined comfort, and the versatility to handle everything from airport transfers to executive and group travel with ease.",
   },
   {
-    slug: "chevrolet-suburban",
-    name: "Chevrolet Suburban",
-    category: "Premium SUV",
+    slug: "business-class-suv",
+    name: "Business Class SUV",
+    category: "Grand Carriage",
     passengers: 4,
     luggage: 4,
     image: "/assets/fleet/fleet-suburban.jpg",
@@ -53,6 +53,21 @@ export const FLEET: Vehicle[] = [
       { src: "/assets/fleet/fleet-suburban-rear.jpg", label: "Rear" },
     ],
     description:
-      "Generous cabin and cavernous cargo room for families, group transfers and long-distance travel — smooth, dependable and discreet.",
+      "Our Business SUV fleet, featuring vehicles such as the Chevrolet Suburban and Ford Expedition, delivers spacious, reliable, and professional transportation ideal for airport transfers, corporate travel, and executive group transportation.",
+  },
+  {
+    slug: "business-class-sedan",
+    name: "Business Class Sedan",
+    category: "Carriage",
+    passengers: 2,
+    luggage: 2,
+    image: "/assets/fleet/fleet-mercedes-rear.jpg",
+    gallery: [
+      { src: "/assets/fleet/fleet-mercedes.jpg", label: "Exterior" },
+      { src: "/assets/fleet/fleet-mercedes-interior.jpg", label: "Interior" },
+      { src: "/assets/fleet/fleet-mercedes-rear.jpg", label: "Rear" },
+    ],
+    description:
+      "Our Business Sedan fleet features executive vehicles such as the Mercedes-Benz E-Class, BMW 5 Series, and Cadillac CT5, blending sleek design, refined comfort, and smooth performance to deliver a polished and relaxing travel experience for corporate travel, airport transfers, and everyday executive transportation.",
   },
 ];
