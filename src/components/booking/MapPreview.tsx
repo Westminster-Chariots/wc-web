@@ -17,29 +17,75 @@ export default function MapPreview({ pickup, dropoff, className }: MapPreviewPro
   const { isLoaded, loadError } = useJsApiLoader({ googleMapsApiKey: GOOGLE_MAPS_KEY, libraries: LIBRARIES });
   const [pickupPos, setPickupPos] = useState<google.maps.LatLngLiteral | null>(null);
   const [dropoffPos, setDropoffPos] = useState<google.maps.LatLngLiteral | null>(null);
+  const [routePath, setRoutePath] = useState<google.maps.LatLngLiteral[]>([]);
 
   useEffect(() => {
     if (!isLoaded) return;
     const geocoder = new google.maps.Geocoder();
+    const directionsService = new google.maps.DirectionsService();
 
-    if (pickup) {
-      geocoder.geocode({ address: pickup }, (results, status) => {
-        if (status === "OK" && results && results[0]) {
-          const loc = results[0].geometry.location;
-          setPickupPos({ lat: loc.lat(), lng: loc.lng() });
-        } else setPickupPos(null);
-      });
-    } else setPickupPos(null);
+    const geocodeAndRoute = async () => {
+      let pPos: google.maps.LatLngLiteral | null = null;
+      let dPos: google.maps.LatLngLiteral | null = null;
 
-    if (dropoff) {
-      geocoder.geocode({ address: dropoff }, (results, status) => {
-        if (status === "OK" && results && results[0]) {
-          const loc = results[0].geometry.location;
-          setDropoffPos({ lat: loc.lat(), lng: loc.lng() });
-        } else setDropoffPos(null);
-      });
-    } else setDropoffPos(null);
+      if (pickup) {
+        try {
+          const results = await geocoder.geocode({ address: pickup });
+          if (results.results && results.results[0]) {
+            const loc = results.results[0].geometry.location;
+            pPos = { lat: loc.lat(), lng: loc.lng() };
+            setPickupPos(pPos);
+          }
+        } catch (error) {
+          console.error('Pickup geocode error:', error);
+          setPickupPos(null);
+        }
+      } else {
+        setPickupPos(null);
+      }
 
+      if (dropoff) {
+        try {
+          const results = await geocoder.geocode({ address: dropoff });
+          if (results.results && results.results[0]) {
+            const loc = results.results[0].geometry.location;
+            dPos = { lat: loc.lat(), lng: loc.lng() };
+            setDropoffPos(dPos);
+          }
+        } catch (error) {
+          console.error('Dropoff geocode error:', error);
+          setDropoffPos(null);
+        }
+      } else {
+        setDropoffPos(null);
+      }
+
+      // Fetch actual route from Directions API
+      if (pPos && dPos) {
+        try {
+          const result = await directionsService.route({
+            origin: pPos,
+            destination: dPos,
+            travelMode: google.maps.TravelMode.DRIVING,
+          });
+
+          if (result.routes && result.routes[0]) {
+            const path: google.maps.LatLngLiteral[] = [];
+            result.routes[0].overview_path.forEach((point) => {
+              path.push({ lat: point.lat(), lng: point.lng() });
+            });
+            setRoutePath(path);
+          }
+        } catch (error) {
+          console.error('Directions error:', error);
+          setRoutePath([]);
+        }
+      } else {
+        setRoutePath([]);
+      }
+    };
+
+    geocodeAndRoute();
   }, [isLoaded, pickup, dropoff]);
 
   const center = useMemo(() => {
@@ -47,7 +93,7 @@ export default function MapPreview({ pickup, dropoff, className }: MapPreviewPro
     return pickupPos || dropoffPos || { lat: 38.9072, lng: -77.0369 };
   }, [pickupPos, dropoffPos]);
 
-  const path = useMemo(() => (pickupPos && dropoffPos ? [pickupPos, dropoffPos] : undefined), [pickupPos, dropoffPos]);
+  const path = useMemo(() => routePath.length > 0 ? routePath : undefined, [routePath]);
 
   if (loadError) return <div className="rounded-md border border-border bg-card p-4 text-sm text-destructive">Failed to load map</div>;
   if (!isLoaded) return <div className="rounded-md border border-border bg-card p-4 text-sm flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin text-primary"/> Loading map…</div>;
@@ -66,7 +112,7 @@ export default function MapPreview({ pickup, dropoff, className }: MapPreviewPro
           {path && (
             <Polyline
               path={path}
-              options={{ strokeColor: "#2563EB", strokeOpacity: 0.8, strokeWeight: 3 }}
+              options={{ strokeColor: "#2563EB", strokeOpacity: 0.8, strokeWeight: 4 }}
             />
           )}
         </GoogleMap>
