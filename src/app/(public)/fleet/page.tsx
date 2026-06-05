@@ -229,7 +229,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
         ))}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white backdrop-blur-md">
-          {v.category}
+          {v.name}
         </span>
         <span className="absolute right-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.25em] text-white backdrop-blur-md">
           {current.label}
@@ -262,7 +262,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
       </div>
       
       <div className="p-6">
-        <h3 className="font-serif text-2xl">{v.name}</h3>
+        <h3 className="font-serif text-2xl">{v.category}</h3>
         <p className="mt-2 text-sm text-foreground/65 leading-relaxed">{v.description}</p>
 
         <div className="mt-5 flex items-center gap-5 border-t border-white/10 pt-5 text-sm text-foreground/80">

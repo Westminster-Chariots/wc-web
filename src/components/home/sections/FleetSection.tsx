@@ -46,11 +46,11 @@ export default function FleetSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white backdrop-blur-md">
-                  {v.category}
+                  {v.name}
                 </span>
               </div>
               <div className="p-6">
-                <h3 className="font-serif text-2xl">{v.name}</h3>
+                <h3 className="font-serif text-2xl">{v.category}</h3>
                 <div className="mt-4 flex items-center gap-5 text-sm text-foreground/80">
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-accent-blue-bright" />
