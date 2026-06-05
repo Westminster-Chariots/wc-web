@@ -81,8 +81,8 @@ export default function Navigation({
                   <Image 
                     src="/assets/wc-logo-no-motto.png" 
                     alt="Westminster Chariots" 
-                    width={isScrolled ? 55 : 70} 
-                    height={isScrolled ? 55 : 70} 
+                    width={isScrolled ? 55 : 140} 
+                    height={isScrolled ? 55 : 170} 
                     className="object-contain transition-all duration-700 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]" 
                   />
                 </div>
