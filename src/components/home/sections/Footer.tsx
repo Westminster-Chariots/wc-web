@@ -108,13 +108,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a 
-                  href="#contact" 
+                <Link
+                  href="/#contact" 
                   className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
                 >
                   <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
                 <Link 
