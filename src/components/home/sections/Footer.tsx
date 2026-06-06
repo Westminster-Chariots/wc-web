@@ -9,16 +9,16 @@ export default function Footer() {
   const router = useRouter();
   
   const services = [
-    "Airport Transfer",
-    "Corporate Car Service",
-    "Hourly Car Service",
-    "Long Distance Car Service",
-    "Night out",
-    "Concert Transportation",
-    "Transportation for Wedding",
-    "City Tours",
-    "Prom Limo Service",
-    "Date Night"
+    { name: "Airport Transfer", href: "/services/airport-transfer" },
+    { name: "Corporate Car Service", href: "/services/corporate-car-service" },
+    { name: "Hourly Car Service", href: "/services/hourly-car-service" },
+    { name: "Long Distance Car Service", href: "/services/long-distance" },
+    { name: "Night out", href: "/services/night-out" },
+    { name: "Concert Transportation", href: "/services/concert-transportation" },
+    { name: "Transportation for Wedding", href: "/services/wedding-transportation" },
+    { name: "City Tours", href: "/services/city-tours" },
+    { name: "Prom Limo Service", href: "/services/prom-limo" },
+    { name: "Date Night", href: "/services/date-night" }
   ];
 
   return (
@@ -63,13 +63,13 @@ export default function Footer() {
             <h4 className="text-lg font-display font-semibold text-foreground mb-6">Our Services</h4>
             <ul className="space-y-3 text-sm">
               {services.map((service) => (
-                <li key={service}>
+                <li key={service.name}>
                   <Link 
-                    href="/services" 
+                    href={service.href} 
                     className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-1 group"
                   >
                     <span className="w-1 h-1 rounded-full bg-accent-blue-bright/0 group-hover:bg-accent-blue-bright transition-colors" />
-                    {service}
+                    {service.name}
                   </Link>
                 </li>
               ))}

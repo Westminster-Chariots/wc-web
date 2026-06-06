@@ -8,27 +8,30 @@ interface ServicesDropdownProps {
 
 export default function ServicesDropdown({ isDark = false }: ServicesDropdownProps) {
   const services = [
-    { name: "Airport Transfer", href: "/services#airport-transfer" },
-    { name: "Corporate Car Service", href: "/services#corporate-car-service" },
-    { name: "Hourly Car Service", href: "/services#hourly-car-service" },
-    { name: "Long Distance Car Service", href: "/services#long-distance-car-service" },
-    { name: "Night out", href: "/services#night-out" },
-    { name: "Concert Transportation", href: "/services#concert-transportation" },
-    { name: "Transportation for Wedding", href: "/services#transportation-for-wedding" },
-    { name: "City Tours", href: "/services#city-tours" },
-    { name: "Prom Limo Service", href: "/services#prom-limo-service" },
-    { name: "Date Night", href: "/services#date-night" },
+    { name: "Airport Transfer", href: "/services/airport-transfer" },
+    { name: "Corporate Car Service", href: "/services/corporate-car-service" },
+    { name: "Hourly Car Service", href: "/services/hourly-car-service" },
+    { name: "Long Distance Car Service", href: "/services/long-distance" },
+    { name: "Night out", href: "/services/night-out" },
+    { name: "Concert Transportation", href: "/services/concert-transportation" },
+    { name: "Transportation for Wedding", href: "/services/wedding-transportation" },
+    { name: "City Tours", href: "/services/city-tours" },
+    { name: "Prom Limo Service", href: "/services/prom-limo" },
+    { name: "Date Night", href: "/services/date-night" },
   ];
 
   return (
     <div className="relative group">
-      <button className={`flex items-center gap-1 text-sm font-medium transition-all duration-300 relative group ${
-        isDark ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
-      }`}>
+      <a 
+        href="/services"
+        className={`flex items-center gap-1 text-sm font-medium transition-all duration-300 relative group ${
+          isDark ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
+        }`}
+      >
         <span className="relative z-10">Services</span>
         <ChevronDown className="h-3 w-3 group-hover:rotate-180 transition-transform duration-300" />
         <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-      </button>
+      </a>
       
       {/* Dropdown Menu */}
       <div className="absolute top-full left-0 mt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
