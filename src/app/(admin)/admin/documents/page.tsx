@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
-import { FileText, Search, Loader2, Download, Eye, Filter, Calendar, RefreshCw } from "lucide-react";
+import { FileText, Search, Loader2, Download, Eye, Filter, Calendar, RefreshCw, X, Edit, User, Car, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { documentService, type Document } from "@/lib/services";
+import { Label } from "@/components/ui/label";
+import { documentService, bookingService, type Document } from "@/lib/services";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useAdminBookings } from "@/hooks/useAdminBookings";
+import { useDrivers } from "@/hooks/useDrivers";
 
 export default function DocumentHistoryPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -13,10 +16,19 @@ export default function DocumentHistoryPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
+  const [driverFilter, setDriverFilter] = useState("");
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState("");
+  const [bookingIdFilter, setBookingIdFilter] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const { bookings } = useAdminBookings();
+  const { drivers } = useDrivers();
 
   useEffect(() => {
     loadDocuments();
-  }, [typeFilter]);
+  }, [typeFilter, dateFrom, dateTo]);
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -37,15 +49,63 @@ export default function DocumentHistoryPage() {
     }
   };
 
-  const filteredDocuments = documents.filter(doc => {
-    if (!search.trim()) return true;
-    const searchTerm = search.toLowerCase();
-    return (
-      doc.documentNumber.toLowerCase().includes(searchTerm) ||
-      doc.clientEmail.toLowerCase().includes(searchTerm) ||
-      doc.clientName.toLowerCase().includes(searchTerm)
-    );
+  // Get booking info for each document
+  const documentsWithBookings = documents.map(doc => {
+    const booking = doc.bookingId ? bookings.find(b => b.id === doc.bookingId) : null;
+    const driver = booking?.driverId ? drivers.find(d => d.id === booking.driverId) : null;
+    return { ...doc, booking, driver };
   });
+
+  const filteredDocuments = documentsWithBookings.filter(doc => {
+    // Search filter
+    if (search.trim()) {
+      const searchTerm = search.toLowerCase();
+      const matchesSearch = 
+        doc.documentNumber.toLowerCase().includes(searchTerm) ||
+        doc.clientEmail.toLowerCase().includes(searchTerm) ||
+        doc.clientName.toLowerCase().includes(searchTerm) ||
+        doc.booking?.reservationNumber.toLowerCase().includes(searchTerm);
+      if (!matchesSearch) return false;
+    }
+
+    // Client filter
+    if (clientFilter.trim()) {
+      if (!doc.clientName.toLowerCase().includes(clientFilter.toLowerCase())) return false;
+    }
+
+    // Driver filter
+    if (driverFilter && driverFilter !== "all") {
+      if (!doc.booking?.driverId || doc.booking.driverId !== driverFilter) return false;
+    }
+
+    // Vehicle type filter
+    if (vehicleTypeFilter && vehicleTypeFilter !== "all") {
+      if (!doc.booking?.vehicleType || doc.booking.vehicleType !== vehicleTypeFilter) return false;
+    }
+
+    // Booking ID filter
+    if (bookingIdFilter.trim()) {
+      if (!doc.booking?.reservationNumber.toLowerCase().includes(bookingIdFilter.toLowerCase())) return false;
+    }
+
+    return true;
+  });
+
+  const clearFilters = () => {
+    setSearch("");
+    setTypeFilter("all");
+    setDateFrom("");
+    setDateTo("");
+    setClientFilter("");
+    setDriverFilter("");
+    setVehicleTypeFilter("");
+    setBookingIdFilter("");
+  };
+
+  const hasActiveFilters = search || typeFilter !== "all" || dateFrom || dateTo || clientFilter || driverFilter || vehicleTypeFilter || bookingIdFilter;
+
+  // Get unique vehicle types from bookings
+  const vehicleTypes = Array.from(new Set(bookings.map(b => b.vehicleType).filter(Boolean)));
 
   const handlePreview = async (doc: Document) => {
     try {
@@ -165,26 +225,143 @@ export default function DocumentHistoryPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by document #, client name, or email..."
+              placeholder="Search by document #, booking #, client name, or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+            <Button
+              variant={showFilters ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2 whitespace-nowrap"
             >
-              <option value="all">All Documents</option>
-              <option value="driver_manifest">Driver Manifests</option>
-              <option value="client_invoice">Client Invoices</option>
-              <option value="trip_confirmation">Trip Confirmations</option>
-            </select>
+              <Filter className="h-4 w-4" />
+              Filters
+              {hasActiveFilters && <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-foreground text-primary rounded-full">{[search, typeFilter !== "all", dateFrom, dateTo, clientFilter, driverFilter, vehicleTypeFilter, bookingIdFilter].filter(Boolean).length}</span>}
+            </Button>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="gap-1.5"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear
+              </Button>
+            )}
           </div>
         </div>
+
+        {showFilters && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-4 border-t border-border">
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5" />
+                Document Type
+              </Label>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="all">All Types</option>
+                <option value="driver_manifest">Driver Manifests</option>
+                <option value="client_invoice">Client Invoices</option>
+                <option value="trip_confirmation">Trip Confirmations</option>
+              </select>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Date From
+              </Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                Date To
+              </Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Client Name
+              </Label>
+              <Input
+                placeholder="Filter by client..."
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Driver
+              </Label>
+              <select
+                value={driverFilter}
+                onChange={(e) => setDriverFilter(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">All Drivers</option>
+                {drivers.map(driver => (
+                  <option key={driver.id} value={driver.id}>{driver.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <Car className="h-3.5 w-3.5" />
+                Vehicle Type
+              </Label>
+              <select
+                value={vehicleTypeFilter}
+                onChange={(e) => setVehicleTypeFilter(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">All Vehicles</option>
+                {vehicleTypes.map(type => (
+                  <option key={type} value={type}>{type.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-2 flex items-center gap-1.5">
+                <Hash className="h-3.5 w-3.5" />
+                Reservation #
+              </Label>
+              <Input
+                placeholder="Filter by booking #..."
+                value={bookingIdFilter}
+                onChange={(e) => setBookingIdFilter(e.target.value)}
+                className="h-9"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden">
@@ -204,8 +381,10 @@ export default function DocumentHistoryPage() {
                 <tr>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Document #</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Booking</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Driver</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vehicle</th>
                   <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Created</th>
                   <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
@@ -222,10 +401,34 @@ export default function DocumentHistoryPage() {
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-sm text-foreground">{doc.clientName}</span>
+                      {doc.booking ? (
+                        <div className="space-y-0.5">
+                          <span className="font-mono text-xs font-semibold text-primary block">#{doc.booking.reservationNumber}</span>
+                          <span className="text-xs text-muted-foreground">{doc.booking.pickupDate}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">No booking</span>
+                      )}
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-sm text-muted-foreground">{doc.clientEmail}</span>
+                      <div className="space-y-0.5">
+                        <span className="text-sm text-foreground block">{doc.clientName}</span>
+                        <span className="text-xs text-muted-foreground">{doc.clientEmail}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      {doc.driver ? (
+                        <span className="text-sm text-foreground">{doc.driver.name}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-4">
+                      {doc.booking ? (
+                        <span className="text-sm text-foreground uppercase">{doc.booking.vehicleType}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -243,6 +446,12 @@ export default function DocumentHistoryPage() {
                           <Download className="h-3.5 w-3.5" />
                           Download
                         </Button>
+                        {doc.booking && (
+                          <Button variant="ghost" size="sm" onClick={() => window.location.href = `/admin/manifests?booking=${doc.bookingId}`} className="gap-1.5">
+                            <Edit className="h-3.5 w-3.5" />
+                            Update
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

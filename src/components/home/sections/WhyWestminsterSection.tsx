@@ -30,7 +30,7 @@ export default function WhyWestminsterSection() {
         >
           <div className="max-w-2xl text-left">
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
-              Why Westminster
+              Why Westminster Chariots?
             </p>
             <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-5xl">
               Built on reliability, discretion and exceptional service.

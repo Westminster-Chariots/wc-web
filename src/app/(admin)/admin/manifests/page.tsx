@@ -93,6 +93,9 @@ export default function ManifestsPage() {
     vehicleTag: ""
   });
 
+  // Track existing document for update functionality
+  const [existingDocumentId, setExistingDocumentId] = useState<string | null>(null);
+
   const [invoiceData, setInvoiceData] = useState<InvoiceData>({
     invoiceNumber: generateInvoiceNumber(),
     clientName: "",
@@ -157,6 +160,21 @@ export default function ManifestsPage() {
     if (!booking) return;
 
     console.log('Raw booking data:', { pickupDate: booking.pickupDate, pickupTime: booking.pickupTime });
+
+    // Check if document already exists for this booking
+    try {
+      const docType = activeTab === "manifest" ? "driver_manifest" : activeTab === "invoice" ? "client_invoice" : "trip_confirmation";
+      const response = await fetch(`/api/documents/check/${bookingId}/${docType}`);
+      const data = await response.json();
+      if (data.exists && data.document) {
+        setExistingDocumentId(data.document.id);
+        toast.info(`${docType === "driver_manifest" ? "Manifest" : docType === "client_invoice" ? "Invoice" : "Confirmation"} exists - you can update it`);
+      } else {
+        setExistingDocumentId(null);
+      }
+    } catch (error) {
+      setExistingDocumentId(null);
+    }
 
     // Parse date and time properly - handle multiple formats
     const pickupDate = booking.pickupDate; // YYYY-MM-DD
@@ -626,23 +644,29 @@ export default function ManifestsPage() {
       return;
     }
 
-    // Extract client email from booking or use a default
     const booking = selectedBookingId ? bookings.find(b => b.id === selectedBookingId) : null;
     const clientEmail = booking?.clientEmail || "admin@westminsterchariots.com";
     const clientName = manifestData.billTo || "Westminster Chariots";
 
     setSending(true);
     try {
-      await documentService.create({
-        documentType: "driver_manifest",
-        documentNumber: manifestData.reservationNumber,
-        clientEmail,
-        clientName,
-        bookingId: selectedBookingId || undefined,
-        documentData: { manifestData },
-      });
-      
-      toast.success("Driver manifest saved successfully");
+      if (existingDocumentId) {
+        await documentService.update(existingDocumentId, {
+          documentData: { manifestData },
+        });
+        toast.success("Driver manifest updated");
+      } else {
+        const created = await documentService.create({
+          documentType: "driver_manifest",
+          documentNumber: manifestData.reservationNumber,
+          clientEmail,
+          clientName,
+          bookingId: selectedBookingId || undefined,
+          documentData: { manifestData },
+        });
+        setExistingDocumentId(created.id);
+        toast.success("Driver manifest saved");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to save manifest");
     } finally {
@@ -658,20 +682,39 @@ export default function ManifestsPage() {
 
     setSending(true);
     try {
-      // Save document to database
-      await documentService.create({
-        documentType: activeTab === "invoice" ? "client_invoice" : "trip_confirmation",
-        documentNumber: invoiceData.invoiceNumber,
-        clientEmail: invoiceData.clientEmail,
-        clientName: invoiceData.clientName,
-        bookingId: selectedBookingId || undefined,
-        documentData: {
-          invoiceData,
-          driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
-        },
-      });
+      const docType = activeTab === "invoice" ? "client_invoice" : "trip_confirmation";
       
-      toast.success(`${activeTab === "invoice" ? "Invoice" : "Trip confirmation"} saved successfully`);
+      if (existingDocumentId) {
+        await documentService.update(existingDocumentId, {
+          documentData: {
+            invoiceData,
+            driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+          },
+        });
+        if (activeTab === "invoice") {
+          toast.success("Invoice updated");
+        } else {
+          toast.success("Trip confirmation updated");
+        }
+      } else {
+        const created = await documentService.create({
+          documentType: docType,
+          documentNumber: invoiceData.invoiceNumber,
+          clientEmail: invoiceData.clientEmail,
+          clientName: invoiceData.clientName,
+          bookingId: selectedBookingId || undefined,
+          documentData: {
+            invoiceData,
+            driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+          },
+        });
+        setExistingDocumentId(created.id);
+        if (activeTab === "invoice") {
+          toast.success("Invoice saved");
+        } else {
+          toast.success("Trip confirmation saved");
+        }
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to save document");
     } finally {
@@ -687,21 +730,34 @@ export default function ManifestsPage() {
 
     setSending(true);
     try {
-      // First save the document
-      await documentService.create({
-        documentType: activeTab === "invoice" ? "client_invoice" : "trip_confirmation",
-        documentNumber: invoiceData.invoiceNumber,
-        clientEmail: invoiceData.clientEmail,
-        clientName: invoiceData.clientName,
-        bookingId: selectedBookingId || undefined,
-        documentData: {
-          invoiceData,
-          driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
-        },
-      });
+      const docType = activeTab === "invoice" ? "client_invoice" : "trip_confirmation";
       
+      if (existingDocumentId) {
+        await documentService.update(existingDocumentId, {
+          documentData: {
+            invoiceData,
+            driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+          },
+        });
+      } else {
+        await documentService.create({
+          documentType: docType,
+          documentNumber: invoiceData.invoiceNumber,
+          clientEmail: invoiceData.clientEmail,
+          clientName: invoiceData.clientName,
+          bookingId: selectedBookingId || undefined,
+          documentData: {
+            invoiceData,
+            driverInfo: activeTab === "confirmation" ? driverInfo : undefined,
+          },
+        });
+      }
       // TODO: Implement email sending functionality
-      toast.success(`${activeTab === "invoice" ? "Invoice" : "Trip confirmation"} saved and will be sent to ${invoiceData.clientEmail}`);
+      if (activeTab === "invoice") {
+        toast.success("Invoice saved and will be sent to " + invoiceData.clientEmail);
+      } else {
+        toast.success("Trip confirmation saved and will be sent to " + invoiceData.clientEmail);
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to send document");
     } finally {
@@ -905,7 +961,7 @@ export default function ManifestsPage() {
                   disabled={sending}
                 >
                   {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  Save Manifest
+                  {existingDocumentId ? "Update" : "Save"} Manifest
                 </Button>
               )}
               {(activeTab === "invoice" || activeTab === "confirmation") && (
@@ -918,7 +974,7 @@ export default function ManifestsPage() {
                     disabled={sending}
                   >
                     {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                    Save {activeTab === "invoice" ? "Invoice" : "Confirmation"}
+                    {existingDocumentId ? "Update" : "Save"} {activeTab === "invoice" ? "Invoice" : "Confirmation"}
                   </Button>
                   <Button 
                     variant="default" 

@@ -19,7 +19,7 @@ export default function BookingCheckoutPage() {
   const { data, update, addLeg, removeLeg, updateLeg } = useBookingStore();
   const { vehicles } = useFleet();
   const [loading, setLoading] = useState(false);
-  const { calculatePrice, calculateVehicleSpecificPrice, getTaxPercent } = usePricing();
+  const { calculatePrice, calculateVehicleSpecificPrice, getTaxPercent, getVehicleTaxPercent } = usePricing();
 
   const { route } = useRouteDetails(data.pickup, data.dropoff);
   
@@ -66,7 +66,10 @@ export default function BookingCheckoutPage() {
     return calculatePrice(route.distance, route.duration, data.selectedVehicle) || 0;
   }, [vehicleSpecificPrice, route, data.selectedVehicle, calculatePrice]);
   
-  const taxPercent = data.selectedVehicle ? getTaxPercent(data.selectedVehicle) / 100 : 0.2;
+  // Calculate tax - basePrice does NOT include tax, we need to add it
+  const taxPercent = data.selectedVehicleId 
+    ? getVehicleTaxPercent(data.selectedVehicleId) / 100 
+    : (data.selectedVehicle ? getTaxPercent(data.selectedVehicle) / 100 : 0.2);
   const tax = basePrice * taxPercent;
   const total = basePrice + tax;
 
@@ -116,7 +119,7 @@ export default function BookingCheckoutPage() {
     return vehicle?.imageUrl || null;
   }, [vehicles, data.selectedVehicle, data.selectedVehicleId]);
 
-  const grandTotal = basePrice + (legPrices?.reduce((a, b) => a + b, 0) || 0);
+  const grandTotal = total + (legPrices?.reduce((a, b) => a + b, 0) || 0);
 
   useEffect(() => {
     if (!user) {

@@ -143,8 +143,8 @@ const CheckoutSummary = ({
     setEditLegTouched(false);
   };
 
-  const totalTax = grandTotal * 0.2;
-  const grandTotalWithTax = grandTotal + totalTax;
+  // grandTotal already includes tax, don't add it again
+  const displayTotal = grandTotal;
 
   return (
     <motion.div
@@ -453,7 +453,7 @@ const CheckoutSummary = ({
 
       <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
         <span className="text-foreground font-semibold">Total</span>
-        <span className="text-primary font-display font-bold text-lg">${Number(grandTotalWithTax || 0).toFixed(2)}</span>
+        <span className="text-primary font-display font-bold text-lg">${Number(displayTotal || 0).toFixed(2)}</span>
       </div>
 
 
