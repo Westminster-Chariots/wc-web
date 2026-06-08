@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ArrowRight, Users, Briefcase, ShieldCheck, Sparkles, Star, BadgeCheck } from "lucide-react";
 import Navigation from "@/components/home/navigation/Navigation";
 import Footer from "@/components/home/sections/Footer";
+import GoogleReviews from "@/components/GoogleReviews";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { FLEET, type Vehicle } from "@/lib/fleet-data";
@@ -120,7 +121,7 @@ export default function FleetPage() {
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2">
             {FLEET.map((v) => (
               <VehicleCard key={v.slug} v={v} router={router} />
             ))}
@@ -167,18 +168,7 @@ export default function FleetPage() {
             </p>
             <h2 className="mt-4 font-serif text-4xl font-light md:text-5xl">In their own words.</h2>
           </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Testimonial
-              quote="Outstanding experience. The car was spotless and luxurious, and the driver was extremely professional, polite and punctual. It truly felt like a first-class travel experience. I'll definitely be booking again!"
-              name="Howard Chavez"
-              role="Entrepreneur"
-            />
-            <Testimonial
-              quote="From the moment I was picked up I felt taken care of. Immaculate vehicle, calm and considerate chauffeur — exactly the standard you hope for and rarely get."
-              name="Lucas Elliot"
-              role="Designer"
-            />
-          </div>
+          <GoogleReviews />
         </div>
       </section>
 
@@ -310,21 +300,4 @@ function Feature({
   );
 }
 
-function Testimonial({ quote, name, role }: { quote: string; name: string; role: string }) {
-  return (
-    <figure className="rounded-3xl border border-white/10 bg-background/60 p-8 backdrop-blur-md">
-      <div className="flex gap-1 text-accent-blue-bright">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Star key={i} className="h-4 w-4 fill-current" />
-        ))}
-      </div>
-      <blockquote className="mt-5 font-serif text-xl font-light leading-relaxed text-foreground/90">
-        "{quote}"
-      </blockquote>
-      <figcaption className="mt-6 text-sm">
-        <span className="font-semibold text-foreground">{name}</span>
-        <span className="text-foreground/55"> · {role}</span>
-      </figcaption>
-    </figure>
-  );
-}
+

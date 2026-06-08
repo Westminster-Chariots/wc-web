@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, ChevronLeft, ChevronRight, Filter, Download, RefreshCw } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Filter, Download, RefreshCw, Calendar } from "lucide-react";
 import PremiumBookingCard from "./PremiumBookingCard";
 import type { UIBooking, Driver } from "./BookingCard";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,9 @@ export default function PremiumBookingGrid({
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showDateFilters, setShowDateFilters] = useState(false);
 
   const filtered = useMemo(() => {
     return bookings.filter(b => {
@@ -69,8 +72,19 @@ export default function PremiumBookingGrid({
         b.status?.toLowerCase().includes(query) ||
         b.clientCode?.toLowerCase().includes(query)
       );
+    }).filter(b => {
+      // Date range filtering
+      if (!startDate && !endDate) return true;
+      
+      const bookingDate = b.pickupDate;
+      if (!bookingDate) return false;
+      
+      if (startDate && bookingDate < startDate) return false;
+      if (endDate && bookingDate > endDate) return false;
+      
+      return true;
     });
-  }, [bookings, activeFilter, searchQuery]);
+  }, [bookings, activeFilter, searchQuery, startDate, endDate]);
 
   // Reset to page 0 when filters change
   const handleFilterChange = (filter: string) => {
@@ -80,6 +94,22 @@ export default function PremiumBookingGrid({
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
+    setCurrentPage(0);
+  };
+  
+  const handleClearDateFilters = () => {
+    setStartDate('');
+    setEndDate('');
+    setCurrentPage(0);
+  };
+  
+  const setDateRange = (days: number) => {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(today.getDate() - days);
+    
+    setStartDate(start.toISOString().split('T')[0]);
+    setEndDate(today.toISOString().split('T')[0]);
     setCurrentPage(0);
   };
 
@@ -164,15 +194,125 @@ export default function PremiumBookingGrid({
           </div>
           
           <div className="flex items-center gap-2">
-            {/* <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary/30 border border-border">
-              <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs font-body text-muted-foreground">Filters</span>
-            </div> */}
+            <button
+              onClick={() => setShowDateFilters(!showDateFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                showDateFilters || startDate || endDate
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-secondary/30 border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              Date Range
+              {(startDate || endDate) && (
+                <span className="px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-xs">
+                  •
+                </span>
+              )}
+            </button>
             <div className="text-sm text-muted-foreground font-body">
               {filtered.length} of {bookings.length} bookings
             </div>
           </div>
         </div>
+        
+        {/* Date Range Filters */}
+        {showDateFilters && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="pt-4 mt-4 border-t border-border/50"
+          >
+            {/* Quick Presets */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-xs font-semibold text-muted-foreground font-body">Quick Select:</span>
+              <button
+                onClick={() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  setStartDate(today);
+                  setEndDate(today);
+                  setCurrentPage(0);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary/50 border border-border hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setDateRange(7)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary/50 border border-border hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all"
+              >
+                Last 7 Days
+              </button>
+              <button
+                onClick={() => setDateRange(30)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary/50 border border-border hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all"
+              >
+                Last 30 Days
+              </button>
+              <button
+                onClick={() => setDateRange(90)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary/50 border border-border hover:border-primary/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all"
+              >
+                Last 90 Days
+              </button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-muted-foreground font-body mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  className="w-full rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+                />
+              </div>
+              
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-muted-foreground font-body mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setCurrentPage(0);
+                  }}
+                  min={startDate || undefined}
+                  className="w-full rounded-lg border border-border bg-secondary/50 px-4 py-2.5 text-sm font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/30 transition-all"
+                />
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearDateFilters}
+                disabled={!startDate && !endDate}
+                className="shrink-0 border-border hover:bg-secondary"
+              >
+                Clear Dates
+              </Button>
+            </div>
+            
+            {(startDate || endDate) && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground font-body">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>
+                  Showing bookings
+                  {startDate && ` from ${new Date(startDate).toLocaleDateString()}`}
+                  {endDate && ` to ${new Date(endDate).toLocaleDateString()}`}
+                </span>
+              </div>
+            )}
+          </motion.div>
+        )}
         
         {/* Filter Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto pt-4 mt-4 border-t border-border/50">

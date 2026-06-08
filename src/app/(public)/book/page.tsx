@@ -167,9 +167,14 @@ export default function BookingPage() {
         const baseRate = vehicle.type === "sedan" ? 30 : 37;
         const ratePerMile = vehicle.type === "sedan" ? 4.0 : 4.5;
         const ratePerMinute = vehicle.type === "sedan" ? 1.25 : 1.55;
-        fallbackPrices[vehicle.id] = Math.round(
-          (baseRate + (ratePerMile * route.distance) + (ratePerMinute * route.duration)) * 100
-        ) / 100;
+        let price = baseRate + (ratePerMile * route.distance) + (ratePerMinute * route.duration);
+        
+        // Apply 2x multiplier if distance is over 50 miles
+        if (route.distance > 50) {
+          price = price * 2;
+        }
+        
+        fallbackPrices[vehicle.id] = Math.round(price * 100) / 100;
       });
       
       // Try to calculate prices with API, fall back to simple calculation
@@ -321,23 +326,47 @@ export default function BookingPage() {
   useEffect(() => {
     if (!isLoaded || !isEditingTrip) return;
 
-    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void) => {
+    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void, restrictToVirginia: boolean = false) => {
       if (!input || !window.google) return;
       
-      const autocomplete = new window.google.maps.places.Autocomplete(input, {
+      const options: google.maps.places.AutocompleteOptions = {
         fields: ["formatted_address"],
-      });
+      };
+      
+      if (restrictToVirginia) {
+        options.componentRestrictions = { country: "us" };
+        options.bounds = {
+          north: 39.4660,
+          south: 36.5407,
+          east: -75.2420,
+          west: -83.6753
+        };
+        options.strictBounds = false;
+      }
+      
+      const autocomplete = new window.google.maps.places.Autocomplete(input, options);
 
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
-          setter(place.formatted_address);
+          // If restricting to Virginia, validate the address
+          if (restrictToVirginia) {
+            const address = place.formatted_address.toLowerCase();
+            if (address.includes(', va') || address.includes(', virginia') || address.includes('virginia')) {
+              setter(place.formatted_address);
+            } else {
+              notify.error("Please select a location in Virginia");
+              input.value = "";
+            }
+          } else {
+            setter(place.formatted_address);
+          }
         }
       });
     };
 
-    setupAutocomplete(pickupInputRef.current, setEditPickup);
-    setupAutocomplete(dropoffInputRef.current, setEditDropoff);
+    setupAutocomplete(pickupInputRef.current, setEditPickup, true);
+    setupAutocomplete(dropoffInputRef.current, setEditDropoff, false);
   }, [isLoaded, isEditingTrip]);
 
 

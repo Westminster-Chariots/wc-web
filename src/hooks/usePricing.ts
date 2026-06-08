@@ -194,7 +194,13 @@ export function usePricing() {
     // First try to use vehicle-specific pricing if vehicleId is provided
     if (vehicleId && vehiclePricing[vehicleId]) {
       const config = vehiclePricing[vehicleId];
-      const basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
+      let basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
+      
+      // Apply 2x multiplier if distance is over 50 miles
+      if (distance > 50) {
+        basePrice = basePrice * 2;
+      }
+      
       return Math.round(basePrice * 100) / 100;
     }
     
@@ -202,7 +208,13 @@ export function usePricing() {
     const config = configs.find(c => c.vehicleType === vehicleType);
     if (!config) return null;
     
-    const basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
+    let basePrice = config.baseRate + (config.ratePerMile * distance) + (config.ratePerMinute * duration);
+    
+    // Apply 2x multiplier if distance is over 50 miles
+    if (distance > 50) {
+      basePrice = basePrice * 2;
+    }
+    
     return Math.round(basePrice * 100) / 100; // Round to 2 decimal places
   }, [configs, vehiclePricing]);
 
@@ -238,7 +250,13 @@ export function usePricing() {
           setVehiclePricing(prev => ({ ...prev, [vehicleId]: pricingConfig }));
           
           // Calculate price
-          const basePrice = pricingConfig.baseRate + (pricingConfig.ratePerMile * distance) + (pricingConfig.ratePerMinute * duration);
+          let basePrice = pricingConfig.baseRate + (pricingConfig.ratePerMile * distance) + (pricingConfig.ratePerMinute * duration);
+          
+          // Apply 2x multiplier if distance is over 50 miles
+          if (distance > 50) {
+            basePrice = basePrice * 2;
+          }
+          
           return Math.round(basePrice * 100) / 100;
         }
       }
@@ -264,7 +282,13 @@ export function usePricing() {
           setVehiclePricing(prev => ({ ...prev, [vehicleId]: pricingConfig }));
           
           // Calculate price
-          const basePrice = pricingConfig.baseRate + (pricingConfig.ratePerMile * distance) + (pricingConfig.ratePerMinute * duration);
+          let basePrice = pricingConfig.baseRate + (pricingConfig.ratePerMile * distance) + (pricingConfig.ratePerMinute * duration);
+          
+          // Apply 2x multiplier if distance is over 50 miles
+          if (distance > 50) {
+            basePrice = basePrice * 2;
+          }
+          
           return Math.round(basePrice * 100) / 100;
         }
       } catch (authErr) {

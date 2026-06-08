@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import LocationInput from "./LocationInput";
@@ -47,9 +48,10 @@ export default function BookingModal({
   minTime,
 }: BookingModalProps) {
   const content = modalContent[type];
+  const [validationError, setValidationError] = useState("");
 
   const handleConfirm = () => {
-    if (value) {
+    if (value && !validationError) {
       onClose();
     }
   };
@@ -127,6 +129,8 @@ export default function BookingModal({
                       value={value}
                       onChange={(v, isAirport) => onChange(v, isAirport)}
                       icon={type}
+                      restrictToVirginia={type === "pickup"}
+                      onValidationError={(error) => setValidationError(error)}
                     />
                   </div>
                 )}
@@ -158,11 +162,20 @@ export default function BookingModal({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.4 }}
                 onClick={handleConfirm}
-                disabled={!value}
-                className="w-full mt-6 bg-blue-gradient shadow-blue rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!value || (type === "pickup" && validationError !== "")}
+                className="w-full mt-6 bg-blue-gradient shadow-blue rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 Confirm
               </motion.button>
+              {validationError && type === "pickup" && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 text-xs text-red-400 font-body text-center"
+                >
+                  Please select a valid location in Virginia
+                </motion.p>
+              )}
             </motion.div>
           </div>
         </>

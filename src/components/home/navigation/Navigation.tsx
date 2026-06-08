@@ -79,7 +79,7 @@ export default function Navigation({
               >
                 <div className="relative">
                   <Image 
-                    src="/assets/wc-logo-no-motto.png" 
+                    src={isScrolled ? "/assets/wc-logo-no-motto.png": "/assets/wc-logo-no-motto-no-bg.png"} 
                     alt="Westminster Chariots" 
                     width={isScrolled ? 55 : 140} 
                     height={isScrolled ? 55 : 170} 

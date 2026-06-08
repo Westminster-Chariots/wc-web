@@ -30,7 +30,7 @@ export default function FleetSection() {
           </Link>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
           {FLEET.map((v) => (
             <Link
               key={v.slug}
