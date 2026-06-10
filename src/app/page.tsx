@@ -57,6 +57,27 @@ export default function Home() {
     }
   }, []);
   
+  // Persist booking data whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && (pickup || dropoff || pickupDate || pickupTime)) {
+      try {
+        const saved = sessionStorage.getItem("wc_booking");
+        const existing = saved ? JSON.parse(saved) : {};
+        const updated = {
+          ...existing,
+          pickup,
+          dropoff,
+          isPickupAirport,
+          pickupDate,
+          pickupTime,
+        };
+        sessionStorage.setItem("wc_booking", JSON.stringify(updated));
+      } catch (e) {
+        console.error('Failed to save booking data:', e);
+      }
+    }
+  }, [pickup, dropoff, isPickupAirport, pickupDate, pickupTime]);
+  
   // UI state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [typedText, setTypedText] = useState("");

@@ -1,0 +1,21 @@
+{
+  "name": "Westminster Chariots",
+  "short_name": "Westminster Chariots",
+  "icons": [
+    {
+      "src": "/wc-web/public/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/wc-web/public/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#09adff",
+  "background_color": "#09adff",
+  "display": "standalone"
+}
