@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check, Phone, Menu, X, UserCircle, LogOut, Globe } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -45,22 +45,14 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
             {/* Logo */}
             <Link href="/" className="group flex items-center gap-3 hover:scale-105 transition-all duration-300">
               <Image 
-                src="/assets/wc-logo-full.png" 
+                src="/assets/wc-logo-no-motto.png" 
                 alt="Westminster Chariots" 
                 width={40} 
                 height={40} 
+                style={{ width: 'auto', height: '40px' }}
                 className="object-contain transition-all duration-300 group-hover:brightness-110 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
               />
             </Link>
-
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden text-foreground hover:text-primary transition-all duration-300 p-2 hover:scale-110 hover:rotate-90" 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-6">
@@ -119,19 +111,64 @@ export default function BookLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               )}
               
-              {/* Language Toggle */}
-              <button
-                onClick={cycleLang}
-                className="group flex items-center gap-1.5 text-sm font-semibold text-foreground/80 hover:text-foreground transition-all duration-300 hover:scale-110"
-                aria-label={`Switch language - Current: ${lang}`}
+              {/* Mobile Menu Button */}
+              <button 
+                className="md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm p-3 transition-all duration-300 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground" 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               >
-                <Globe className="h-4 w-4 group-hover:rotate-12 transition-all duration-300" />
-                <span>{lang}</span>
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </div>
           </motion.div>
         </div>
       </header>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed h-[100vh] inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="fixed top-20 left-4 right-4 md:hidden bg-white border border-white/10 rounded-3xl z-50 overflow-y-auto shadow-glass max-h-[80vh]"
+            >
+              <div className="px-5 py-6 space-y-5 sm:px-6">
+                <a href="/services" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-gray-900 hover:text-primary transition-colors duration-200 py-3">Services</a>
+                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-gray-900 hover:text-primary transition-colors duration-200 py-3">Our Fleet</a>
+                <a href="/help" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-gray-900 hover:text-primary transition-colors duration-200 py-3">Help</a>
+                
+                {user ? (
+                  <>
+                    <Link href="/account" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 text-base text-gray-900 py-2">
+                      <UserCircle className="h-5 w-5" />
+                      {displayName}
+                    </Link>
+                    {isAdmin && (
+                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="block text-base font-medium text-gray-900 py-2">Dashboard</Link>
+                    )}
+                    <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="flex items-center gap-2 text-base text-destructive py-2">
+                      <LogOut className="h-5 w-5" /> Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="block btn-primary px-6 py-3 rounded-full text-base text-center">Sign In</Link>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Progress Stepper */}
       <div className="fixed top-16 right-[10%] left-[10%] z-40 bg-background/95 backdrop-blur-md rounded-xl border border-border shadow-glass mb-6">

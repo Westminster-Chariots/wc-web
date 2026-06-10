@@ -81,8 +81,8 @@ export default function Navigation({
                   <Image 
                     src={isScrolled ? "/assets/wc-logo-no-motto.png": "/assets/wc-logo-no-motto-no-bg.png"} 
                     alt="Westminster Chariots" 
-                    width={isScrolled ? 55 : 140} 
-                    height={isScrolled ? 55 : 170} 
+                    width={isScrolled ? 55 : 100} 
+                    height={isScrolled ? 55 : 140} 
                     className="object-contain transition-all duration-700 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]" 
                   />
                 </div>
@@ -218,18 +218,10 @@ export default function Navigation({
                 alt="Westminster Chariots" 
                 width={40} 
                 height={40} 
+                style={{ width: 'auto', height: '40px' }}
                 className="object-contain transition-all duration-300 group-hover:brightness-110 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
               />
             </Link>
-
-            {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm p-3 transition-all duration-300 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground" 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-6">
@@ -288,15 +280,14 @@ export default function Navigation({
                 </Link>
               )}
               
-              {/* Language Toggle */}
-              {/* <button
-                onClick={cycleLang}
-                className="group flex items-center gap-1.5 text-sm font-semibold text-foreground/80 hover:text-foreground transition-all duration-300 hover:scale-110"
-                aria-label={`Switch language - Current: ${lang}`}
+              {/* Mobile Menu Button */}
+              <button 
+                className="md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm p-3 transition-all duration-300 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground" 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               >
-                <Globe className="h-4 w-4 group-hover:rotate-12 transition-all duration-300" />
-                <span>{lang}</span>
-              </button> */}
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
             </div>
           </motion.div>
         )}

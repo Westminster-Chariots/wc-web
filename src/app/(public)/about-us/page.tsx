@@ -44,7 +44,7 @@ export default function AboutPage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 z-0">
           <Image
-            src="/assets/home-banner-image.png"
+            src="/assets/services/hourly-car-service.png"
             alt="Westminster Chariots - About Us"
             fill
             className="object-cover"
@@ -97,7 +97,7 @@ export default function AboutPage() {
 
               <div className="my-12 rounded-xl overflow-hidden">
                 <Image 
-                  src="/assets/hero-car.jpg" 
+                  src="/assets/home-banner-image.png" 
                   alt="Westminster Chariots luxury vehicle" 
                   width={1200} 
                   height={600} 
