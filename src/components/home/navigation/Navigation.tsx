@@ -83,6 +83,7 @@ export default function Navigation({
                     alt="Westminster Chariots" 
                     width={isScrolled ? 55 : 100} 
                     height={isScrolled ? 55 : 140} 
+                    style={{ width: 'auto', height: isScrolled ? '55px' : '100px' }}
                     className="object-contain transition-all duration-700 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]" 
                   />
                 </div>
