@@ -38,6 +38,25 @@ export default function Home() {
   const [pickupTime, setPickupTime] = useState("");
   const [bookingMode, setBookingMode] = useState<"oneway" | "hourly">("oneway");
   
+  // Load persisted booking data on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("wc_booking");
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data.pickup) setPickup(data.pickup);
+          if (data.dropoff) setDropoff(data.dropoff);
+          if (data.isPickupAirport) setIsPickupAirport(data.isPickupAirport);
+          if (data.pickupDate) setPickupDate(data.pickupDate);
+          if (data.pickupTime) setPickupTime(data.pickupTime);
+        }
+      } catch (e) {
+        console.error('Failed to load booking data:', e);
+      }
+    }
+  }, []);
+  
   // UI state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [typedText, setTypedText] = useState("");
