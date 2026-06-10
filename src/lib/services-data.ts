@@ -48,9 +48,9 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Discreet, punctual executive transport across the DMV — built for boards, clients and back-to-back meetings.",
     longDesc:
       "Professional, on-time and confidential ground transportation for executives, visiting clients and corporate events throughout Washington DC, Maryland and Virginia. Our chauffeurs know the metro intimately and treat your time, and your guests, with the discretion they expect.",
-    image: "/assets/services/corporate-transfers.png",
-    bannerImage: "/assets/services/corporate-transfers.png",
-    detailImage: "/assets/services/corporate-transfers.png", // TODO: Replace with dedicated detail page image
+    image: "/assets/services/corporate-transfers-v2.png",
+    bannerImage: "/assets/services/corporate-transfers-v2.png",
+    detailImage: "/assets/services/corporate-transfers-v2.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Account billing", desc: "Centralized monthly invoicing with cost-center and traveler tagging." },
       { title: "Dedicated coordinators", desc: "A single point of contact for road shows, conferences and recurring runs." },
@@ -75,12 +75,12 @@ export const SERVICES: ServiceDetail[] = [
     shortDesc: "Keep a sedan or SUV at your command for meetings, errands or a full day of moving through the city.",
     longDesc:
       "Complete flexibility for your day. Whether it's back-to-back meetings, a personal schedule or a VIP itinerary, your chauffeur stays with you across Washington DC, Maryland and Virginia — productive between stops, ready at every doorstep.",
-    image: "/assets/services/hourly-car-service.png",
-    bannerImage: "/assets/services/hourly-car-service.png",
-    detailImage: "/assets/services/hourly-car-service.png", // TODO: Replace with dedicated detail page image
+    image: "/assets/hourly-car.png",
+    bannerImage: "/assets/hourly-car.png",
+    detailImage: "/assets/hourly-car.png", // TODO: Replace with dedicated detail page image
     highlights: [
       { title: "Two-hour minimum", desc: "Book as little as two hours or hold the car for a full day." },
-      { title: "Stay with the same chauffeur", desc: "Consistency, familiarity and zero re-explaining." },
+      { title: "Stay with the same chauffeur", desc: "Conjsistency, familiarity and zero re-explaining." },
       { title: "Quiet, private cabin", desc: "Take calls, prep for meetings or simply decompress." },
     ],
     benefits: [

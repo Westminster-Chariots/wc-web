@@ -57,10 +57,10 @@ function PremiumSidebar({ collapsed, setCollapsed }: { collapsed: boolean; setCo
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="relative flex items-center gap-3">
             <Image 
-              src="/assets/wc-logo-full.png" 
+              src="/assets/wc-logo-no-motto-no-bg.png" 
               alt="Westminster Chariots" 
               width={collapsed ? 40 : 160} 
-              height={40} 
+              height={40}   
               className="relative object-contain shrink-0 transition-all duration-300" 
               style={{
                 objectFit: 'contain',
@@ -326,7 +326,7 @@ function PremiumMobileMenu() {
                 <Link href="/" onClick={handleClose} className="block">
                   <div className="flex items-center gap-3">
                     <Image 
-                      src="/assets/wc-logo-full.png" 
+                      src="/assets/wc-logo-no-motto-no-bg.png" 
                       alt="Westminster Chariots" 
                       width={160} 
                       height={40} 

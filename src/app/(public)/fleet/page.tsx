@@ -212,7 +212,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
             alt={`${v.name} — ${g.label}`}
             fill
             className={cn(
-              "object-cover transition-opacity duration-500",
+              "object-contain transition-opacity duration-500",
               i === active ? "opacity-100" : "opacity-0",
             )}
           />
@@ -245,8 +245,12 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
               src={g.src}
               alt=""
               fill
-              className="object-cover"
-            />
+              className={
+                 g.src === "/assets/fleet/2027-s-class.png"
+                ? "object-contain"
+                 : "object-cover"
+              }
+              ></Image>
           </button>
         ))}
       </div>

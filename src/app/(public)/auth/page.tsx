@@ -173,7 +173,7 @@ export default function AuthPage() {
             >
               <Link href="/" className="inline-block mb-12">
                 <Image
-                  src="/assets/wc-logo-full.png"
+                  src="/assets/wc-logo-no-motto-no-bg.png"
                   alt="Westminster Chariots"
                   width={160}
                   height={56}
@@ -236,7 +236,7 @@ export default function AuthPage() {
               <div className="lg:hidden flex justify-center mb-8">
                 <Link href="/" className="inline-block">
                   <Image 
-                    src="/assets/wc-logo-full.png" 
+                    src="/assets/wc-logo-no-motto-no-bg.png" 
                     alt="Westminster Chariots" 
                     width={150} 
                     height={40} 

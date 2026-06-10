@@ -16,11 +16,11 @@ export const FLEET: Vehicle[] = [
     category: "Luxury Sedan",
     passengers: 2,
     luggage: 2,
-    image: "/assets/fleet/fleet-mercedes.jpg",
+    image: "/assets/fleet/2027-s-class.png",
     gallery: [
-      { src: "/assets/fleet/fleet-mercedes.jpg", label: "Exterior" },
-      { src: "/assets/fleet/fleet-mercedes-interior.jpg", label: "Interior" },
-      { src: "/assets/fleet/fleet-mercedes-rear.jpg", label: "Rear" },
+      { src: "/assets/fleet/2027-s-class.png", label: "Exterior" },
+      { src: "/assets/fleet/2027-s-class-interior.png", label: "Interior" },
+      { src: "/assets/fleet/2027-s-class-rear.png", label: "Rear" },
     ],
     description:
       "Travel in refined luxury with our First Class Sedan fleet, featuring prestigious vehicles such as the Mercedes-Benz S-Class and BMW 7 Series for a smooth, seamless, and exceptionally comfortable ride.",
@@ -31,11 +31,11 @@ export const FLEET: Vehicle[] = [
     category: "Luxury SUV",
     passengers: 4,
     luggage: 4,
-    image: "/assets/fleet/fleet-escalade.jpg",
+    image: "/assets/fleet/fleet-escalade.png",
     gallery: [
-      { src: "/assets/fleet/fleet-escalade.jpg", label: "Exterior" },
-      { src: "/assets/fleet/fleet-escalade-interior.jpg", label: "Interior" },
-      { src: "/assets/fleet/fleet-escalade-rear.jpg", label: "Rear" },
+      { src: "/assets/fleet/fleet-escalade.png", label: "Exterior" },
+      { src: "/assets/fleet/fleet-escalade-interior.png", label: "Interior" },
+      { src: "/assets/fleet/fleet-escalade-rear.png", label: "Rear" },
     ],
     description:
       "Experience elevated travel with our First Class SUV fleet, featuring prestigious vehicles such as the Cadillac Escalade and Lincoln Navigator delivering spacious luxury, refined comfort, and the versatility to handle everything from airport transfers to executive and group travel with ease.",

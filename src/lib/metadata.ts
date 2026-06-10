@@ -132,7 +132,7 @@ export const structuredData = {
     "@type": "Organization",
     name: SITE_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/assets/wc-logo-full.png`,
+    logo: `${SITE_URL}/assets/wc-logo-no-motto-no-bg.png`,
     description: SITE_DESCRIPTION,
     address: {
       "@type": "PostalAddress",
