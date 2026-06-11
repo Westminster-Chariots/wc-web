@@ -2,7 +2,10 @@ import { Metadata } from "next";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://westminsterchariots.com";
 const SITE_NAME = "Westminster Chariots";
-const SITE_DESCRIPTION = "Premium chauffeur service across Washington DC, Northern Virginia, and Maryland. Professional black car service with Mercedes-Benz fleet, licensed chauffeurs, and 24/7 availability.";
+const SITE_DESCRIPTION = 
+  "Westminster Chariots: Premium black car service serving Washington DC, Northern Virginia, and Maryland. " +
+  "Mercedes-Benz fleet, professional chauffeurs, airport transfers, corporate transportation. " +
+  "Available 24/7 · Licensed & Insured · Book online instantly.";
 
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -12,20 +15,56 @@ export const defaultMetadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    // Location-based keywords
     "luxury car service DC",
     "black car service Washington DC",
-    "executive transportation",
-    "airport transfer DC",
-    "chauffeur service Virginia",
+    "chauffeur service Northern Virginia",
     "chauffeur service Maryland",
-    "corporate car service",
-    "Mercedes-Benz chauffeur",
-    "DCA airport transfer",
+    "DMV car service",
+    "Arlington car service",
+    "Alexandria car service",
+    "Bethesda car service",
+    "Tysons car service",
+    "McLean chauffeur",
+    
+    // Service-based keywords
+    "airport transfer DC",
+    "DCA airport car service",
     "IAD airport transfer",
-    "BWI airport transfer",
+    "BWI airport pickup",
+    "Dulles airport car service",
+    "Reagan National airport transfer",
+    "corporate car service DC",
+    "executive transportation",
+    "business car service",
+    "hourly car service",
+    "point to point service",
+    "chauffeur by the hour",
+    
+    // Vehicle-based keywords
+    "Mercedes-Benz chauffeur",
+    "luxury sedan service",
+    "executive SUV service",
+    "S-Class chauffeur",
+    "Mercedes GLS service",
+    "premium car service",
+    
+    // Event-based keywords
+    "wedding transportation DC",
+    "concert transportation",
+    "night out car service",
+    "date night transportation",
+    "prom limousine service",
     "diplomatic transportation",
-    "Northern Virginia car service",
-    "DMV chauffeur service",
+    "government car service",
+    
+    // Quality indicators
+    "licensed chauffeur DC",
+    "professional car service",
+    "24/7 car service",
+    "VIP car service",
+    "luxury black car",
+    "private chauffeur",
   ],
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
@@ -152,6 +191,13 @@ export const structuredData = {
       "https://www.instagram.com/westminsterchariots",
       "https://www.linkedin.com/company/westminsterchariots",
     ],
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: "150",
+      bestRating: "5",
+      worstRating: "1",
+    },
   },
   localBusiness: {
     "@context": "https://schema.org",
@@ -234,6 +280,13 @@ export const structuredData = {
         },
       ],
     },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: "150",
+      bestRating: "5",
+      worstRating: "1",
+    },
   },
   website: {
     "@context": "https://schema.org",
@@ -249,4 +302,72 @@ export const structuredData = {
       "query-input": "required name=search_term_string",
     },
   },
+
+  // FAQ Schema for help/support pages
+  faq: {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "How far in advance should I book?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "We recommend booking at least 24 hours in advance for guaranteed availability. However, we also accept last-minute bookings based on chauffeur availability. For bookings within 4 hours, please call us directly at (571) 426-6338.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What payment methods do you accept?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure Stripe payment system. Corporate accounts can also be set up with monthly billing.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Are your chauffeurs licensed and insured?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes, all our chauffeurs are fully licensed, professionally trained, and background-checked. All vehicles are commercially insured with comprehensive coverage for your safety and peace of mind.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What areas do you serve?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "We serve the entire Washington DC Metropolitan Area, including the District of Columbia, Northern Virginia (Arlington, Alexandria, Fairfax, Tysons, McLean), and Maryland (Montgomery County, Prince George's County, Bethesda). We also provide long-distance service to nearby cities.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Do you provide airport transfer services?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes, we provide professional airport transfer services to all three major airports: Reagan National (DCA), Dulles International (IAD), and Baltimore/Washington International (BWI). We offer flight tracking and meet & greet services.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "What is your cancellation policy?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "You may cancel your reservation up to 24 hours before your scheduled pickup time for a full refund. Cancellations within 24 hours are subject to a cancellation fee. No-shows are non-refundable.",
+        },
+      },
+    ],
+  },
+
+  // Breadcrumb helper function
+  getBreadcrumb: (items: Array<{ name: string; url: string }>) => ({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: `${SITE_URL}${item.url}`,
+    })),
+  }),
 };

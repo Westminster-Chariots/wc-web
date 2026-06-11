@@ -2,10 +2,29 @@
 User-agent: *
 Allow: /
 
-# Disallow admin and auth pages
+# Disallow admin and private pages
 Disallow: /admin
-Disallow: /auth/
+Disallow: /admin/*
+Disallow: /account
+Disallow: /account/*
 Disallow: /api/
+Disallow: /book/checkout
+Disallow: /auth/callback
+Disallow: /auth/verify-email
+Disallow: /reset-password
 
-# Sitemap
+# Sitemap location
 Sitemap: https://westminsterchariots.com/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Rate limiting for aggressive bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10
