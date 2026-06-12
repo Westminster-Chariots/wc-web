@@ -18,14 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
         <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/icon.ico" type="image/ico" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
         
         {/* Manifest */}
         <link rel="manifest" href="/manifest.json" />
         
         {/* Theme Colors - Blue Theme */}
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/icon.ico" type="image/svg+xml" />
         <meta name="theme-color" content="#09adff" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
         
