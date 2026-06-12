@@ -36,7 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...staticPages.map((path) => ({
       url: `${SITE_URL}${path}`,
       lastModified: new Date(),
-      changeFrequency: path === "" ? "daily" : "weekly" as const,
+      changeFrequency: (path === "" ? "daily" : "weekly") as "daily" | "weekly" | "monthly" | "always" | "hourly" | "yearly" | "never",
       priority: path === "" ? 1.0 : path === "/book" ? 0.9 : 0.8,
     })),
     
@@ -44,7 +44,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...services.map((service) => ({
       url: `${SITE_URL}/services/${service}`,
       lastModified: new Date(),
-      changeFrequency: "monthly" as const,
+      changeFrequency: "monthly" as "daily" | "weekly" | "monthly" | "always" | "hourly" | "yearly" | "never",
       priority: 0.7,
     })),
   ];
