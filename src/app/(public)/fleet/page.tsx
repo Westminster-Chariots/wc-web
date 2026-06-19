@@ -50,6 +50,7 @@ export default function FleetPage() {
             src="/assets/fleet/fleet-banner-image.png"
             alt="Westminster Chariots luxury fleet lineup"
             fill
+            sizes="100vw"
             className="object-cover"
             priority
           />
@@ -211,6 +212,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
             src={g.src}
             alt={`${v.name} — ${g.label}`}
             fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 640px"
             className={cn(
               "object-contain transition-opacity duration-500",
               i === active ? "opacity-100" : "opacity-0",
@@ -245,12 +247,10 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
               src={g.src}
               alt=""
               fill
-              className={
-                 g.src === "/assets/fleet/2027-s-class.png"
-                ? "object-contain"
-                 : "object-cover"
-              }
-              ></Image>
+
+              sizes="80px"
+              className="object-cover"
+            />
           </button>
         ))}
       </div>

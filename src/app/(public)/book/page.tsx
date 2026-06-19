@@ -386,7 +386,7 @@ export default function BookingPage() {
                 </div>
               ) : (
                 <div className="flex-1 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <Input
                       type="date"
                       value={editDate}
@@ -500,16 +500,6 @@ export default function BookingPage() {
         )}
 
         <AnimatePresence>
-          {currentStep === 0 && gatekeeperStatus === "urgent" && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="glass-card rounded-xl border-status-pending/30 px-5 sm:px-6 py-4 sm:py-5 mb-6 sm:mb-8 shadow-glass"
-            >
-              <p className="text-xs sm:text-sm text-status-pending-fg font-body font-semibold">⚡ Within 12-hour window — dispatcher verification required at checkout</p>
-            </motion.div>
-          )}
           {currentStep === 0 && gatekeeperStatus === "emergency" && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
