@@ -214,7 +214,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 640px"
             className={cn(
-              "object-cover transition-opacity duration-500",
+              "object-contain transition-opacity duration-500",
               i === active ? "opacity-100" : "opacity-0",
             )}
           />
@@ -247,6 +247,7 @@ function VehicleCard({ v, router }: { v: Vehicle; router: any }) {
               src={g.src}
               alt=""
               fill
+
               sizes="80px"
               className="object-cover"
             />
