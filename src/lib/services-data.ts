@@ -204,7 +204,7 @@ export const SERVICES: ServiceDetail[] = [
     ],
   },
   {
-    slug: "prom-limo-service",
+    slug: "prom-limo",
     title: "Prom Limo Service",
     tagline: "A night they'll remember — safely.",
     shortDesc: "Elegant SUVs and professional chauffeurs that give teens a memorable night and parents real peace of mind.",
