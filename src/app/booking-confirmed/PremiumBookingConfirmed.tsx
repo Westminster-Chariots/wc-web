@@ -152,7 +152,7 @@ function PremiumBookingConfirmed() {
             {/* Logo */}
             <Link href="/" className="group flex items-center gap-3 hover:scale-105 transition-all duration-300">
               <Image 
-                src="/assets/wc-logo-full.png" 
+                src="/assets/wc-logo-no-motto-no-bg.png" 
                 alt="Westminster Chariots" 
                 width={40} 
                 height={40} 

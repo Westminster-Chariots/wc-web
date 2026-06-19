@@ -28,13 +28,17 @@ export default function Footer() {
           {/* Contact Info */}
           <div>
             <div className="mb-6">
-              <Image 
-                src="/assets/wc-logo-no-motto.png" 
-                alt="Westminster Chariots" 
-                width={240} 
-                height={80} 
-                className="object-contain h-16 w-auto" 
-              />
+              <Link href="/">
+                <Image
+                  src="/assets/wc-logo-no-motto-no-bg.png"
+                  alt="Westminster Chariots"
+                  width={240}
+                  height={80}
+                  loading="eager"
+                  className="object-contain"
+                  style={{ width: "auto", height: "4rem" }}
+                />
+              </Link>
             </div>
             <div className="space-y-3 text-sm">
               <a 

@@ -220,7 +220,7 @@ export default function BookingLoginPage() {
               <div className="lg:hidden flex justify-center mb-8">
                 <Link href="/" className="inline-block">
                   <Image 
-                    src="/assets/wc-logo-full.png" 
+                    src="/assets/wc-logo-no-motto-no-bg.png" 
                     alt="Westminster Chariots" 
                     width={150} 
                     height={40} 
