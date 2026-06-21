@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Shield, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -34,18 +34,47 @@ export default function HeroSection({
   handleSearch,
 }: HeroSectionProps) {
   const { t } = useLanguage();
-  
+
+  // Parallax motion values
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const parallaxX = useSpring(mx, { stiffness: 60, damping: 20 });
+  const parallaxY = useSpring(my, { stiffness: 60, damping: 20 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const { clientX, clientY, currentTarget } = e;
+    const { width, height } = currentTarget.getBoundingClientRect();
+    mx.set((clientX / width - 0.5) * 22);
+    my.set((clientY / height - 0.5) * 16);
+  };
+
+  const handleMouseLeave = () => {
+    mx.set(0);
+    my.set(0);
+  };
+
   return (
-    <section ref={heroRef} className="relative min-h-screen flex items-center pt-20" data-theme="dark">
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/assets/home-banner-image.png" 
-          alt="Your chauffeur awaits" 
-          fill 
-          className="object-cover brightness-125" 
-          priority 
-          sizes="100vw"
-        />
+    <section
+      ref={heroRef}
+      className="relative min-h-screen flex items-center pt-20 overflow-hidden"
+      data-theme="dark"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <motion.div
+          className="absolute inset-[-4%]"
+          style={{ x: parallaxX, y: parallaxY }}
+        >
+          <Image
+            src="/assets/home-banner-image.png"
+            alt="Your chauffeur awaits"
+            fill
+            className="object-cover brightness-125"
+            priority
+            sizes="108vw"
+          />
+        </motion.div>
         <div className="absolute inset-0 bg-black/15" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/5 to-black/50" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />

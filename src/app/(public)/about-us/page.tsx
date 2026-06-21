@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Shield, Clock, Users, Award, ArrowRight } from "lucide-react";
+import { Shield, Clock, Users, Award, ArrowRight, UserCircle } from "lucide-react";
+import Link from "next/link";
 import Navigation from "@/components/home/navigation/Navigation";
 import Footer from "@/components/home/sections/Footer";
 import GoogleReviews from "@/components/GoogleReviews";
@@ -85,7 +86,7 @@ export default function AboutPage() {
 
       {/* Main Content */}
       <main className="border-t border-white/5">
-        <div className="max-w-4xl mx-auto px-6 py-20 md:px-14 md:py-24">
+        <div className="max-w-4xl mx-auto px-6 py-24 md:px-14 md:py-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -106,16 +107,16 @@ export default function AboutPage() {
                 />
               </div>
 
-              <h2 className="text-2xl font-display font-bold text-foreground mt-12 mb-4">Our Philosophy</h2>
+              <h2 className="mt-12 mb-4 font-serif text-3xl font-light text-foreground">Our Philosophy</h2>
               <p className="text-muted-foreground font-body leading-relaxed mb-6">
-                Our philosophy is one of quiet discipline. Travel should unfold with certainty—unhurried, composed, and entirely without strain. From the earliest departure to the final arrival, each journey is executed with punctuality, attentiveness, and a level of care that affords ease, comfort, and continuity throughout.
+                Our philosophy is one of quiet discipline. Travel should unfold with certainty, unhurried, composed, and entirely without strain. From the earliest departure to the final arrival, each journey is executed with punctuality, attentiveness, and a level of care that affords ease, comfort, and continuity throughout.
               </p>
 
               <p className="text-muted-foreground font-body leading-relaxed mb-6">
                 We are not defined by a fleet, but by the standard we maintain. Every engagement is conducted with professionalism and restraint. Conversations remain confidential. Commitments are honoured without exception. Service is delivered with a sense of order and intention, never excess.
               </p>
 
-              <h2 className="text-2xl font-display font-bold text-foreground mt-12 mb-4">Who We Serve</h2>
+              <h2 className="mt-12 mb-4 font-serif text-3xl font-light text-foreground">Who We Serve</h2>
               <p className="text-muted-foreground font-body leading-relaxed mb-6">
                 Westminster Chariots supports executives, principals, families, and organisations who expect their arrangements to function without question. The objective is not merely to arrive, but to do so with quiet assurance and complete reliability.
               </p>
@@ -129,30 +130,30 @@ export default function AboutPage() {
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl border border-white/10 bg-background/60 p-6 backdrop-blur-md">
                     <item.icon className="h-8 w-8 text-accent-blue-bright mb-3" />
-                    <h3 className="text-lg font-display font-semibold text-foreground mb-2">{item.title}</h3>
+                    <h3 className="text-base font-semibold tracking-tight text-foreground mb-2">{item.title}</h3>
                     <p className="text-sm text-muted-foreground font-body">{item.desc}</p>
                   </div>
                 ))}
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-background/60 backdrop-blur-md p-8 my-12 text-center">
-                <p className="text-lg sm:text-xl font-display text-foreground italic">
+                <p className="font-serif text-xl font-light italic text-foreground/85 leading-relaxed sm:text-2xl">
                   "Because the finest standard of travel is not something announced—<br className="hidden sm:block" />
                   it is something understood."
                 </p>
               </div>
 
-              <h2 className="text-2xl font-display font-bold text-foreground mt-12 mb-4">Service Area</h2>
+              <h2 className="mt-12 mb-4 font-serif text-3xl font-light text-foreground">Service Area</h2>
               <p className="text-muted-foreground font-body leading-relaxed mb-6">
                 We proudly serve the Washington DC Metropolitan Area, including Virginia, Maryland, and the District of Columbia. Our service extends to all major airports, corporate centers, and residential areas throughout the region.
               </p>
 
-              <div className="mt-12 pt-8 border-t border-border">
-                <h2 className="text-2xl font-display font-bold text-foreground mb-4">Contact Us</h2>
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <h2 className="mb-4 font-serif text-2xl font-light text-foreground">Contact Us</h2>
                 <div className="space-y-2 text-muted-foreground font-body">
                   <p><strong className="text-foreground">Phone:</strong> <a href="tel:+15714266338" className="text-accent-blue-bright hover:underline">(571) 426-6338</a></p>
                   <p><strong className="text-foreground">Email:</strong> <a href="mailto:info@westminsterchariots.com" className="text-accent-blue-bright hover:underline">info@westminsterchariots.com</a></p>
-                  <p><strong className="text-foreground">Location:</strong> Triangle, VA · Washington DC Metropolitan Area</p>
+                  <p><strong className="text-foreground">Location:</strong> Washington DC Metropolitan Area</p>
                 </div>
               </div>
             </div>
@@ -160,8 +161,32 @@ export default function AboutPage() {
         </div>
       </main>
 
+      {/* Founder Teaser */}
+      <section className="border-t border-white/5 px-6 py-16 md:px-14">
+        <div className="mx-auto max-w-[1280px]">
+          <Link
+            href="/founder"
+            className="group flex flex-col items-start gap-4 rounded-3xl border border-white/10 bg-background/60 p-8 backdrop-blur-md transition-all hover:border-accent-blue-bright/30 hover:shadow-blue md:flex-row md:items-center md:p-10"
+          >
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5">
+              <UserCircle className="h-7 w-7 text-accent-blue-bright" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-medium uppercase tracking-[0.35em] text-accent-blue-bright">From the founder</p>
+              <p className="mt-1 font-serif text-xl font-light text-foreground/90">
+                "I believed that luxury transportation should feel effortless — not complicated."
+              </p>
+              <p className="mt-2 text-sm text-foreground/50">— Haroon Hashmat, Founder & CEO</p>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground/60 transition-colors group-hover:text-accent-blue-bright">
+              Read the full message <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
-      <section className="border-t border-white/5 bg-card/40 px-6 py-24 md:px-14">
+      <section className="border-t border-white/5 px-6 py-24 md:px-14">
         <div className="mx-auto max-w-[1280px]">
           <div className="mb-14 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">

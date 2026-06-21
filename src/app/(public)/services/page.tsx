@@ -231,17 +231,17 @@ export default function ServicesPage() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-4">
-              Ready when you are.
+              Your journey starts here.
             </h2>
             <p className="text-lg text-foreground/70 mb-8">
-              Reserve in seconds — your chauffeur takes care of the rest.
+              Reserve your chauffeur in minutes and travel with confidence, comfort, and peace of mind.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/book"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
               >
-                Book a ride <ArrowRight className="h-4 w-4" />
+                Book Your Chariot <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/help"

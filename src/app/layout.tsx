@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import { Inter, Syne } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { defaultMetadata } from "@/lib/metadata";
 import ThemeWrapper from "@/components/ThemeWrapper";
+import CustomCursor from "@/components/home/CustomCursor";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const syne = Syne({ subsets: ["latin"], variable: "--font-syne", display: "swap" });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = defaultMetadata;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${syne.variable}`}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         {/* Favicons - Blue Theme */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -44,7 +51,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         <ThemeWrapper>
-          <Providers>{children}</Providers>
+          <Providers>
+            <CustomCursor />
+            {children}
+          </Providers>
         </ThemeWrapper>
       </body>
     </html>

@@ -229,6 +229,14 @@ export default function Navigation({
               <ServicesDropdown isDark={false} />
               
               <a 
+                href="/about-us" 
+                className="group text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative"
+              >
+                <span className="relative z-10">About Us</span>
+                <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+              </a>
+              
+              <a 
                 href="/fleet" 
                 className="group text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative"
               >
@@ -324,6 +332,9 @@ export default function Navigation({
                 <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
                   useDarkTheme ? 'text-white/90' : 'text-gray-900'
                 }`}>Our Fleet</a>
+                <a href="/about-us" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
+                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
+                }`}>About Us</a>
                 <a href="/help" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
                   useDarkTheme ? 'text-white/90' : 'text-gray-900'
                 }`}>Help</a>

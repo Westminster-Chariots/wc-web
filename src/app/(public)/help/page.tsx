@@ -43,7 +43,7 @@ const faqs = [
       },
       {
         q: "Do you offer hourly bookings?",
-        a: "Yes, we offer hourly charter services with a minimum of 3 hours. This is perfect for business meetings, city tours, or events where you need the vehicle to wait for you."
+        a: "Yes, we offer hourly charter services with a minimum of 2 hours. This is perfect for business meetings, city tours, or events where you need the vehicle to wait for you."
       }
     ]
   },
@@ -53,11 +53,11 @@ const faqs = [
     questions: [
       {
         q: "How is pricing calculated?",
-        a: "Our pricing is based on distance, duration, and vehicle type. Sedans start at $95, SUVs at $125, and Sprinter vans at $195. All prices include gratuity, tolls, and fees. You'll see the exact price before confirming your booking."
+        a: "Our pricing is based on distance, duration, and vehicle type. You'll see the exact price before confirming your booking."
       },
       {
         q: "What payment methods do you accept?",
-        a: "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure Stripe payment system. Corporate accounts can also be invoiced monthly."
+        a: "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure clover payment system. Corporate accounts can also be invoiced monthly."
       },
       {
         q: "Are gratuity and tolls included?",
@@ -75,11 +75,11 @@ const faqs = [
     questions: [
       {
         q: "What vehicles are in your fleet?",
-        a: "Our fleet consists of Mercedes-Benz S-Class sedans (3 passengers), GLS SUVs (6 passengers), and Sprinter vans (14 passengers). All vehicles are late-model, meticulously maintained, and equipped with premium amenities."
+        a: "Our fleet consists of Mercedes-Benz S-Class sedans (2 passengers), SUVs (4-5 passengers) . All vehicles are late-model, meticulously maintained, and equipped with premium amenities."
       },
       {
         q: "What amenities are included?",
-        a: "All vehicles include complimentary WiFi, bottled water, phone chargers, climate control, and premium sound systems. Our chauffeurs are professional, licensed, and uniformed."
+        a: "All vehicles include complimentary bottled water, phone chargers, climate control, and premium sound systems. Our chauffeurs are professional, licensed, and uniformed."
       },
       {
         q: "Do you provide car seats for children?",
@@ -109,7 +109,7 @@ const faqs = [
       },
       {
         q: "What is your wait time policy?",
-        a: "We provide 15 minutes of complimentary wait time for all pickups. After that, wait time is charged at $95/hour. For airport pickups, we track your flight and adjust accordingly."
+        a: "We provide 30 minutes of complimentary wait time for all pickups. After that, wait time is charged at $95/hour. For airport pickups, we track your flight and adjust accordingly."
       }
     ]
   },
