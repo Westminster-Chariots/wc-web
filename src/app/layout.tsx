@@ -4,8 +4,6 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { defaultMetadata } from "@/lib/metadata";
 import ThemeWrapper from "@/components/ThemeWrapper";
-import CustomCursor from "@/components/home/CustomCursor";
-
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -51,10 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to main content
         </a>
         <ThemeWrapper>
-          <Providers>
-            <CustomCursor />
-            {children}
-          </Providers>
+          <Providers>{children}</Providers>
         </ThemeWrapper>
       </body>
     </html>

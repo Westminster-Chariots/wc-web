@@ -318,12 +318,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 /* Location Input Dropdown Styling */
-/* Custom cursor — hides default cursor on desktop */
-body.has-custom-cursor,
-body.has-custom-cursor * {
-  cursor: none !important;
-}
-
 .location-input-wrapper .pac-container {
   background: hsl(0 0% 10% / 0.95) !important;
   backdrop-filter: blur(20px) !important;

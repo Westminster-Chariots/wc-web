@@ -85,7 +85,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <DropdownMenuTrigger asChild>
                 <button className="h-10 w-10 rounded-full glass border border-white/[0.15] flex items-center justify-center overflow-hidden focus:outline-none focus:ring-2 focus:ring-primary/50 hover:scale-105 transition-transform duration-300 relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <Image src="/assets/wc-logo-no-motto.png" alt="WC" width={24} height={24} className="relative object-contain" />
+                  <Image src="/assets/wc-logo-no-motto-no-bg.png" alt="WC" width={24} height={24} className="relative object-contain" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 glass-strong border border-white/[0.12] shadow-glass-elevated backdrop-blur-xs">

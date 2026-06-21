@@ -32,16 +32,16 @@ function CountUp({ to, suffix = "", decimals = 0 }: { to: number; suffix?: strin
 }
 
 const stats = [
-  { value: "24/7", label: "Dispatch & support", countTo: null },
+  { value: "24/7", label: "Always here, always ready", countTo: null },
   { value: "4.9★", label: "Average client rating", countTo: 4.9, suffix: "★", decimals: 1 },
-  { value: "100%", label: "Licensed & insured", countTo: 100, suffix: "%", decimals: 0 },
+  { value: "100%", label: "Licensed, insured, accountable", countTo: 100, suffix: "%", decimals: 0 },
 ];
 
 const features = [
-  "Chauffeurs selected for professionalism and discretion",
-  "Luxury sedans and SUVs maintained to the highest standard",
-  "Punctual service backed by real-time flight tracking",
-  "Personalized service tailored to every client and journey",
+  "Your driver knows your name, your preferences, and your schedule before you get in",
+  "Real-time flight tracking so your car is waiting the moment you land",
+  "No confusion, no hidden fees, no chasing confirmation. Just a car that arrives",
+  "Discreet, professional, and entirely on your side from booking to final destination",
 ];
 
 export default function WhyWestminsterSection() {
@@ -49,7 +49,6 @@ export default function WhyWestminsterSection() {
     <section id="why-westminster" className="border-t border-white/5 px-6 py-32 md:px-14">
       <div className="mx-auto max-w-[1280px]">
 
-        {/* Header — centered */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -61,11 +60,10 @@ export default function WhyWestminsterSection() {
             Why Westminster Chariots
           </p>
           <h2 className="mt-4 font-serif text-5xl font-light leading-[1.06] tracking-tight md:text-6xl">
-            Built on integrity.<br />Driven by excellence.
+            You have enough to carry.<br />Getting there is on us.
           </h2>
         </motion.div>
 
-        {/* Stat strip — Apple style large horizontal numbers */}
         <div className="mt-20 grid grid-cols-3 divide-x divide-white/10 border-t border-b border-white/10">
           {stats.map((stat, i) => (
             <motion.div
@@ -90,7 +88,6 @@ export default function WhyWestminsterSection() {
           ))}
         </div>
 
-        {/* Features + pull quote */}
         <div className="mt-20 grid gap-12 md:grid-cols-2 md:items-start">
           <ul className="space-y-6">
             {features.map((line, i) => (
@@ -116,7 +113,7 @@ export default function WhyWestminsterSection() {
             className="flex flex-col justify-between rounded-3xl border border-white/8 bg-card/30 p-8 backdrop-blur-md"
           >
             <p className="font-serif text-xl font-light leading-[1.7] text-foreground/80 md:text-2xl">
-              "The standard our clients quietly expect — but rarely find elsewhere. We deliver it, without exception."
+              "The relief of knowing it is handled. The comfort of knowing it will be done right. That is the Westminster experience."
             </p>
             <Link
               href="/services"

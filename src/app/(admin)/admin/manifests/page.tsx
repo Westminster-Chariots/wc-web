@@ -995,7 +995,7 @@ export default function ManifestsPage() {
           {activeTab === "manifest" ? (
           <div className="bg-background border border-border rounded-lg p-8 max-w-3xl mx-auto space-y-6 font-body text-sm">
             <div className="flex items-center justify-between pb-4 border-b border-primary/30">
-              <img src="/assets/wc-logo-no-motto.png" alt="Westminster Chariots" className="h-12 object-contain" />
+              <img src="/assets/wc-logo-no-motto-no-bg.png" alt="Westminster Chariots" className="h-12 object-contain" />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground"></p>
                 <p className="text-xs text-muted-foreground">(571) 426-6338</p>
