@@ -29,6 +29,12 @@ export interface BookingData {
   guestLastName: string;
   guestEmail: string;
   guestPhone: string;
+  pickupPlaceId?: string;
+  pickupLat?: number;
+  pickupLng?: number;
+  dropoffPlaceId?: string;
+  dropoffLat?: number;
+  dropoffLng?: number;
 }
 
 const EMPTY: BookingData = {

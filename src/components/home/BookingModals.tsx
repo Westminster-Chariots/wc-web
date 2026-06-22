@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import LocationInput from "@/components/booking/LocationInput";
+import type { PlaceDetails } from "@/components/booking/LocationInput";
 import DatePicker from "@/components/ui/date-picker";
 import TimePicker from "@/components/ui/time-picker";
+import { useBookingStore } from "@/hooks/useBookingStore";
 
 interface BookingModalsProps {
   activeModal: "pickup" | "dropoff" | "date" | "time" | null;
@@ -45,6 +47,7 @@ export default function BookingModals({
   handleDateConfirm,
   handleTimeConfirm,
 }: BookingModalsProps) {
+  const { update } = useBookingStore();
   const [pickupError, setPickupError] = useState("");
   
   const today = new Date();
@@ -109,13 +112,20 @@ export default function BookingModals({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
             >
-              <LocationInput 
-                placeholder="Address, airport, hotel, …" 
+              <LocationInput
+                placeholder="Address, airport, hotel, …"
                 value={pickup}
-                onChange={(v, isAirport) => { 
-                  setPickup(v); 
-                  if (v) setIsPickupAirport(isAirport); 
-                }} 
+                onChange={(v, isAirport) => {
+                  setPickup(v);
+                  if (v) setIsPickupAirport(isAirport);
+                }}
+                onPlaceDetails={(d: PlaceDetails) =>
+                  update({
+                    pickupPlaceId: d.placeId,
+                    pickupLat: d.lat ?? undefined,
+                    pickupLng: d.lng ?? undefined,
+                  })
+                }
                 icon="pickup"
                 restrictToVirginia={true}
                 onValidationError={(error) => setPickupError(error)}
@@ -160,11 +170,18 @@ export default function BookingModals({
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.3 }}
             >
-              <LocationInput 
-                placeholder="Address, airport, hotel, …" 
+              <LocationInput
+                placeholder="Address, airport, hotel, …"
                 value={dropoff}
-                onChange={(v) => setDropoff(v)} 
-                icon="dropoff" 
+                onChange={(v) => setDropoff(v)}
+                onPlaceDetails={(d: PlaceDetails) =>
+                  update({
+                    dropoffPlaceId: d.placeId,
+                    dropoffLat: d.lat ?? undefined,
+                    dropoffLng: d.lng ?? undefined,
+                  })
+                }
+                icon="dropoff"
               />
             </motion.div>
 
