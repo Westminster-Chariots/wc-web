@@ -56,13 +56,13 @@ export default function ContactSection({ scrollToBookingForm }: ContactSectionPr
     }
   };
   return (
-    <section id="contact" className="border-t border-white/5 px-6 py-24 md:px-14">
+    <section id="contact" className="border-t border-white/5 px-5 py-16 md:px-14 md:py-24">
       <div className="mx-auto max-w-[1280px]">
-        <div className="max-w-2xl mx-auto text-center mb-14">
+        <div className="max-w-2xl mx-auto text-center mb-8 md:mb-14">
           <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
             {t.contact.getInTouch}
           </p>
-          <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-5xl">
+          <h2 className="mt-4 font-serif text-3xl font-light leading-tight md:text-4xl lg:text-5xl">
             {t.contact.title}
           </h2>
           <p className="mt-4 text-foreground/70">
@@ -70,7 +70,7 @@ export default function ContactSection({ scrollToBookingForm }: ContactSectionPr
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12">
           {/* Contact Info */}
           <div className="space-y-8">
             <div className="group">
@@ -120,10 +120,10 @@ export default function ContactSection({ scrollToBookingForm }: ContactSectionPr
           </div>
 
           {/* Quick Contact Form */}
-          <div className="glass-card rounded-2xl border border-white/10 p-8 backdrop-blur-md hover:border-accent-blue-bright/30 transition-all duration-500">
+          <div className="glass-card rounded-2xl border border-white/10 p-5 md:p-8 backdrop-blur-md hover:border-accent-blue-bright/30 transition-all duration-500">
             <h3 className="text-lg font-display font-semibold text-foreground mb-6">{t.contact.sendMessage}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="group">
                   <label className="block text-xs font-medium text-foreground/60 mb-2 group-focus-within:text-accent-blue-bright transition-colors">{t.contact.firstName}</label>
                   <input 

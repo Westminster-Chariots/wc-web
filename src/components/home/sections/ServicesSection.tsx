@@ -5,7 +5,7 @@ import ServicesCarousel from "./ServicesCarousel";
 
 export default function ServicesSection() {
   return (
-    <section id="services" className="relative overflow-hidden border-t border-white/5 px-6 py-32 md:px-14">
+    <section id="services" className="relative overflow-hidden border-t border-white/5 px-5 py-16 md:px-14 md:py-32">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(var(--primary)/0.07),transparent_55%)]" />
       <div className="relative mx-auto max-w-[1280px]">
         <div className="mx-auto max-w-3xl text-center">
@@ -23,7 +23,7 @@ export default function ServicesSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 font-serif text-5xl font-light leading-[1.06] tracking-tight md:text-6xl"
+            className="mt-4 font-serif text-4xl font-light leading-[1.06] tracking-tight md:text-5xl lg:text-6xl"
           >
             Crafted for every journey.
           </motion.h2>
@@ -42,7 +42,7 @@ export default function ServicesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-16"
+          className="mt-10 md:mt-16"
         >
           <ServicesCarousel />
         </motion.div>

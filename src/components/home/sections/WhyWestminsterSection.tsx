@@ -46,7 +46,7 @@ const features = [
 
 export default function WhyWestminsterSection() {
   return (
-    <section id="why-westminster" className="border-t border-white/5 px-6 py-32 md:px-14">
+    <section id="why-westminster" className="border-t border-white/5 px-5 py-16 md:px-14 md:py-32">
       <div className="mx-auto max-w-[1280px]">
 
         <motion.div
@@ -59,12 +59,12 @@ export default function WhyWestminsterSection() {
           <p className="text-xs font-medium uppercase tracking-[0.45em] text-accent-blue-bright">
             Why Westminster Chariots
           </p>
-          <h2 className="mt-4 font-serif text-5xl font-light leading-[1.06] tracking-tight md:text-6xl">
-            You have enough to carry.<br />Getting there is on us.
+          <h2 className="mt-4 font-serif text-4xl font-light leading-[1.06] tracking-tight md:text-5xl lg:text-6xl">
+            You have enough to carry.<br className="hidden sm:block" />Getting there is on us.
           </h2>
         </motion.div>
 
-        <div className="mt-20 grid grid-cols-3 divide-x divide-white/10 border-t border-b border-white/10">
+        <div className="mt-12 md:mt-20 grid grid-cols-3 divide-x divide-white/10 border-t border-b border-white/10">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -72,9 +72,9 @@ export default function WhyWestminsterSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="cursor-default py-12 text-center"
+              className="cursor-default py-8 md:py-12 text-center px-2"
             >
-              <div className="font-serif text-6xl font-light tracking-tight text-foreground md:text-7xl">
+              <div className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground md:text-6xl lg:text-7xl">
                 {stat.countTo !== null ? (
                   <CountUp to={stat.countTo!} suffix={stat.suffix!} decimals={stat.decimals!} />
                 ) : (
@@ -88,7 +88,7 @@ export default function WhyWestminsterSection() {
           ))}
         </div>
 
-        <div className="mt-20 grid gap-12 md:grid-cols-2 md:items-start">
+        <div className="mt-12 md:mt-20 grid gap-8 md:gap-12 md:grid-cols-2 md:items-start">
           <ul className="space-y-6">
             {features.map((line, i) => (
               <motion.li

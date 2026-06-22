@@ -68,7 +68,7 @@ export default function FounderPage() {
               A Message from the Founder
             </p>
             <h1 className="mt-5 font-serif text-5xl font-light leading-[1.08] tracking-tight md:text-6xl lg:text-7xl">
-              The Westminster Standard
+              The Westminster Chariots Standard
             </h1>
             <p className="mt-6 text-lg text-foreground/60 max-w-xl leading-relaxed">
               Why I started this company, what I believe, and the promise I make to every client.
@@ -92,7 +92,7 @@ export default function FounderPage() {
             >
               <div className="relative aspect-[3/4] overflow-hidden rounded-3xl border border-white/10">
                 <Image
-                  src="/assets/Haroon-hashmat.jpg"
+                  src="/assets/Haroon-Hashmat.jpg"
                   alt="Haroon Hashmat, Founder of Westminster Chariots"
                   fill
                   className="object-cover object-top"
@@ -123,29 +123,29 @@ export default function FounderPage() {
               <div className="relative rounded-3xl border border-accent-blue-bright/20 bg-accent-blue-bright/5 px-8 py-7">
                 <Quote className="absolute left-6 top-5 h-5 w-5 text-accent-blue-bright/40" />
                 <p className="font-serif text-xl font-light leading-relaxed text-foreground/90 md:text-2xl pl-4">
-                  I believed that luxury transportation should feel effortless — not complicated. That belief became this company.
+                  I believed that luxury transportation should feel effortless, not complicated. That belief became this company.
                 </p>
               </div>
 
               {/* Body */}
               <div className="space-y-6 text-[1.0625rem] leading-[1.85] text-foreground/70">
                 <p>
-                  When I looked at the black car industry in the Washington DC area, I saw something that bothered me. Not a shortage of options — there were plenty. What was missing was simplicity.
+                  When I looked at the black car industry in the Washington DC area, I saw something that bothered me. Not a shortage of options, there were plenty. What was missing was simplicity.
                 </p>
                 <p>
                   Too many companies had made transportation needlessly complicated. Fine print. Unexpected conditions. Too many strings attached to what should be, at its core, a straightforward promise: <em className="text-foreground/90 font-medium not-italic">I will take you where you need to go, on time, in comfort, without complication.</em>
                 </p>
                 <p>
-                  I also saw a standard — the standard that discerning clients quietly expect but rarely articulate — being consistently unmet. A certain quality of presence. A level of professionalism that does not need to announce itself. The kind of service where everything simply works, and the client can think about other things.
+                  I also saw a standard, the standard that discerning clients quietly expect but rarely articulate, being consistently unmet. A certain quality of presence. A level of professionalism that does not need to announce itself. The kind of service where everything simply works, and the client can think about other things.
                 </p>
                 <p>
                   Westminster Chariots was built to close that gap.
                 </p>
                 <p>
-                  Every booking is handled directly. Every commitment is honoured. Every client is known, not merely accounted for. We do not over-promise, and we do not under-deliver. What you see is what you receive — and what you receive is the highest standard we know how to provide.
+                  Every booking is handled directly. Every commitment is honoured. Every client is known, not merely accounted for. We do not over-promise, and we never under-deliver. What you see is what you receive, and what you receive is the highest standard we know how to provide.
                 </p>
                 <p>
-                  I am proud of what this company has become. And I am more proud of what it will continue to be — because our standard is not a moment in time. It is a permanent commitment.
+                  I am proud of what this company has become. And I am more proud of what it will continue to be, because our standard is not a moment in time. It is a permanent commitment.
                 </p>
               </div>
 

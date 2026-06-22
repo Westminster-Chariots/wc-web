@@ -22,9 +22,9 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="border-t border-white/5 py-20 bg-background px-6 md:px-14">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+    <footer className="border-t border-white/5 py-12 md:py-20 bg-background px-5 md:px-14">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-10 md:mb-12">
           {/* Contact Info */}
           <div>
             <div className="mb-6">
@@ -35,8 +35,7 @@ export default function Footer() {
                   width={480}
                   height={160}
                   loading="eager"
-                  className="object-contain"
-                  style={{ width: "auto", height: "10rem" }}
+                  className="object-contain h-16 md:h-36 w-auto"
                 />
               </Link>
             </div>

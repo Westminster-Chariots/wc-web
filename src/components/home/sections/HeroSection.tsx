@@ -56,7 +56,7 @@ export default function HeroSection({
   return (
     <section
       ref={heroRef}
-      className="relative min-h-screen flex items-center pt-20 overflow-hidden"
+      className="relative min-h-screen flex items-center pt-16 md:pt-20 overflow-hidden"
       data-theme="dark"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -80,8 +80,8 @@ export default function HeroSection({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full py-20">
-        <div className="max-w-4xl mx-auto text-center mb-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-5 lg:px-8 w-full py-10 md:py-20">
+        <div className="max-w-4xl mx-auto text-center mb-8 md:mb-12">
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -94,7 +94,7 @@ export default function HeroSection({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
+            className="font-serif text-4xl sm:text-5xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-6xl lg:text-7xl xl:text-[5.5rem]"
           >
             Your Chariot Awaits.
           </motion.h1>
@@ -139,13 +139,13 @@ export default function HeroSection({
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-1"
         >
-          <div className=" max-w-[1280px] mx-auto glass-strong rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden md:mt-28 backdrop-blur-md">
+          <div className="max-w-[1280px] mx-auto glass-strong rounded-2xl md:rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden mt-6 md:mt-28 backdrop-blur-md">
             <div className="flex flex-col md:flex-row md:items-center w-full">
               {/* Pickup */}
               <button
                 data-field="pickup"
                 onClick={(e) => openModal("pickup", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupLocation}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
@@ -163,7 +163,7 @@ export default function HeroSection({
                   <button
                     data-field="dropoff"
                     onClick={(e) => openModal("dropoff", e)}
-                    className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
+                    className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
                   >
                     <div className="text-[12px] font-semibold text-white">{t.booking.dropoffLocation}</div>
                     <div className="mt-1 border-b border-white/15 pb-1">
@@ -180,7 +180,7 @@ export default function HeroSection({
               <button
                 data-field="date"
                 onClick={(e) => openModal("date", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupDate}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
@@ -196,7 +196,7 @@ export default function HeroSection({
               <button
                 data-field="time"
                 onClick={(e) => openModal("time", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupTime}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
