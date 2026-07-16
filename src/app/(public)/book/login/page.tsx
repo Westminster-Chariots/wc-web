@@ -30,6 +30,8 @@ export default function BookingLoginPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [typedText, setTypedText] = useState("");
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -75,6 +77,10 @@ export default function BookingLoginPage() {
       notify.error("Please enter your full name.");
       return;
     }
+    if (mode === "signup" && password !== confirmPassword) {
+      notify.error("Passwords do not match.");
+      return;
+    }
     
     setLoading(true);
     try {
@@ -82,6 +88,7 @@ export default function BookingLoginPage() {
         await register(email, password, name, phone);
         notify.success("Account created! Check your email to verify, then sign in.");
         setPassword("");
+        setConfirmPassword("");
         setEmail("");
         setName("");
         setPhone("");
@@ -334,6 +341,32 @@ export default function BookingLoginPage() {
                           Forgot password?
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {mode === "signup" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="ls-confirm-password" className="text-xs font-body flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-primary" /> Confirm Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="ls-confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="glass-card border-primary/20 font-body h-11 pr-10"
+                          maxLength={255}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   )}
 

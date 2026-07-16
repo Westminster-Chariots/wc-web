@@ -26,6 +26,8 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
   const [typedText, setTypedText] = useState("");
@@ -73,6 +75,10 @@ export default function AuthPage() {
       notify.error("Please enter your full name.");
       return;
     }
+    if (mode === "signup" && password !== confirmPassword) {
+      notify.error("Passwords do not match.");
+      return;
+    }
     
     if (mode === "login" && !loginRateLimiter.canAttempt(email)) {
       notify.error(`Too many login attempts. Please try again in 15 minutes.`);
@@ -84,6 +90,7 @@ export default function AuthPage() {
       if (mode === "signup") {
         await register(email, password, name, phone);
         notify.success("Account created successfully. You can now sign in.");
+        setConfirmPassword("");
         setMode("login");
       } else {
         await login(email, password);
@@ -350,6 +357,32 @@ export default function AuthPage() {
                           Forgot password?
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {mode === "signup" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password" className="text-xs font-body flex items-center gap-1.5">
+                        <Lock className="h-3.5 w-3.5 text-primary" /> Confirm Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="glass-card border-primary/20 font-body h-11 pr-10"
+                          maxLength={255}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   )}
 
