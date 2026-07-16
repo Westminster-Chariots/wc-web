@@ -119,7 +119,7 @@ export default function DocumentHistoryPage() {
         window.open(url, "_blank");
       } else if (doc.documentType === "client_invoice") {
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
-        const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-full.png", "light");
+        const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-no-motto-no-bg.png", "light");
         const blob = pdfDoc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
@@ -136,7 +136,7 @@ export default function DocumentHistoryPage() {
           vehicleTag: documentData.driverInfo?.vehicleTag,
           items: documentData.invoiceData.items,
         };
-        const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", "light");
+        const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-no-motto-no-bg.png", "light");
         const blob = pdfDoc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
@@ -156,7 +156,7 @@ export default function DocumentHistoryPage() {
         pdfDoc.save(`${doc.documentNumber}-Manifest.pdf`);
       } else if (doc.documentType === "client_invoice") {
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
-        const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-full.png", "light");
+        const pdfDoc = await generateInvoicePDF(documentData.invoiceData, "/assets/wc-logo-no-motto-no-bg.png", "light");
         pdfDoc.save(`${doc.documentNumber}-Invoice.pdf`);
       } else if (doc.documentType === "trip_confirmation") {
         const { generateConfirmationPDF } = await import("@/lib/generateConfirmationPDF");
@@ -171,7 +171,7 @@ export default function DocumentHistoryPage() {
           vehicleTag: documentData.driverInfo?.vehicleTag,
           items: documentData.invoiceData.items,
         };
-        const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", "light");
+        const pdfDoc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-no-motto-no-bg.png", "light");
         pdfDoc.save(`${doc.documentNumber}-Confirmation.pdf`);
       }
       toast.success("Document downloaded");

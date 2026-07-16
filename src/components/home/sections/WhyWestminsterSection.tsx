@@ -1,71 +1,129 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef, useEffect, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import Link from "next/link";
-import { ShieldCheck, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-export default function WhyWestminsterSection() {
-  const features = [
-    "Vetted, professionally trained chauffeurs",
-    "Late-model black sedans and SUVs",
-    "On-time guarantee with live trip tracking",
-    "Transparent flat-rate pricing"
-  ];
+function CountUp({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
 
-  const stats = [
-    // { value: "15+", label: "Years serving the DMV" },
-    { value: "24/7", label: "Dispatch & support" },
-    { value: "4.9★", label: "Average client rating" },
-    { value: "100%", label: "Licensed & insured" }
-  ];
+  useEffect(() => {
+    if (!isInView) return;
+    const duration = 1400;
+    const steps = 50;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const eased = 1 - Math.pow(1 - step / steps, 3);
+      setCount(to * eased);
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [isInView, to]);
 
   return (
-    <section id="fleet" className="border-t border-white/5 bg-card/40 px-6 py-24 md:px-14 relative z-40">
-      <div className="mx-auto max-w-[1280px] grid gap-12 md:grid-cols-2 md:items-center">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="max-w-2xl text-left">
-            <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
-              Why Westminster Chariots?
-            </p>
-            <h2 className="mt-4 font-serif text-4xl font-light leading-tight md:text-5xl">
-              Built on reliability, discretion and exceptional service.
-            </h2>
-          </div>
-          <ul className="mt-8 space-y-5">
-            {features.map((line) => (
-              <li key={line} className="flex items-start gap-3 text-foreground/80">
-                <ShieldCheck className="mt-0.5 h-5 w-5 text-accent-blue-bright" />
-                <span>{line}</span>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/services"
-            className="bg-blue-gradient shadow-blue mt-10 inline-flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
-          >
-            Explore services <ArrowRight className="h-4 w-4" />
-          </Link>
-        </motion.div>
+    <span ref={ref}>
+      {decimals > 0 ? count.toFixed(decimals) : Math.floor(count)}{suffix}
+    </span>
+  );
+}
+
+const stats = [
+  { value: "24/7", label: "Always here, always ready", countTo: null },
+  { value: "4.9★", label: "Average client rating", countTo: 4.9, suffix: "★", decimals: 1 },
+  { value: "100%", label: "Licensed, insured, accountable", countTo: 100, suffix: "%", decimals: 0 },
+];
+
+const features = [
+  "Your driver knows your name, your preferences, and your schedule before you get in",
+  "Real-time flight tracking so your car is waiting the moment you land",
+  "No confusion, no hidden fees, no chasing confirmation. Just a car that arrives",
+  "Discreet, professional, and entirely on your side from booking to final destination",
+];
+
+export default function WhyWestminsterSection() {
+  return (
+    <section id="why-westminster" className="border-t border-white/5 px-5 py-16 md:px-14 md:py-32">
+      <div className="mx-auto max-w-[1280px]">
 
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="grid grid-cols-2 gap-4"
+          className="mx-auto max-w-3xl text-center"
         >
-          {stats.map((stat) => (
-            <div key={stat.label} className="rounded-2xl border border-white/10 bg-background/60 p-6 text-center backdrop-blur-md">
-              <div className="font-serif text-4xl">{stat.value}</div>
-              <div className="mt-2 text-xs uppercase tracking-[0.2em] text-foreground/60">{stat.label}</div>
-            </div>
-          ))}
+          <p className="text-xs font-medium uppercase tracking-[0.45em] text-accent-blue-bright">
+            Why Westminster Chariots
+          </p>
+          <h2 className="mt-4 font-serif text-4xl font-light leading-[1.06] tracking-tight md:text-5xl lg:text-6xl">
+            You have enough to carry.<br className="hidden sm:block" />Getting there is on us.
+          </h2>
         </motion.div>
+
+        <div className="mt-12 md:mt-20 grid grid-cols-3 divide-x divide-white/10 border-t border-b border-white/10">
+          {stats.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="cursor-default py-8 md:py-12 text-center px-2"
+            >
+              <div className="font-serif text-3xl sm:text-4xl font-light tracking-tight text-foreground md:text-6xl lg:text-7xl">
+                {stat.countTo !== null ? (
+                  <CountUp to={stat.countTo!} suffix={stat.suffix!} decimals={stat.decimals!} />
+                ) : (
+                  stat.value
+                )}
+              </div>
+              <div className="mt-3 text-xs uppercase tracking-[0.3em] text-foreground/45">
+                {stat.label}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-12 md:mt-20 grid gap-8 md:gap-12 md:grid-cols-2 md:items-start">
+          <ul className="space-y-6">
+            {features.map((line, i) => (
+              <motion.li
+                key={line}
+                initial={{ opacity: 0, x: -14 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.08 }}
+                className="flex items-start gap-4 text-foreground/70"
+              >
+                <span className="mt-[0.55rem] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-accent-blue-bright" />
+                <span className="text-[1.0625rem] leading-relaxed">{line}</span>
+              </motion.li>
+            ))}
+          </ul>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="flex flex-col justify-between rounded-3xl border border-white/8 bg-card/30 p-8 backdrop-blur-md"
+          >
+            <p className="font-serif text-xl font-light leading-[1.7] text-foreground/80 md:text-2xl">
+              "The relief of knowing it is handled. The comfort of knowing it will be done right. That is the Westminster experience."
+            </p>
+            <Link
+              href="/services"
+              className="bg-blue-gradient shadow-blue mt-8 inline-flex w-fit items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
+            >
+              Explore the Experience <ArrowRight className="h-4 w-4" />
+            </Link>
+          </motion.div>
+        </div>
+
       </div>
     </section>
   );

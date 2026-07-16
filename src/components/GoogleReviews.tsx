@@ -23,6 +23,7 @@ export default function GoogleReviews() {
   );
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -30,6 +31,7 @@ export default function GoogleReviews() {
     const onSelect = () => {
       setCanScrollPrev(emblaApi.canScrollPrev());
       setCanScrollNext(emblaApi.canScrollNext());
+      setSelectedIndex(emblaApi.selectedScrollSnap());
     };
 
     emblaApi.on("select", onSelect);
@@ -155,19 +157,16 @@ export default function GoogleReviews() {
       {/* Dots Indicator */}
       {reviews.length > 1 && (
         <div className="flex justify-center gap-2 mt-6 md:mt-8">
-          {reviews.map((_, idx) => {
-            const isVisible = emblaApi?.selectedScrollSnap() === idx;
-            return (
-              <button
-                key={idx}
-                onClick={() => emblaApi?.scrollTo(idx)}
-                className={`h-2 rounded-full transition-all ${
-                  isVisible ? "w-8 bg-accent-blue-bright" : "w-2 bg-white/30 hover:bg-white/50"
-                }`}
-                aria-label={`Go to review ${idx + 1}`}
-              />
-            );
-          })}
+          {reviews.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => emblaApi?.scrollTo(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                selectedIndex === idx ? "w-8 bg-accent-blue-bright" : "w-2 bg-white/30 hover:bg-white/50"
+              }`}
+              aria-label={`Go to review ${idx + 1}`}
+            />
+          ))}
         </div>
       )}
     </div>

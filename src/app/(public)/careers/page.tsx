@@ -16,7 +16,7 @@ export default function CareersPage() {
             <span className="hidden sm:inline">Back to Home</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/assets/wc-logo-white.png" alt="WC" width={32} height={32} className="object-contain" />
+            <Image src="/assets/wc-logo-no-motto-no-bg.png" alt="WC" width={32} height={32} className="object-contain" />
             <span className="text-xs font-display font-semibold text-foreground uppercase tracking-wider">Westminster Chariots</span>
           </Link>
           <div className="w-20" />

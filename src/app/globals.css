@@ -1,10 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
+  /* Colors */
   --color-accent-blue: hsl(210 100% 55%);
   --color-accent-blue-bright: hsl(210 100% 60%);
   --color-light-beige: oklch(98.5% .005 80);
+
+  /* Fonts — variables set by Next.js font optimization on <html> */
+  --font-sans:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-body:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif:   var(--font-playfair), ui-serif, Georgia, 'Times New Roman', serif;
 }
 
 :root {
@@ -81,15 +87,13 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body, 'Inter'), system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   max-width: 100vw;
 }
-
-.font-serif { font-family: 'Playfair Display', serif; }
 
 html {
   scrollbar-width: thin;
@@ -310,7 +314,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 }
 
 .animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
+  animation: glow-pulse 3s ease-in-out infinite;
 }
 
 /* Location Input Dropdown Styling */

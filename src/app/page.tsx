@@ -89,6 +89,7 @@ export default function Home() {
   const [showBookCTA, setShowBookCTA] = useState(false);
   const [isServicesFixed, setIsServicesFixed] = useState(false);
   const [servicesScrollProgress, setServicesScrollProgress] = useState(0);
+  const [scrollProgress, setScrollProgress] = useState(0);
   
   // Modal state
   type ModalType = "pickup" | "dropoff" | "date" | "time" | null;
@@ -132,6 +133,10 @@ export default function Home() {
       
       // Show book CTA when off landing page
       setShowBookCTA(!onLanding);
+
+      // Scroll progress bar
+      const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(totalScrollable > 0 ? currentScrollY / totalScrollable : 0);
       
       // Services section static effect
       if (servicesRef.current && whyWestminsterRef.current) {
@@ -265,6 +270,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Scroll Progress Bar */}
+      <div
+        className="fixed top-0 left-0 z-[100] h-[2px] w-full origin-left bg-accent-blue-bright shadow-[0_0_8px_hsl(210_100%_60%/0.7)]"
+        style={{ transform: `scaleX(${scrollProgress})` }}
+      />
+
       {/* Structured Data */}
       <script
         type="application/ld+json"

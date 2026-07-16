@@ -72,11 +72,11 @@ export default function FleetPage() {
           />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-[1280px] px-6 py-24 text-center md:px-14 md:py-32">
+        <div className="relative z-10 mx-auto max-w-[1280px] px-5 py-16 text-center md:px-14 md:py-24 lg:py-32">
           <p className="text-xs font-medium uppercase tracking-[0.45em] text-white/80">
             Our Luxury Fleet
           </p>
-          <h1 className="mt-5 font-serif text-5xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl">
+          <h1 className="mt-5 font-serif text-4xl sm:text-5xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-6xl lg:text-7xl">
             Luxury. Comfort. Presence.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-white/80">
@@ -87,7 +87,7 @@ export default function FleetPage() {
       </div>
 
       {/* Intro */}
-      <section className="border-t border-white/5 px-6 py-20 md:px-14">
+      <section className="border-t border-white/5 px-5 py-12 md:px-14 md:py-20">
         <div className="mx-auto max-w-[1080px] text-center">
           <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
             Crafted for the discerning traveler
@@ -105,10 +105,10 @@ export default function FleetPage() {
       </section>
 
       {/* Fleet Grid */}
-      <section className="relative overflow-hidden border-t border-white/5 bg-card/40 px-6 py-24 md:px-14">
+      <section className="relative overflow-hidden border-t border-white/5 bg-card/40 px-5 py-14 md:px-14 md:py-24">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.62_0.19_255_/_0.14),transparent_60%)]" />
         <div className="relative mx-auto max-w-[1280px]">
-          <div className="mb-14 text-center">
+          <div className="mb-10 md:mb-14 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
               Choose Your Fleet
             </p>
@@ -130,7 +130,7 @@ export default function FleetPage() {
       </section>
 
       {/* Why Stands Out */}
-      <section className="border-t border-white/5 px-6 py-24 md:px-14">
+      <section className="border-t border-white/5 px-5 py-14 md:px-14 md:py-24">
         <div className="mx-auto grid max-w-[1280px] gap-14 md:grid-cols-2 md:items-center">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
@@ -160,7 +160,7 @@ export default function FleetPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="border-t border-white/5 bg-card/40 px-6 py-24 md:px-14">
+      <section className="border-t border-white/5 bg-card/40 px-5 py-14 md:px-14 md:py-24">
         <div className="mx-auto max-w-[1280px]">
           <div className="mb-14 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright">
@@ -173,8 +173,8 @@ export default function FleetPage() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-white/5 px-6 py-24 md:px-14">
-        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 rounded-3xl border border-white/10 bg-background/60 p-10 text-center backdrop-blur-md md:flex-row md:p-14 md:text-left">
+      <section className="border-t border-white/5 px-5 py-14 md:px-14 md:py-24">
+        <div className="mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 rounded-3xl border border-white/10 bg-background/60 p-6 text-center backdrop-blur-md sm:p-10 md:flex-row md:p-14 md:text-left">
           <div>
             <h3 className="font-serif text-3xl font-light md:text-4xl">Ready to travel in style?</h3>
             <p className="mt-3 max-w-xl text-foreground/70">
@@ -184,7 +184,7 @@ export default function FleetPage() {
           </div>
           <button
             onClick={() => router.push("/book")}
-            className="bg-blue-gradient shadow-blue inline-flex items-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]"
+            className="bg-blue-gradient shadow-blue inline-flex w-full items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02] sm:w-auto"
           >
             Book your vehicle today <ArrowRight className="h-4 w-4" />
           </button>

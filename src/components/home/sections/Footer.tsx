@@ -22,9 +22,9 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="border-t border-white/5 py-16 bg-background px-6 md:px-14">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+    <footer className="border-t border-white/5 py-12 md:py-20 bg-background px-5 md:px-14">
+      <div className="max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-10 md:mb-12">
           {/* Contact Info */}
           <div>
             <div className="mb-6">
@@ -32,11 +32,10 @@ export default function Footer() {
                 <Image
                   src="/assets/wc-logo-no-motto-no-bg.png"
                   alt="Westminster Chariots"
-                  width={240}
-                  height={80}
+                  width={480}
+                  height={160}
                   loading="eager"
-                  className="object-contain"
-                  style={{ width: "auto", height: "4rem" }}
+                  className="object-contain h-16 md:h-36 w-auto"
                 />
               </Link>
             </div>
@@ -64,7 +63,7 @@ export default function Footer() {
 
           {/* Our Services */}
           <div>
-            <h4 className="text-lg font-display font-semibold text-foreground mb-6">Our Services</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground/60 mb-6">Our Services</h4>
             <ul className="space-y-3 text-sm">
               {services.map((service) => (
                 <li key={service.name}>
@@ -82,7 +81,7 @@ export default function Footer() {
 
           {/* Menu */}
           <div>
-            <h4 className="text-lg font-display font-semibold text-foreground mb-6">Menu</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground/60 mb-6">Menu</h4>
             <ul className="space-y-3 text-sm">
               <li>
                 <Link 
@@ -121,12 +120,21 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link 
-                  href="/about-us" 
+                <Link
+                  href="/about-us"
                   className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
                 >
                   <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   About Us
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/founder"
+                  className="text-muted-foreground hover:text-accent-blue-bright hover:translate-x-1 transition-all duration-300 inline-flex items-center gap-2 group"
+                >
+                  <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  Founder's Message
                 </Link>
               </li>
             </ul>
@@ -134,7 +142,7 @@ export default function Footer() {
 
           {/* Get in Touch */}
           <div>
-            <h4 className="text-lg font-display font-semibold text-foreground mb-6">Get in Touch</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-foreground/60 mb-6">Get in Touch</h4>
             <p className="text-sm text-muted-foreground mb-6 leading-relaxed">Ready to book your luxury ride? Experience premium chauffeur service.</p>
             <button 
               onClick={() => router.push('/book')}

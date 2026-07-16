@@ -43,7 +43,7 @@ const faqs = [
       },
       {
         q: "Do you offer hourly bookings?",
-        a: "Yes, we offer hourly charter services with a minimum of 3 hours. This is perfect for business meetings, city tours, or events where you need the vehicle to wait for you."
+        a: "Yes, we offer hourly charter services with a minimum of 2 hours. This is perfect for business meetings, city tours, or events where you need the vehicle to wait for you."
       }
     ]
   },
@@ -53,11 +53,11 @@ const faqs = [
     questions: [
       {
         q: "How is pricing calculated?",
-        a: "Our pricing is based on distance, duration, and vehicle type. Sedans start at $95, SUVs at $125, and Sprinter vans at $195. All prices include gratuity, tolls, and fees. You'll see the exact price before confirming your booking."
+        a: "Our pricing is based on distance, duration, and vehicle type. You'll see the exact price before confirming your booking."
       },
       {
         q: "What payment methods do you accept?",
-        a: "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure Stripe payment system. Corporate accounts can also be invoiced monthly."
+        a: "We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure clover payment system. Corporate accounts can also be invoiced monthly."
       },
       {
         q: "Are gratuity and tolls included?",
@@ -75,11 +75,11 @@ const faqs = [
     questions: [
       {
         q: "What vehicles are in your fleet?",
-        a: "Our fleet consists of Mercedes-Benz S-Class sedans (3 passengers), GLS SUVs (6 passengers), and Sprinter vans (14 passengers). All vehicles are late-model, meticulously maintained, and equipped with premium amenities."
+        a: "Our fleet consists of Mercedes-Benz S-Class sedans (2 passengers), SUVs (4-5 passengers) . All vehicles are late-model, meticulously maintained, and equipped with premium amenities."
       },
       {
         q: "What amenities are included?",
-        a: "All vehicles include complimentary WiFi, bottled water, phone chargers, climate control, and premium sound systems. Our chauffeurs are professional, licensed, and uniformed."
+        a: "All vehicles include complimentary bottled water, phone chargers, climate control, and premium sound systems. Our chauffeurs are professional, licensed, and uniformed."
       },
       {
         q: "Do you provide car seats for children?",
@@ -109,7 +109,7 @@ const faqs = [
       },
       {
         q: "What is your wait time policy?",
-        a: "We provide 15 minutes of complimentary wait time for all pickups. After that, wait time is charged at $95/hour. For airport pickups, we track your flight and adjust accordingly."
+        a: "We provide 30 minutes of complimentary wait time for all pickups. After that, wait time is charged at $95/hour. For airport pickups, we track your flight and adjust accordingly."
       }
     ]
   },
@@ -211,7 +211,7 @@ export default function HelpPage() {
       />
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6 md:px-14 overflow-hidden">
+      <section className="relative pt-28 pb-14 px-5 md:pt-32 md:pb-20 md:px-14 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-accent-blue-bright/5 via-transparent to-accent-gold/5" />
         <div className="absolute top-20 right-0 w-96 h-96 bg-accent-blue-bright/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent-gold/10 rounded-full blur-3xl" />
@@ -222,7 +222,7 @@ export default function HelpPage() {
             <span className="text-xs font-medium uppercase tracking-wider text-accent-blue-bright">Support Center</span>
           </div>
           
-          <h1 className="font-serif text-5xl md:text-7xl font-light leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+          <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light leading-tight mb-6 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
             How Can We Help?
           </h1>
           
@@ -245,7 +245,7 @@ export default function HelpPage() {
       </section>
 
       {/* Quick Contact Options */}
-      <section className="py-12 px-6 md:px-14">
+      <section className="py-10 px-5 md:py-12 md:px-14">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {contactOptions.map((option, index) => (
@@ -276,13 +276,13 @@ export default function HelpPage() {
       </section>
 
       {/* FAQ Categories */}
-      <section className="py-12 px-6 md:px-14">
+      <section className="py-10 px-5 md:py-12 md:px-14">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-medium uppercase tracking-[0.4em] text-accent-blue-bright mb-4">
               Frequently Asked Questions
             </p>
-            <h2 className="font-serif text-4xl md:text-5xl font-light leading-tight">
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light leading-tight">
               Find Your Answers
             </h2>
           </div>
@@ -364,10 +364,10 @@ export default function HelpPage() {
       </section>
 
       {/* Still Need Help CTA */}
-      <section className="py-20 px-6 md:px-14">
-        <div className="max-w-4xl mx-auto text-center glass-card rounded-3xl border border-white/10 p-12 hover:border-accent-blue-bright/30 transition-all duration-500">
+      <section className="py-14 px-5 md:py-20 md:px-14">
+        <div className="max-w-4xl mx-auto text-center glass-card rounded-3xl border border-white/10 p-7 md:p-12 hover:border-accent-blue-bright/30 transition-all duration-500">
           <Sparkles className="h-12 w-12 text-accent-blue-bright mx-auto mb-6" />
-          <h2 className="font-serif text-4xl md:text-5xl font-light leading-tight mb-6">
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-light leading-tight mb-6">
             Still Need Help?
           </h2>
           <p className="text-xl text-muted-foreground mb-8">

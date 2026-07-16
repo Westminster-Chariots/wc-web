@@ -14,7 +14,7 @@ export default function AccountHeader({ onSignOut }: AccountHeaderProps) {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-3 font-display font-semibold text-slate-900">
           <div className="relative h-10 w-10 overflow-hidden">
-            <Image src="/assets/wc-logo-no-motto.png" alt="Westminster Chariots" fill className="object-contain" />
+            <Image src="/assets/wc-logo-no-motto-no-bg.png" alt="Westminster Chariots" fill className="object-contain" />
           </div>
           <div className="space-y-0.5">
             <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Westminster Chariots</p>

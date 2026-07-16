@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Shield, Clock, Star, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -34,25 +34,54 @@ export default function HeroSection({
   handleSearch,
 }: HeroSectionProps) {
   const { t } = useLanguage();
-  
+
+  // Parallax motion values
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const parallaxX = useSpring(mx, { stiffness: 60, damping: 20 });
+  const parallaxY = useSpring(my, { stiffness: 60, damping: 20 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const { clientX, clientY, currentTarget } = e;
+    const { width, height } = currentTarget.getBoundingClientRect();
+    mx.set((clientX / width - 0.5) * 22);
+    my.set((clientY / height - 0.5) * 16);
+  };
+
+  const handleMouseLeave = () => {
+    mx.set(0);
+    my.set(0);
+  };
+
   return (
-    <section ref={heroRef} className="relative min-h-screen flex items-center pt-20" data-theme="dark">
-      <div className="absolute inset-0 z-0">
-        <Image 
-          src="/assets/home-banner-image.png" 
-          alt="Your chauffeur awaits" 
-          fill 
-          className="object-cover brightness-125" 
-          priority 
-          sizes="100vw"
-        />
+    <section
+      ref={heroRef}
+      className="relative min-h-screen flex items-center pt-16 md:pt-20 overflow-hidden"
+      data-theme="dark"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <motion.div
+          className="absolute inset-[-4%]"
+          style={{ x: parallaxX, y: parallaxY }}
+        >
+          <Image
+            src="/assets/home-banner-image.png"
+            alt="Your chauffeur awaits"
+            fill
+            className="object-cover brightness-125"
+            priority
+            sizes="108vw"
+          />
+        </motion.div>
         <div className="absolute inset-0 bg-black/15" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/5 to-black/50" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.4)_100%)]" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 w-full py-20">
-        <div className="max-w-4xl mx-auto text-center mb-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-5 lg:px-8 w-full py-10 md:py-20">
+        <div className="max-w-4xl mx-auto text-center mb-8 md:mb-12">
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -65,7 +94,7 @@ export default function HeroSection({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
+            className="font-serif text-4xl sm:text-5xl font-light leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-6xl lg:text-7xl xl:text-[5.5rem]"
           >
             Your Chariot Awaits.
           </motion.h1>
@@ -110,13 +139,13 @@ export default function HeroSection({
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-1"
         >
-          <div className=" max-w-[1280px] mx-auto glass-strong rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden md:mt-28 backdrop-blur-md">
+          <div className="max-w-[1280px] mx-auto glass-strong rounded-2xl md:rounded-md p-0 flex flex-col md:flex-row md:items-center overflow-hidden mt-6 md:mt-28 backdrop-blur-md">
             <div className="flex flex-col md:flex-row md:items-center w-full">
               {/* Pickup */}
               <button
                 data-field="pickup"
                 onClick={(e) => openModal("pickup", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupLocation}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
@@ -134,7 +163,7 @@ export default function HeroSection({
                   <button
                     data-field="dropoff"
                     onClick={(e) => openModal("dropoff", e)}
-                    className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left"
+                    className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] flex-1 text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
                   >
                     <div className="text-[12px] font-semibold text-white">{t.booking.dropoffLocation}</div>
                     <div className="mt-1 border-b border-white/15 pb-1">
@@ -151,7 +180,7 @@ export default function HeroSection({
               <button
                 data-field="date"
                 onClick={(e) => openModal("date", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupDate}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">
@@ -167,7 +196,7 @@ export default function HeroSection({
               <button
                 data-field="time"
                 onClick={(e) => openModal("time", e)}
-                className="group block px-6 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left"
+                className="group block px-5 py-4 transition-colors hover:bg-white/[0.03] md:w-[200px] text-left border-b border-white/8 md:border-b-0 min-h-[56px]"
               >
                 <div className="text-[12px] font-semibold text-white">{t.booking.pickupTime}</div>
                 <div className="mt-1 border-b border-white/15 pb-1">

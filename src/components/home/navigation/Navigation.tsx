@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, UserCircle, LogOut, Globe } from "lucide-react";
+import { Menu, X, UserCircle, LogOut } from "lucide-react";
 import ServicesDropdown from "./ServicesDropdown";
 
 interface NavigationProps {
@@ -21,6 +21,8 @@ interface NavigationProps {
   cycleLang: () => void;
 }
 
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
+
 export default function Navigation({
   isOnLandingPage,
   isScrolled,
@@ -31,343 +33,328 @@ export default function Navigation({
   isAdmin,
   displayName,
   handleSignOut,
-  lang,
-  cycleLang,
 }: NavigationProps) {
   const [isOverHero, setIsOverHero] = useState(true);
 
-  // Detect if navbar is over hero section
   useEffect(() => {
-    if (typeof window !== 'undefined' && isOnLandingPage) {
-      const handleScroll = () => {
-        const heroHeight = window.innerHeight;
-        setIsOverHero(window.scrollY < heroHeight - 100);
-      };
-      
-      handleScroll(); // Initial check
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-    }
+    if (typeof window === "undefined" || !isOnLandingPage) return;
+    const onScroll = () => setIsOverHero(window.scrollY < window.innerHeight - 100);
+    onScroll();
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, [isOnLandingPage]);
 
-  // Determine if we should use dark theme styling (on landing page and over hero)
   const useDarkTheme = isOnLandingPage && isOverHero;
 
   return (
-    <header 
-      className={`fixed top-0 w-full z-50 transition-all duration-700 ease-in-out ${
-        isOnLandingPage ? (isScrolled ? 'py-3' : 'py-6') : 'py-3'
-      } ${!isOnLandingPage && isScrollingDown ? '-translate-y-full' : 'translate-y-0'}`}
-      data-nav-theme={useDarkTheme ? 'dark' : 'light'}
+    <motion.header
+      className="fixed top-0 w-full z-50"
+      animate={{
+        paddingTop: isOnLandingPage ? (isScrolled ? 12 : 24) : 12,
+        paddingBottom: isOnLandingPage ? (isScrolled ? 12 : 24) : 12,
+        y: !isOnLandingPage && isScrollingDown ? "-100%" : "0%",
+      }}
+      transition={{ duration: 0.55, ease }}
+      data-nav-theme={useDarkTheme ? "dark" : "light"}
     >
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        {isOnLandingPage ? (
-          // Three-Section Navigation (Landing Page)
-          <div className="flex items-center justify-between gap-4">
-            {/* Left Section - Logo Only */}
+        <AnimatePresence mode="wait">
+          {isOnLandingPage ? (
+            /* ── Three-section landing nav ── */
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
-              className={`transition-all duration-700 ease-in-out ${
-                isScrolled ? 'scale-90' : 'scale-100'
-              }`}
+              key="landing"
+              initial={{ opacity: 0, y: -14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.45, ease }}
+              className="flex items-center justify-between gap-4"
             >
-              <Link 
-                href="/" 
-                className="group flex items-center justify-center transition-all duration-500 hover:scale-105"
+              {/* Logo */}
+              <Link
+                href="/"
+                className="group flex items-center justify-center transition-transform duration-300 hover:scale-105"
               >
-                <div className="relative">
-                  <Image 
+                <motion.div
+                  animate={{ height: isScrolled ? 50 : 90 }}
+                  transition={{ duration: 0.55, ease }}
+                  className="relative"
+                  style={{ width: "auto" }}
+                >
+                  <Image
                     src="/assets/wc-logo-no-motto-no-bg.png"
-                    alt="Westminster Chariots" 
-                    width={isScrolled ? 55 : 100} 
-                    height={isScrolled ? 55 : 140} 
-                    style={{ width: 'auto', height: isScrolled ? '55px' : '100px' }}
-                    className="object-contain transition-all duration-700 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]" 
+                    alt="Westminster Chariots"
+                    width={120}
+                    height={120}
+                    style={{ width: "auto", height: "100%" }}
+                    className="object-contain transition-all duration-300 group-hover:brightness-110 group-hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                  />
+                </motion.div>
+              </Link>
+
+              {/* Centre nav pill */}
+              <motion.nav
+                animate={{ scale: isScrolled ? 0.95 : 1 }}
+                transition={{ duration: 0.55, ease }}
+                className="hidden md:flex items-center gap-8 glass-nav-center rounded-full px-8 py-4 backdrop-blur-xl"
+              >
+                <ServicesDropdown isDark={useDarkTheme} />
+                <NavLink href="/fleet" dark={useDarkTheme}>Our Fleet</NavLink>
+                <NavLink href="/help" dark={useDarkTheme}>Help</NavLink>
+              </motion.nav>
+
+              {/* Right pill */}
+              <motion.div
+                animate={{ scale: isScrolled ? 0.95 : 1 }}
+                transition={{ duration: 0.55, ease }}
+                className="flex items-center gap-2.5 glass-nav-right rounded-full px-4 py-2.5 backdrop-blur-xl"
+              >
+                {/* Mobile button */}
+                <button
+                  className={`md:hidden rounded-full border border-white/15 bg-white/10 p-3 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-400/40 ${
+                    useDarkTheme ? "text-white" : "text-foreground"
+                  }`}
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                >
+                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
+
+                {/* Desktop user */}
+                <div className="hidden md:flex items-center gap-2.5">
+                  <UserActions
+                    user={user}
+                    isAdmin={isAdmin}
+                    displayName={displayName}
+                    handleSignOut={handleSignOut}
+                    dark={useDarkTheme}
+                    small
                   />
                 </div>
-              </Link>
+              </motion.div>
             </motion.div>
-
-            {/* Middle Section - Navigation Links */}
-            <motion.nav
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className={`hidden md:flex items-center gap-8 glass-nav-center rounded-full px-8 py-4 backdrop-blur-xl transition-all duration-700 ease-in-out ${
-                isScrolled ? 'scale-95 py-3' : 'scale-100'
-              }`}
-            >
-              <ServicesDropdown isDark={useDarkTheme} />
-              
-              <a 
-                href="/fleet" 
-                className={`group text-sm font-medium transition-all duration-300 relative ${
-                  useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
-                }`}
-              >
-                <span className="relative z-10">Our Fleet</span>
-                <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-              </a>
-              
-              <a 
-                href="/help" 
-                className={`group text-sm font-medium transition-all duration-300 relative ${
-                  useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
-                }`}
-              >
-                <span className="relative z-10">Help</span>
-                <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-              </a>
-            </motion.nav>
-
-            {/* Right Section - User Menu & Language */}
+          ) : (
+            /* ── Merged single bar nav ── */
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className={`flex items-center gap-2.5 glass-nav-right rounded-full px-4 py-2.5 backdrop-blur-xl transition-all duration-700 ease-in-out ${
-                isScrolled ? 'scale-95 py-3' : 'scale-100'
-              }`}
+              key="merged"
+              initial={{ opacity: 0, y: -14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.45, ease }}
+              className="glass-nav-merged rounded-full px-6 py-3 shadow-glass flex items-center justify-between backdrop-blur-xl"
             >
-              {/* Mobile Menu Button */}
-              <button 
-                className={`md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm transition-all duration-300 p-3 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 ${
-                  useDarkTheme ? 'text-white hover:text-blue-300' : 'text-foreground hover:text-primary'
-                }`}
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
+              {/* Logo */}
+              <Link href="/" className="group flex items-center gap-3 hover:scale-105 transition-all duration-300">
+                <Image
+                  src="/assets/wc-logo-no-motto-no-bg.png"
+                  alt="Westminster Chariots"
+                  width={40}
+                  height={40}
+                  style={{ width: "auto", height: "40px" }}
+                  className="object-contain transition-all duration-300 group-hover:brightness-110 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                />
+              </Link>
 
-              {/* Desktop User Menu */}
-              <div className="hidden md:flex items-center gap-2.5">
-                {user ? (
-                  <>
-                    <Link 
-                      href="/account" 
-                      className={`btn-primary px-3.5 py-2 rounded-full group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-105 ${
-                        useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
-                      }`}
-                    >
-                      <UserCircle className="h-3 w-3 group-hover:rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(59,130,246,0.6)] transition-all duration-300" />
-                      <span className={`transition-all duration-500 ${isScrolled ? 'hidden xl:inline' : 'hidden lg:inline'}`}>
-                        {displayName}
-                      </span>
-                    </Link>
-                    {isAdmin && (
-                      <Link 
-                        href="/admin" 
-                        className={`group text-[11px] font-medium relative transition-all duration-300 ${
-                          useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground hover:text-primary'
-                        }`}
-                      >
-                        <span className="relative z-10">Dashboard</span>
-                        <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-                      </Link>
-                    )}
-                    <button 
-                      onClick={handleSignOut} 
-                      className={`group flex items-center gap-1.5 text-[11px] transition-all duration-300 hover:scale-110 ${
-                        useDarkTheme ? 'text-white/90 hover:text-red-400' : 'text-foreground/80 hover:text-destructive'
-                      }`}
-                    >
-                      <LogOut className="h-3 w-3 group-hover:-rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] transition-all duration-300" />
-                    </button>
-                  </>
-                ) : (
-                  <Link 
-                    href="/auth" 
-                    className="btn-primary px-3.5 py-2 rounded-full text-[11px] hover:scale-105 active:scale-95 transition-all duration-300"
-                  >
-                    Sign In
-                  </Link>
-                )}
-                
-                {/* Language Toggle */}
-                {/* <div className={`border-l pl-2.5 ${
-                  useDarkTheme ? 'border-white/20' : 'border-white/10'
-                }`}>
-                  <button
-                    onClick={cycleLang}
-                    className={`group flex items-center gap-1 text-[11px] font-semibold transition-all duration-300 hover:scale-110 ${
-                      useDarkTheme ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground'
-                    }`}
-                    aria-label={`Switch language - Current: ${lang}`}
-                  >
-                    <Globe className="h-3 w-3 group-hover:rotate-12 transition-all duration-300" />
-                    <span>{lang}</span>
-                  </button>
-                </div> */}
+              {/* Links */}
+              <nav className="hidden md:flex items-center gap-6">
+                <ServicesDropdown isDark={false} />
+                <NavLink href="/about-us">About Us</NavLink>
+                <NavLink href="/fleet">Our Fleet</NavLink>
+                <NavLink href="/help">Help</NavLink>
+              </nav>
+
+              {/* User */}
+              <div className="flex items-center gap-3 border-l border-white/10 pl-3">
+                <div className="hidden md:flex items-center gap-3">
+                  <UserActions
+                    user={user}
+                    isAdmin={isAdmin}
+                    displayName={displayName}
+                    handleSignOut={handleSignOut}
+                  />
+                </div>
+                <button
+                  className="md:hidden rounded-full border border-white/15 bg-white/10 p-3 transition-all duration-300 hover:scale-110 text-foreground"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                >
+                  {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
               </div>
             </motion.div>
-          </div>
-        ) : (
-          // Merged Single Bar Navigation (Off Landing Page)
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="glass-nav-merged rounded-full px-6 py-3 shadow-glass flex items-center justify-between backdrop-blur-xl"
-          >
-            {/* Logo */}
-            <Link href="/" className="group flex items-center gap-3 hover:scale-105 transition-all duration-300">
-              <Image 
-                src="/assets/wc-logo-no-motto-no-bg.png" 
-                alt="Westminster Chariots" 
-                width={40} 
-                height={40} 
-                style={{ width: 'auto', height: '40px' }}
-                className="object-contain transition-all duration-300 group-hover:brightness-110 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" 
-              />
-            </Link>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <ServicesDropdown isDark={false} />
-              
-              <a 
-                href="/fleet" 
-                className="group text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative"
-              >
-                <span className="relative z-10">Our Fleet</span>
-                <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-              </a>
-              
-              <a 
-                href="/help" 
-                className="group text-sm text-foreground/80 hover:text-foreground transition-all duration-300 relative"
-              >
-                <span className="relative z-10">Help</span>
-                <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-              </a>
-            </nav>
-
-            {/* User Menu */}
-            <div className="flex items-center gap-3 border-l border-white/10 pl-3">
-              {user ? (
-                <>
-                  <Link 
-                    href="/account" 
-                    className="group hidden md:flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground transition-all duration-300 hover:scale-105"
-                  >
-                    <UserCircle className="h-4 w-4 group-hover:rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(59,130,246,0.6)] transition-all duration-300" />
-                    <span className="hidden lg:inline">{displayName}</span>
-                  </Link>
-                  {isAdmin && (
-                    <Link 
-                      href="/admin" 
-                      className="group hidden md:block text-sm text-foreground hover:text-primary transition-all duration-300 font-medium relative"
-                    >
-                      <span className="relative z-10">Dashboard</span>
-                      <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
-                    </Link>
-                  )}
-                  <button 
-                    onClick={handleSignOut} 
-                    className="group hidden md:flex items-center gap-2 text-sm text-foreground/80 hover:text-destructive transition-all duration-300 hover:scale-110"
-                  >
-                    <LogOut className="h-4 w-4 group-hover:-rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] transition-all duration-300" />
-                  </button>
-                </>
-              ) : (
-                <Link 
-                  href="/auth" 
-                  className="hidden md:block btn-primary px-5 py-2 rounded-full text-sm hover:scale-105 active:scale-95 transition-all duration-300"
-                >
-                  Sign In
-                </Link>
-              )}
-              
-              {/* Mobile Menu Button */}
-              <button 
-                className="md:hidden rounded-full border border-white/15 bg-white/10 shadow-sm p-3 transition-all duration-300 hover:scale-110 hover:rotate-12 focus:outline-none focus:ring-2 focus:ring-blue-400/40 text-foreground" 
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-            </div>
-          </motion.div>
-        )}
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed h-[100vh] inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" 
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 h-[100vh] bg-black/60 backdrop-blur-sm z-40 md:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+            <motion.div
+              initial={{ opacity: 0, y: -16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.97 }}
+              transition={{ duration: 0.3, ease }}
               className={`md:hidden mt-4 border rounded-3xl relative z-50 overflow-y-auto shadow-glass max-h-[80vh] w-full ${
-                useDarkTheme 
-                  ? ' border-white/10 backdrop-blur-xl' 
-                  : 'bg-white border-white/10'
+                useDarkTheme ? "border-white/10 backdrop-blur-xl" : "bg-white border-white/10"
               }`}
             >
-              <div className="px-5 py-6 space-y-5 sm:px-6">
-                <a href="/services" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
-                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
-                }`}>Services</a>
-                <a href="/fleet" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
-                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
-                }`}>Our Fleet</a>
-                <a href="/help" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
-                  useDarkTheme ? 'text-white/90' : 'text-gray-900'
-                }`}>Help</a>
-                
-                {user ? (
-                  <>
-                    <Link href="/account" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-2 text-base py-2 ${
-                      useDarkTheme ? 'text-white/90' : 'text-gray-900'
-                    }`}>
-                      <UserCircle className="h-5 w-5" />
-                      {displayName}
-                    </Link>
-                    {isAdmin && (
-                      <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className={`block text-base font-medium py-2 ${
-                        useDarkTheme ? 'text-white/90' : 'text-gray-900'
-                      }`}>Dashboard</Link>
-                    )}
-                    <button onClick={() => { setMobileMenuOpen(false); handleSignOut(); }} className="flex items-center gap-2 text-base text-destructive py-2">
-                      <LogOut className="h-5 w-5" /> Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <Link href="/auth" onClick={() => setMobileMenuOpen(false)} className="block btn-primary px-6 py-3 rounded-full text-base text-center">Sign In</Link>
-                )}
-                
-                {/* Language Toggle in Mobile */}
-                {/* <div className={`pt-4 border-t ${
-                  useDarkTheme ? 'border-white/10' : 'border-gray-200'
-                }`}>
-                  <button
-                    onClick={cycleLang}
-                    className={`flex items-center gap-2 text-base font-semibold hover:text-primary transition-all duration-300 ${
-                      useDarkTheme ? 'text-white/90' : 'text-gray-900'
+              <div className="px-5 py-6 space-y-1 sm:px-6">
+                {[
+                  { href: "/services", label: "Services" },
+                  { href: "/fleet", label: "Our Fleet" },
+                  { href: "/about-us", label: "About Us" },
+                  { href: "/help", label: "Help" },
+                ].map(({ href, label }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`block text-base font-medium hover:text-primary transition-colors duration-200 py-3 ${
+                      useDarkTheme ? "text-white/90" : "text-gray-900"
                     }`}
                   >
-                    <Globe className="h-5 w-5" />
-                    <span>Language: {lang}</span>
-                  </button>
-                </div> */}
+                    {label}
+                  </a>
+                ))}
+
+                <div className="pt-3 border-t border-white/10 mt-3">
+                  {user ? (
+                    <>
+                      <Link
+                        href="/account"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 text-base py-2 ${useDarkTheme ? "text-white/90" : "text-gray-900"}`}
+                      >
+                        <UserCircle className="h-5 w-5" />
+                        {displayName}
+                      </Link>
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`block text-base font-medium py-2 ${useDarkTheme ? "text-white/90" : "text-gray-900"}`}
+                        >
+                          Dashboard
+                        </Link>
+                      )}
+                      <button
+                        onClick={() => { setMobileMenuOpen(false); handleSignOut(); }}
+                        className="flex items-center gap-2 text-base text-destructive py-2"
+                      >
+                        <LogOut className="h-5 w-5" /> Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href="/auth"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block btn-primary px-6 py-3 rounded-full text-base text-center"
+                    >
+                      Sign In
+                    </Link>
+                  )}
+                </div>
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
-    </header>
+    </motion.header>
+  );
+}
+
+/* ── Small reusable pieces ── */
+
+function NavLink({
+  href,
+  children,
+  dark = false,
+}: {
+  href: string;
+  children: React.ReactNode;
+  dark?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`group text-sm font-medium transition-all duration-300 relative ${
+        dark ? "text-white/90 hover:text-white" : "text-foreground/80 hover:text-foreground"
+      }`}
+    >
+      <span className="relative z-10">{children}</span>
+      <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+    </a>
+  );
+}
+
+function UserActions({
+  user,
+  isAdmin,
+  displayName,
+  handleSignOut,
+  dark = false,
+  small = false,
+}: {
+  user: any;
+  isAdmin: boolean;
+  displayName: string;
+  handleSignOut: () => void;
+  dark?: boolean;
+  small?: boolean;
+}) {
+  const textSize = small ? "text-[11px]" : "text-sm";
+
+  if (!user) {
+    return (
+      <Link
+        href="/auth"
+        className={`btn-primary rounded-full hover:scale-105 active:scale-95 transition-all duration-300 ${
+          small ? "px-3.5 py-2 text-[11px]" : "px-5 py-2 text-sm"
+        }`}
+      >
+        Sign In
+      </Link>
+    );
+  }
+
+  return (
+    <>
+      <Link
+        href="/account"
+        className={`group flex items-center gap-1.5 ${textSize} transition-all duration-300 hover:scale-105 ${
+          dark ? "text-white/90 hover:text-white" : "text-foreground/80 hover:text-foreground"
+        }`}
+      >
+        <UserCircle className="h-4 w-4 group-hover:rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(59,130,246,0.6)] transition-all duration-300" />
+        <span className="hidden lg:inline">{displayName}</span>
+      </Link>
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className={`group ${textSize} font-medium relative transition-all duration-300 ${
+            dark ? "text-white/90 hover:text-white" : "text-foreground hover:text-primary"
+          }`}
+        >
+          <span className="relative z-10">Dashboard</span>
+          <span className="absolute inset-x-0 -bottom-1 h-0.5 bg-blue-gradient scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+        </Link>
+      )}
+      <button
+        onClick={handleSignOut}
+        className={`group flex items-center gap-1.5 ${textSize} transition-all duration-300 hover:scale-110 ${
+          dark ? "text-white/90 hover:text-red-400" : "text-foreground/80 hover:text-destructive"
+        }`}
+      >
+        <LogOut className="h-3.5 w-3.5 group-hover:-rotate-12 group-hover:drop-shadow-[0_0_6px_rgba(239,68,68,0.6)] transition-all duration-300" />
+      </button>
+    </>
   );
 }

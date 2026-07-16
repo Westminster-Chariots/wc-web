@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -92,7 +92,7 @@ export default function ServicesPage() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-[1400px] flex-col items-center justify-center px-6 text-center">
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-[1400px] flex-col items-center justify-center px-5 text-center">
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -105,7 +105,7 @@ export default function ServicesPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="font-serif text-6xl font-light leading-[1.05] tracking-tight text-white/95 drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-7xl lg:text-[5.5rem]"
+            className="font-serif text-4xl sm:text-5xl font-light leading-[1.05] tracking-tight text-white/95 drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] md:text-6xl lg:text-[5.5rem]"
           >
             A ride for every occasion.
           </motion.h1>
@@ -172,15 +172,16 @@ export default function ServicesPage() {
             </p>
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-wrap justify-center gap-6">
             {SERVICES.map((s, index) => (
               <motion.div
                 key={s.slug}
                 id={s.slug}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.5, delay: index * 0.05 }}
+                className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                initial={{ opacity: 0, y: 60, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.55, delay: index * 0.07, ease: [0.25, 0.46, 0.45, 0.94] }}
               >
                 <Link
                   href={`/services/${s.slug}`}
@@ -231,17 +232,17 @@ export default function ServicesPage() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="font-serif text-3xl sm:text-4xl font-light text-foreground mb-4">
-              Ready when you are.
+              Your journey starts here.
             </h2>
             <p className="text-lg text-foreground/70 mb-8">
-              Reserve in seconds — your chauffeur takes care of the rest.
+              Reserve your chauffeur in minutes and travel with confidence, comfort, and peace of mind.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/book"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02]"
               >
-                Book a ride <ArrowRight className="h-4 w-4" />
+                Book Your Chariot <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/help"

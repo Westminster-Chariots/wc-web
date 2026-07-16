@@ -523,7 +523,7 @@ export default function ManifestsPage() {
       } else if (activeTab === "invoice") {
         // Lazy load invoice PDF generation
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
-        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
+        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-no-motto-no-bg.png", variant as InvoiceVariant);
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${invoiceData.invoiceNumber}-Invoice-${suffix}.pdf`);
         toast.success("Invoice PDF downloaded");
@@ -541,7 +541,7 @@ export default function ManifestsPage() {
           vehicleTag: driverInfo.vehicleTag || undefined,
           items: invoiceData.items as TripItem[],
         };
-        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
+        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-no-motto-no-bg.png", variant as ConfirmationVariant);
         const suffix = variant === "light" ? "White" : "Black";
         doc.save(`${invoiceData.invoiceNumber}-Confirmation-${suffix}.pdf`);
         toast.success("Trip Confirmation PDF downloaded");
@@ -581,7 +581,7 @@ export default function ManifestsPage() {
       } else if (activeTab === "invoice") {
         // Lazy load invoice PDF generation
         const { generateInvoicePDF } = await import("@/lib/generateInvoicePDF");
-        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-full.png", variant as InvoiceVariant);
+        const doc = await generateInvoicePDF(invoiceData, "/assets/wc-logo-no-motto-no-bg.png", variant as InvoiceVariant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
@@ -599,7 +599,7 @@ export default function ManifestsPage() {
           vehicleTag: driverInfo.vehicleTag || undefined,
           items: invoiceData.items as TripItem[],
         };
-        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-full.png", variant as ConfirmationVariant);
+        const doc = await generateConfirmationPDF(confirmationData, "/assets/wc-logo-no-motto-no-bg.png", variant as ConfirmationVariant);
         const blob = doc.output("blob");
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
@@ -995,7 +995,7 @@ export default function ManifestsPage() {
           {activeTab === "manifest" ? (
           <div className="bg-background border border-border rounded-lg p-8 max-w-3xl mx-auto space-y-6 font-body text-sm">
             <div className="flex items-center justify-between pb-4 border-b border-primary/30">
-              <img src="/assets/wc-logo-no-motto.png" alt="Westminster Chariots" className="h-12 object-contain" />
+              <img src="/assets/wc-logo-no-motto-no-bg.png" alt="Westminster Chariots" className="h-12 object-contain" />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground"></p>
                 <p className="text-xs text-muted-foreground">(571) 426-6338</p>
@@ -1243,7 +1243,7 @@ export default function ManifestsPage() {
               <div className="p-8 pb-6">
                 <div className="flex items-start justify-between mb-8">
                   <div>
-                    <img src="/assets/wc-logo-full.png" alt="Westminster Chariots" className="h-20 object-contain mb-3" />
+                    <img src="/assets/wc-logo-no-motto-no-bg.png" alt="Westminster Chariots" className="h-20 object-contain mb-3" />
                     <div className={`text-xs space-y-0.5 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
@@ -1663,7 +1663,7 @@ export default function ManifestsPage() {
               <div className="p-8 pb-6">
                 <div className="flex items-start justify-between mb-8">
                   <div>
-                    <img src="/assets/wc-logo-full.png" alt="Westminster Chariots" className="h-20 object-contain mb-3" />
+                    <img src="/assets/wc-logo-no-motto-no-bg.png" alt="Westminster Chariots" className="h-20 object-contain mb-3" />
                     <div className={`text-xs space-y-0.5 ${
                       variant === "dark" ? "text-gray-400" : "text-gray-600"
                     }`}>
