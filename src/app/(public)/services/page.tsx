@@ -81,15 +81,14 @@ export default function ServicesPage() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/assets/svc-hourly.jpg"
-            alt="Premium chauffeur service"
+            src="/assets/services/extra fill in.png"
+            alt="Westminster Chariots luxury fleet lineup"
             fill
             priority
             className="object-cover scale-105"
           />
-          <div className="absolute inset-0 bg-black/25" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/70" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)]" />
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.08),rgba(0,0,0,0.38))]" />
         </div>
 
         {/* Hero Content */}
