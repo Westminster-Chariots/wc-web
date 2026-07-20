@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { pricingService } from "@/lib/services";
+import { pricingService, type QuotePreviewRequest, type QuotePreviewResponse } from "@/lib/services";
 
 export interface PricingConfig {
   id: string;
@@ -312,6 +312,24 @@ export function usePricing() {
     return 20; // Default tax percent
   }, [vehiclePricing]);
 
+  // Backend-authoritative quote - calls the same shared calculation booking
+  // creation itself uses (getPricingSnapshot()/calculateLegPriceCents() on
+  // the backend), so this and the total a booking is actually created with
+  // can never independently drift the way calculatePrice() above and the
+  // old hardcoded backend calcPrice() did. Used by checkout for its actual
+  // displayed/accepted/charged total; calculatePrice() above remains as a
+  // local, clearly-lower-trust estimate for contexts (e.g. /book's vehicle
+  // picker) that don't gate an actual charge on the result. Throws on
+  // failure - callers must treat that as "no authoritative quote available"
+  // and must not fall back to a self-computed number for anything that
+  // will be charged.
+  const getAuthoritativeQuote = useCallback(
+    async (request: QuotePreviewRequest): Promise<QuotePreviewResponse> => {
+      return pricingService.calculate(request);
+    },
+    []
+  );
+
   return {
     configs,
     vehiclePricing,
@@ -319,6 +337,7 @@ export function usePricing() {
     error,
     calculatePrice,
     calculateVehicleSpecificPrice,
+    getAuthoritativeQuote,
     getTaxPercent,
     getVehicleTaxPercent,
     reload: loadPricing,

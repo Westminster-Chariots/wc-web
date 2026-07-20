@@ -173,21 +173,24 @@ export default function ClientAccountPage() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    // Was previously a hand-rolled fetch to a hardcoded production URL missing
+    // /v1, hitting a generic PATCH /bookings/:id route that doesn't exist on
+    // the backend (the real route is PATCH /:id/cancel) - silently broken.
     try {
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(`https://wc-backend-ayx0.onrender.com/api/bookings/${bookingId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: "cancelled" })
-      });
-      if (!response.ok) throw new Error("Failed to cancel booking");
+      const result = await bookingService.cancel(bookingId);
       setAllBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
       );
-      notify.success("Reservation cancelled");
+      // No automatic refund exists yet - a paid booking's cancellation must
+      // never be presented as "you've been refunded." The backend leaves
+      // payment.status as "paid" and flags it for manual review instead.
+      if (result?.refundReviewNeeded) {
+        notify.success(
+          "Reservation cancelled. Since this ride was already paid, our team will review your refund manually - cancelling does not automatically issue a refund."
+        );
+      } else {
+        notify.success("Reservation cancelled");
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Failed to cancel booking";
       notify.error(message);

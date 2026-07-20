@@ -12,8 +12,6 @@ export function useFleet() {
 
   const fetchVehicles = useCallback(async () => {
     setError(null);
-    const token = localStorage.getItem("access_token");
-    console.log("[useFleet] Fetching with token:", token ? `${token.substring(0, 20)}...` : "NO TOKEN");
     try {
       const data = await fleetService.getAll();
       setVehicles(data);

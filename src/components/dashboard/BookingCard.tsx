@@ -36,8 +36,18 @@ export interface UIBooking {
   durationMinutes?: number;
   groupId?: string;
   legOrder?: number;
+  // Authoritative combined total for the whole trip - identical to `price`
+  // for a single-leg booking, sum of every sibling leg's own price for a
+  // multi-leg trip. This is what was actually (or will be) charged.
+  groupTotalPrice?: number;
   createdAt: string;
   emailPhase?: string;
+  // Derived from the payments table - dispatch `status` above and payment
+  // state are separate dimensions, see backend routes/bookings.ts getPaymentInfo.
+  paymentStatus?: "pending" | "processing" | "paid" | "failed" | "refunded" | null;
+  paymentMethod?: "clover" | "stripe" | null;
+  cloverPaymentId?: string | null;
+  paymentFailureReason?: string | null;
 }
 
 export interface Driver {

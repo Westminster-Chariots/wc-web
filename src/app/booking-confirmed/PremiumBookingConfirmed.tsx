@@ -11,31 +11,15 @@ import { notify } from "@/lib/notify";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ServicesDropdown from "@/components/home/navigation/ServicesDropdown";
-
-interface BookingDetails {
-  id: string;
-  reservationNumber: string;
-  pickupLocation: string;
-  dropoffLocation: string;
-  pickupDate: string;
-  pickupTime: string;
-  vehicleType: string;
-  totalPrice: string;
-  clientName: string;
-  clientEmail: string;
-  status: string;
-  distanceMiles?: number;
-  durationMinutes?: number;
-  flightNumber?: string;
-  specialRequests?: string;
-}
+import { bookingService } from "@/lib/services";
+import type { Booking } from "@/types";
 
 function PremiumBookingConfirmed() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAdmin, logout } = useAuth();
   const { lang, cycleLang } = useLanguage();
-  const [booking, setBooking] = useState<BookingDetails | null>(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showQR, setShowQR] = useState(false);
@@ -55,24 +39,31 @@ function PremiumBookingConfirmed() {
       return;
     }
 
-    // Fetch booking details
+    // Fetch booking details via the shared bookingService, which normalizes
+    // Postgres numeric/decimal columns (distanceMiles, totalPrice, etc.) to
+    // real numbers - a previous raw fetch() here bypassed that
+    // normalization entirely and crashed on `booking.distanceMiles.toFixed`
+    // (distanceMiles arrived as the string "12.40", not a number).
     const fetchBooking = async () => {
       try {
         if (bookingId) {
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/bookings/${bookingId}`,
-            {
-              credentials: "include",
-            }
-          );
-
-          if (response.ok) {
-            const data = await response.json();
-            setBooking(data);
+          const data = await bookingService.getById(bookingId);
+          // This page must only render a "confirmed" state for bookings with an
+          // actual paid payment record. paymentStatus comes from the payments
+          // table (the payment source of truth) - it is deliberately independent
+          // of emailPhase, which only reflects notification delivery and can
+          // diverge from payment state (e.g. paid but confirmation email failed).
+          if (data.paymentStatus !== "paid") {
+            notify.error("This booking has not been paid yet.");
+            router.push(`/book/checkout`);
+            return;
           }
+          setBooking(data);
         }
       } catch (err) {
         console.error("Failed to fetch booking details:", err);
+        router.push("/");
+        return;
       } finally {
         setLoading(false);
       }
@@ -387,46 +378,96 @@ function PremiumBookingConfirmed() {
 
                   {booking && (
                     <div className="space-y-6">
-                      {/* Route Visualization */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <MapPin className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-muted-foreground">Pickup Location</p>
-                            <p className="text-lg font-body text-foreground">{booking.pickupLocation}</p>
-                          </div>
+                      {/* Route Visualization - one section per journey for a
+                          multi-leg trip, the original single pickup/dropoff
+                          layout otherwise. */}
+                      {booking.legs && booking.legs.length > 1 ? (
+                        <div className="space-y-5">
+                          {booking.legs.map((leg, i) => (
+                            <div key={leg.id} className={i > 0 ? "pt-5 border-t border-border/30" : ""}>
+                              <p className="text-xs font-semibold text-primary font-body uppercase tracking-wide mb-3">
+                                Journey {i + 1}
+                              </p>
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <MapPin className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold text-muted-foreground">Pickup Location</p>
+                                    <p className="text-lg font-body text-foreground">{leg.pickupLocation}</p>
+                                  </div>
+                                </div>
+                                <div className="flex justify-center">
+                                  <ChevronRight className="h-6 w-6 text-primary rotate-90 lg:rotate-0" />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                    <MapPin className="h-5 w-5 text-blue-500" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold text-muted-foreground">Drop-off Location</p>
+                                    <p className="text-lg font-body text-foreground">{leg.dropoffLocation}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                                    <Calendar className="h-5 w-5 text-amber-500" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold text-muted-foreground">Date & Time</p>
+                                    <p className="text-base font-body text-foreground">
+                                      {formatDate(leg.pickupDate)} at {formatTime(leg.pickupTime)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <MapPin className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-muted-foreground">Pickup Location</p>
+                              <p className="text-lg font-body text-foreground">{booking.pickupLocation}</p>
+                            </div>
+                          </div>
 
-                        <div className="flex justify-center">
-                          <ChevronRight className="h-6 w-6 text-primary rotate-90 lg:rotate-0" />
-                        </div>
+                          <div className="flex justify-center">
+                            <ChevronRight className="h-6 w-6 text-primary rotate-90 lg:rotate-0" />
+                          </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                            <MapPin className="h-5 w-5 text-blue-500" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-muted-foreground">Drop-off Location</p>
-                            <p className="text-lg font-body text-foreground">{booking.dropoffLocation}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                              <MapPin className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-muted-foreground">Drop-off Location</p>
+                              <p className="text-lg font-body text-foreground">{booking.dropoffLocation}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
 
                       {/* Details Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t border-border/30">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                            <Calendar className="h-5 w-5 text-amber-500" />
+                        {!(booking.legs && booking.legs.length > 1) && (
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                              <Calendar className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-muted-foreground">Date & Time</p>
+                              <p className="text-base font-body text-foreground">
+                                {formatDate(booking.pickupDate)} at {formatTime(booking.pickupTime)}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold text-muted-foreground">Date & Time</p>
-                            <p className="text-base font-body text-foreground">
-                              {formatDate(booking.pickupDate)} at {formatTime(booking.pickupTime)}
-                            </p>
-                          </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -440,7 +481,7 @@ function PremiumBookingConfirmed() {
                           </div>
                         </div>
 
-                        {booking.distanceMiles && (
+                        {!(booking.legs && booking.legs.length > 1) && booking.distanceMiles && (
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
                               <Sparkles className="h-5 w-5 text-cyan-500" />
@@ -557,33 +598,57 @@ function PremiumBookingConfirmed() {
                 >
                   <h3 className="text-xl font-display font-bold text-foreground mb-6">Price Summary</h3>
                   
-                  {booking && (
+                  {booking && (() => {
+                    // groupTotalPrice is the authoritative amount actually
+                    // charged (sum of every leg for a multi-leg trip,
+                    // identical to totalPrice otherwise) - this must be what
+                    // is displayed as "Total Amount", never just the primary
+                    // leg's own totalPrice.
+                    const total = booking.groupTotalPrice ?? booking.totalPrice ?? 0;
+                    return (
                     <div className="space-y-4">
+                      {booking.legs && booking.legs.length > 1 && (
+                        <div className="space-y-1.5 pb-2">
+                          {booking.legs.map((leg, i) => (
+                            <div key={leg.id} className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Journey {i + 1} fare</span>
+                              <span className="font-semibold text-foreground">
+                                ${(leg.totalPrice || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Base fare</span>
-                          <span className="font-semibold text-foreground">
-                            ${(parseFloat(booking.totalPrice || "0") * 0.8).toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Tax (20%)</span>
-                          <span className="font-semibold text-foreground">
-                            ${(parseFloat(booking.totalPrice || "0") * 0.2).toFixed(2)}
-                          </span>
-                        </div>
+                        {!(booking.legs && booking.legs.length > 1) && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Base fare</span>
+                              <span className="font-semibold text-foreground">
+                                ${(total * 0.8).toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Gratuity (20%)</span>
+                              <span className="font-semibold text-foreground">
+                                ${(total * 0.2).toFixed(2)}
+                              </span>
+                            </div>
+                          </>
+                        )}
                         <div className="pt-3 border-t border-border/30">
                           <div className="flex justify-between items-center">
                             <span className="text-base font-display font-bold text-foreground">Total Amount</span>
                             <span className="text-2xl font-display font-bold text-primary">
-                              ${parseFloat(booking.totalPrice || "0").toFixed(2)}
+                              ${total.toFixed(2)}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">All fees, tolls, and taxes included</p>
                         </div>
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="pt-6 border-t border-border/30">
                     <div className="flex items-center gap-3 mb-3">

@@ -24,17 +24,6 @@ export default function BookingDetailsPage() {
     }
   }, [data.pickup, data.dropoff, data.selectedVehicle, router]);
 
-  if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
-
   const [flightNumber, setFlightNumber] = useState(data.flightNumber);
   const [specialRequests, setSpecialRequests] = useState(data.specialRequests);
   const [forSomeoneElse, setForSomeoneElse] = useState(data.bookingForSomeoneElse);
@@ -78,6 +67,21 @@ export default function BookingDetailsPage() {
     });
     router.push("/book/login");
   };
+
+  // Loading/redirecting state - moved after every hook above (rules of
+  // hooks: this must never gate which hooks run). The redirect itself is
+  // still driven by the useEffect near the top, unconditionally called on
+  // every render; this only controls what's rendered while it takes effect.
+  if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">

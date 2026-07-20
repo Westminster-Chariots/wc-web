@@ -1,8 +1,8 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { bookingService, driverService, fleetService, clientService, invoiceService, analyticsService } from "@/lib/services";
+import { bookingService, driverService, fleetService, clientService, invoiceService, analyticsService, paymentEmailService } from "@/lib/services";
 import { toast } from "sonner";
-import type { Booking, Driver, FleetVehicle } from "@/types";
+import type { Booking, Driver, FleetVehicle, CreateBookingPayload } from "@/types";
 
 // ─── Booking Hooks ───────────────────────────────────────────────────────────
 export function useBookings(filters?: { status?: string; startDate?: string; endDate?: string }) {
@@ -32,9 +32,9 @@ export function useMyBookings() {
 
 export function useCreateBooking() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (bookingData: Partial<Booking>) => bookingService.create(bookingData),
+    mutationFn: (bookingData: CreateBookingPayload) => bookingService.create(bookingData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       queryClient.invalidateQueries({ queryKey: ["my-bookings"] });
@@ -108,6 +108,30 @@ export function useCancelBooking() {
     },
     onError: () => {
       toast.error("Failed to cancel booking");
+    },
+  });
+}
+
+// ─── Payment Email Status Hooks (admin) ──────────────────────────────────────
+export function usePaymentEmailStatus(bookingId: string) {
+  return useQuery({
+    queryKey: ["payment-email-status", bookingId],
+    queryFn: () => paymentEmailService.getStatus(bookingId),
+    enabled: !!bookingId,
+  });
+}
+
+export function useResendPaymentEmails() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bookingId: string) => paymentEmailService.resend(bookingId),
+    onSuccess: (_, bookingId) => {
+      queryClient.invalidateQueries({ queryKey: ["payment-email-status", bookingId] });
+      toast.success("Resend attempted - check the status above for the result.");
+    },
+    onError: () => {
+      toast.error("Failed to resend emails");
     },
   });
 }

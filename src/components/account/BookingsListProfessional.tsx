@@ -40,40 +40,71 @@ interface BookingsListProps {
   onCancel: (bookingId: string) => Promise<void>;
 }
 
+interface Trip {
+  primary: Booking;
+  legs: Booking[];
+}
+
 export default function BookingsListProfessional({ bookings, loading, page, pageSize, onPageChange, onReschedule, onCancel }: BookingsListProps) {
   const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
+  // A multi-leg trip arrives from the API as N separate booking rows sharing
+  // a tripGroupId - group them into one card per trip (in first-encounter
+  // order, so overall date ordering from the API is preserved) instead of
+  // showing N unlinked cards for what the customer experiences as one
+  // booking. A single-leg booking (tripGroupId null) becomes a 1-leg "trip",
+  // identical to today's behavior.
+  const trips = useMemo(() => {
+    const seenGroups = new Set<string>();
+    const result: Trip[] = [];
+    for (const b of bookings) {
+      if (b.tripGroupId) {
+        if (seenGroups.has(b.tripGroupId)) continue;
+        seenGroups.add(b.tripGroupId);
+        const legs = bookings
+          .filter((x) => x.tripGroupId === b.tripGroupId)
+          .sort((x, y) => (x.legOrder ?? 1) - (y.legOrder ?? 1));
+        const primary = legs.find((l) => (l.legOrder ?? 1) === 1) ?? legs[0];
+        result.push({ primary, legs });
+      } else {
+        result.push({ primary: b, legs: [b] });
+      }
+    }
+    return result;
+  }, [bookings]);
+
   const filteredByStatus = useMemo(() => {
-    if (statusFilter === "all") return bookings;
-    return bookings.filter((b) => b.status === statusFilter);
-  }, [bookings, statusFilter]);
+    if (statusFilter === "all") return trips;
+    return trips.filter((t) => t.primary.status === statusFilter);
+  }, [trips, statusFilter]);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const searchedBookings = useMemo(() => {
+  const searchedTrips = useMemo(() => {
     if (!normalizedSearch) return filteredByStatus;
 
     const searchParts = normalizedSearch.split(/\s+/).filter(Boolean);
 
-    return filteredByStatus.filter((booking) => {
-      const haystack = [
-        booking.reservationNumber,
-        booking.pickupLocation,
-        booking.dropoffLocation,
-        booking.status,
-        booking.vehicleType,
-        booking.clientName,
-        booking.clientPhone,
-        booking.clientEmail,
-        booking.flightNumber,
-        booking.specialRequests,
-        booking.driverId,
-        booking.dispatcherNotes,
-        booking.pickupDate,
-        booking.pickupTime,
-        booking.totalPrice?.toString(),
-      ]
+    return filteredByStatus.filter((trip) => {
+      const haystack = trip.legs
+        .flatMap((booking) => [
+          booking.reservationNumber,
+          booking.pickupLocation,
+          booking.dropoffLocation,
+          booking.status,
+          booking.vehicleType,
+          booking.clientName,
+          booking.clientPhone,
+          booking.clientEmail,
+          booking.flightNumber,
+          booking.specialRequests,
+          booking.driverId,
+          booking.dispatcherNotes,
+          booking.pickupDate,
+          booking.pickupTime,
+          booking.totalPrice?.toString(),
+        ])
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -83,19 +114,19 @@ export default function BookingsListProfessional({ bookings, loading, page, page
   }, [filteredByStatus, normalizedSearch]);
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: bookings.length };
-    bookings.forEach((b) => {
-      counts[b.status] = (counts[b.status] || 0) + 1;
+    const counts: Record<string, number> = { all: trips.length };
+    trips.forEach((t) => {
+      counts[t.primary.status] = (counts[t.primary.status] || 0) + 1;
     });
     return counts;
-  }, [bookings]);
+  }, [trips]);
 
-  const totalPages = Math.max(1, Math.ceil(searchedBookings.length / pageSize));
-  const paginatedBookings = useMemo(() => {
-    if (page < 0) return searchedBookings.slice(0, pageSize);
+  const totalPages = Math.max(1, Math.ceil(searchedTrips.length / pageSize));
+  const paginatedTrips = useMemo(() => {
+    if (page < 0) return searchedTrips.slice(0, pageSize);
     const start = page * pageSize;
-    return searchedBookings.slice(start, start + pageSize);
-  }, [searchedBookings, page, pageSize]);
+    return searchedTrips.slice(start, start + pageSize);
+  }, [searchedTrips, page, pageSize]);
 
   useEffect(() => {
     onPageChange(0);
@@ -176,7 +207,7 @@ export default function BookingsListProfessional({ bookings, loading, page, page
             <div key={i} className="h-24 rounded-2xl bg-slate-100 animate-pulse" />
           ))}
         </div>
-      ) : searchedBookings.length === 0 ? (
+      ) : searchedTrips.length === 0 ? (
         <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
           <Car className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 mb-2">No rides found</h3>
@@ -198,10 +229,12 @@ export default function BookingsListProfessional({ bookings, loading, page, page
         </div>
       ) : (
         <div className="space-y-4">
-          {paginatedBookings.map((booking) => {
+          {paginatedTrips.map(({ primary: booking, legs }) => {
             const pickupDateTime = new Date(`${booking.pickupDate}T${booking.pickupTime}`);
             const hoursUntilPickup = differenceInHours(pickupDateTime, new Date());
             const canReschedule = booking.status === "pending" && hoursUntilPickup >= 24;
+            const isMultiLeg = legs.length > 1;
+            const displayTotal = booking.groupTotalPrice ?? booking.totalPrice;
 
             return (
               <div key={booking.id} className="rounded-2xl bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -216,6 +249,11 @@ export default function BookingsListProfessional({ bookings, loading, page, page
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[booking.status] || statusColors.pending}`}>
                             {statusIcons[booking.status] || "⏳"} {getStatusText(booking.status)}
                           </span>
+                          {isMultiLeg && (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-violet-500/10 text-violet-600">
+                              {legs.length} journeys
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-lg font-semibold text-slate-900">{getVehicleName(booking.vehicleType)}</h3>
                       </div>
@@ -227,48 +265,71 @@ export default function BookingsListProfessional({ bookings, loading, page, page
                       </div>
                     </div>
 
-                    {/* Route Information */}
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="rounded-lg bg-slate-50 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-slate-500" />
-                          <p className="text-sm font-medium text-slate-900">Pickup</p>
-                        </div>
-                        <p className="text-slate-600 truncate">{booking.pickupLocation}</p>
+                    {/* Route Information - one row per journey for a
+                        multi-leg trip, the original two-column layout
+                        otherwise (unchanged single-leg behavior). */}
+                    {isMultiLeg ? (
+                      <div className="space-y-2">
+                        {legs.map((leg, i) => (
+                          <div key={leg.id} className="rounded-lg bg-slate-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Journey {i + 1}</p>
+                              <p className="text-slate-600 truncate text-sm">{leg.pickupLocation} → {leg.dropoffLocation}</p>
+                              <p className="text-slate-500 text-xs mt-0.5">
+                                {leg.pickupDate ? format(parseISO(leg.pickupDate), "MMM d") : "—"} · {leg.pickupTime?.slice(0, 5) || "00:00"}
+                              </p>
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900 shrink-0">${leg.totalPrice ? Number(leg.totalPrice).toFixed(2) : "0.00"}</p>
+                          </div>
+                        ))}
                       </div>
-                      <div className="rounded-lg bg-slate-50 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-slate-500" />
-                          <p className="text-sm font-medium text-slate-900">Drop-off</p>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-lg bg-slate-50 p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin className="h-4 w-4 text-slate-500" />
+                            <p className="text-sm font-medium text-slate-900">Pickup</p>
+                          </div>
+                          <p className="text-slate-600 truncate">{booking.pickupLocation}</p>
                         </div>
-                        <p className="text-slate-600 truncate">{booking.dropoffLocation}</p>
+                        <div className="rounded-lg bg-slate-50 p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin className="h-4 w-4 text-slate-500" />
+                            <p className="text-sm font-medium text-slate-900">Drop-off</p>
+                          </div>
+                          <p className="text-slate-600 truncate">{booking.dropoffLocation}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Time & Price */}
                     <div className="grid gap-4 sm:grid-cols-3">
-                      <div className="rounded-lg bg-slate-50 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CalendarDays className="h-4 w-4 text-slate-500" />
-                          <p className="text-sm font-medium text-slate-900">Date & Time</p>
-                        </div>
-                        <p className="text-slate-600">
-                          {booking.pickupDate ? format(parseISO(booking.pickupDate), "MMM d") : "—"} · {booking.pickupTime?.slice(0, 5) || "00:00"}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-slate-50 p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Clock className="h-4 w-4 text-slate-500" />
-                          <p className="text-sm font-medium text-slate-900">Duration</p>
-                        </div>
-                        <p className="text-slate-600">{booking.durationMinutes || "—"} min</p>
-                      </div>
+                      {!isMultiLeg && (
+                        <>
+                          <div className="rounded-lg bg-slate-50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CalendarDays className="h-4 w-4 text-slate-500" />
+                              <p className="text-sm font-medium text-slate-900">Date & Time</p>
+                            </div>
+                            <p className="text-slate-600">
+                              {booking.pickupDate ? format(parseISO(booking.pickupDate), "MMM d") : "—"} · {booking.pickupTime?.slice(0, 5) || "00:00"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-slate-50 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="h-4 w-4 text-slate-500" />
+                              <p className="text-sm font-medium text-slate-900">Duration</p>
+                            </div>
+                            <p className="text-slate-600">{booking.durationMinutes || "—"} min</p>
+                          </div>
+                        </>
+                      )}
                       <div className="rounded-lg bg-slate-50 p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <DollarSign className="h-4 w-4 text-slate-500" />
-                          <p className="text-sm font-medium text-slate-900">Total</p>
+                          <p className="text-sm font-medium text-slate-900">{isMultiLeg ? "Total (all journeys)" : "Total"}</p>
                         </div>
-                        <p className="text-xl font-semibold text-slate-900">${booking.totalPrice ? Number(booking.totalPrice).toFixed(0) : "0"}</p>
+                        <p className="text-xl font-semibold text-slate-900">${displayTotal ? Number(displayTotal).toFixed(0) : "0"}</p>
                       </div>
                     </div>
                   </div>
@@ -342,10 +403,10 @@ export default function BookingsListProfessional({ bookings, loading, page, page
       )}
 
       {/* Pagination */}
-      {!loading && searchedBookings.length > 0 && (
+      {!loading && searchedTrips.length > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-slate-200">
           <p className="text-sm text-slate-600">
-            Showing {paginatedBookings.length} of {searchedBookings.length} rides · Page {Math.min(page + 1, totalPages)} of {totalPages}
+            Showing {paginatedTrips.length} of {searchedTrips.length} rides · Page {Math.min(page + 1, totalPages)} of {totalPages}
           </p>
           <div className="flex gap-2">
             <Button 

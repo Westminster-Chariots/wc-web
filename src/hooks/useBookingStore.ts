@@ -83,7 +83,6 @@ export function useBookingStore() {
   const router = useRouter();
   const pathname = usePathname();
   const [revision, setRevision] = useState(0);
-
   const data = useMemo(() => read(), [pathname, revision]);
   const bump = useCallback(() => setRevision((r) => r + 1), []);
 

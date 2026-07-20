@@ -65,18 +65,6 @@ export default function BookingPage() {
   const lastRouteDuration = useRef<number | null>(null);
   const lastVehiclesCount = useRef<number>(0);
 
-  // Show loading state while redirecting
-  if (!pickup || !dropoff) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     const fetchFleet = async () => {
       try {
@@ -369,7 +357,20 @@ export default function BookingPage() {
     setupAutocomplete(dropoffInputRef.current, setEditDropoff, false);
   }, [isLoaded, isEditingTrip]);
 
-
+  // Loading/redirecting state - moved after every hook above (rules of
+  // hooks: this must never gate which hooks run). The redirect itself is
+  // still driven by the useEffect near the top, unconditionally called on
+  // every render; this only controls what's rendered while it takes effect.
+  if (!pickup || !dropoff) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
