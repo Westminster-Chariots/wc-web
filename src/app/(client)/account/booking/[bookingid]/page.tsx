@@ -7,7 +7,7 @@ import { bookingService } from "@/lib/services";
 import { notify } from "@/lib/notify";
 import type { Booking } from "@/types";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Car, CalendarDays, MapPin, Clock, DollarSign, User, Phone, Star, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, Car, CalendarDays, MapPin, Clock, DollarSign, User, Phone, Star, FileText, AlertCircle, CreditCard, CheckCircle2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import AccountHeader from "@/components/account/AccountHeader";
 import MapPreview from "@/components/booking/MapPreview";
@@ -31,6 +31,26 @@ const statusTitles: Record<string, string> = {
   in_progress: "In progress",
   done: "Completed",
   cancelled: "Cancelled",
+};
+
+// Dispatch status (above) and payment status (this) are deliberately
+// separate dimensions - a booking can be "pending" dispatch while already
+// fully paid. See backend db/schema/bookings.ts / routes/bookings.ts
+// getPaymentInfo for why they're never collapsed into one field.
+const paymentStatusColors: Record<string, string> = {
+  paid: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  processing: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  failed: "bg-red-500/10 text-red-600 border-red-500/20",
+  pending: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  refunded: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+};
+
+const paymentStatusTitles: Record<string, string> = {
+  paid: "Paid",
+  processing: "Payment processing",
+  failed: "Payment failed",
+  pending: "Payment pending",
+  refunded: "Refunded",
 };
 
 export default function BookingDetailsPage() {
@@ -174,6 +194,11 @@ export default function BookingDetailsPage() {
               <span className={`rounded-full px-4 py-2 text-sm font-semibold ${statusColors[booking.status] || statusColors.pending}`}>
                 {statusTitles[booking.status] || booking.status.replace(/_/g, " ")}
               </span>
+              {booking.paymentStatus && (
+                <span className={`rounded-full px-4 py-2 text-sm font-semibold border ${paymentStatusColors[booking.paymentStatus] || paymentStatusColors.pending}`}>
+                  {paymentStatusTitles[booking.paymentStatus] || booking.paymentStatus}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -233,11 +258,86 @@ export default function BookingDetailsPage() {
                 <div className="rounded-lg bg-slate-50 p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="h-4 w-4 text-slate-500" />
-                    <p className="text-sm font-medium text-slate-900">Total Price</p>
+                    <p className="text-sm font-medium text-slate-900">{booking.legs && booking.legs.length > 1 ? "Total Price (all journeys)" : "Total Price"}</p>
                   </div>
-                  <p className="text-2xl font-semibold text-slate-900">${booking.totalPrice ? Number(booking.totalPrice).toFixed(0) : "0"}</p>
+                  <p className="text-2xl font-semibold text-slate-900">${(booking.groupTotalPrice ?? booking.totalPrice) ? Number(booking.groupTotalPrice ?? booking.totalPrice).toFixed(0) : "0"}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Journeys - only present for a multi-leg trip (tripGroupId set,
+                more than one leg). Mirrors the admin sibling-legs panel. */}
+            {booking.legs && booking.legs.length > 1 && (
+              <div className="rounded-2xl bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-slate-700" />
+                  <h2 className="text-lg font-semibold text-slate-900">Journeys ({booking.legs.length})</h2>
+                </div>
+                <div className="space-y-3">
+                  {booking.legs.map((leg, i) => (
+                    <div key={leg.id} className={`rounded-lg p-4 ${leg.id === booking.id ? "bg-sky-50 border border-sky-200" : "bg-slate-50"}`}>
+                      <div className="flex items-center justify-between gap-3 mb-1.5">
+                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Journey {i + 1}</span>
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColors[leg.status] || statusColors.pending}`}>
+                          {statusTitles[leg.status] || leg.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-900">
+                        {leg.pickupDate ? format(parseISO(leg.pickupDate), "MMM d, yyyy") : "—"} · {leg.pickupTime?.slice(0, 5) || "00:00"}
+                      </p>
+                      <p className="text-sm text-slate-600 mt-0.5">{leg.pickupLocation} → {leg.dropoffLocation}</p>
+                      <p className="text-sm font-semibold text-slate-900 mt-1.5">${leg.totalPrice ? Number(leg.totalPrice).toFixed(2) : "0.00"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Payment */}
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <CreditCard className="h-5 w-5 text-slate-700" />
+                <h2 className="text-lg font-semibold text-slate-900">Payment</h2>
+              </div>
+              {booking.paymentStatus === "paid" ? (
+                <div className="flex items-center gap-3 rounded-lg bg-emerald-50 p-4">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Paid in full</p>
+                    <p className="text-slate-600 text-sm">
+                      ${(booking.groupTotalPrice ?? booking.totalPrice) ? Number(booking.groupTotalPrice ?? booking.totalPrice).toFixed(2) : "0.00"} via {booking.paymentMethod === "clover" ? "card (Clover)" : booking.paymentMethod || "card"}
+                    </p>
+                  </div>
+                </div>
+              ) : booking.paymentStatus === "failed" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-lg bg-red-50 p-4">
+                    <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+                    <div>
+                      <p className="text-sm text-red-800">Your last payment attempt was declined.</p>
+                      {booking.paymentFailureReason && (
+                        <p className="text-xs text-red-700 mt-0.5">{booking.paymentFailureReason}</p>
+                      )}
+                    </div>
+                  </div>
+                  {booking.status !== "cancelled" && (
+                    <Button onClick={() => router.push(`/account/booking/${booking.id}/pay`)} className="w-full">
+                      Retry payment
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 rounded-lg bg-slate-50 p-4">
+                    <p className="text-sm text-slate-600">This booking has not been paid yet.</p>
+                  </div>
+                  {booking.status !== "cancelled" && (
+                    <Button onClick={() => router.push(`/account/booking/${booking.id}/pay`)} className="w-full">
+                      Complete payment
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Vehicle Details */}

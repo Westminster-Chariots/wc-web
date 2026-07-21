@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { ArrowRight, Car, Plane, Clock, Shield, Pencil, Plus, Trash2, Route, Check, Users } from "lucide-react";
+import { Car, Plane, Clock, Route as RouteIcon, Pencil, Trash2, Check, Users, Gauge, Calendar, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/FormInputs";
 import DatePicker from "./DatePicker";
@@ -27,6 +27,7 @@ interface CheckoutSummaryProps {
   specialRequests?: string;
   additionalLegs: TripLeg[];
   legPrices: number[];
+  gratuity: number;
   grandTotal: number;
   loading: boolean;
   bookingForSomeoneElse?: boolean;
@@ -34,13 +35,16 @@ interface CheckoutSummaryProps {
   guestLastName?: string;
   guestEmail?: string;
   guestPhone?: string;
-  onPay: () => void;
-  onBack: () => void;
   onEditVehicle: () => void;
   onEditDetails: () => void;
   onAddLeg: (leg: TripLeg) => void;
   onRemoveLeg: (index: number) => void;
   onUpdateLeg: (index: number, leg: TripLeg) => void;
+  // True while the parent is (re)creating the booking after a leg change -
+  // Add/Edit/Remove are disabled for that window so a second edit can't race
+  // ahead of the in-flight request and get silently dropped from the
+  // eventual charge amount.
+  legsLocked?: boolean;
 }
 
 function formatDateStr(d: string) {
@@ -61,6 +65,15 @@ function formatTimeStr(t: string) {
   }
 }
 
+function formatDuration(minutes: number) {
+  if (!minutes || minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+}
+
 const CheckoutSummary = ({
   pickup,
   dropoff,
@@ -70,10 +83,12 @@ const CheckoutSummary = ({
   vehicleImage,
   basePrice,
   distanceMiles,
+  durationMinutes,
   flightNumber,
   specialRequests,
   additionalLegs,
   legPrices,
+  gratuity,
   grandTotal,
   loading,
   bookingForSomeoneElse,
@@ -81,20 +96,19 @@ const CheckoutSummary = ({
   guestLastName,
   guestEmail,
   guestPhone,
-  onPay,
-  onBack,
   onEditVehicle,
   onEditDetails,
   onAddLeg,
   onRemoveLeg,
   onUpdateLeg,
+  legsLocked,
 }: CheckoutSummaryProps) => {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newLeg, setNewLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editLeg, setEditLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
-  const [newLegTouched, setNewLegTouched] = useState(false);
   const [editLegTouched, setEditLegTouched] = useState(false);
+  const [isAddingLeg, setIsAddingLeg] = useState(false);
+  const [newLeg, setNewLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
+  const [newLegTouched, setNewLegTouched] = useState(false);
 
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
@@ -105,13 +119,6 @@ const CheckoutSummary = ({
     return new Date(`${date}T${time}`) < new Date();
   };
 
-  const isNewLegValid =
-    newLeg.pickup &&
-    newLeg.dropoff &&
-    newLeg.pickupDate &&
-    newLeg.pickupTime &&
-    !isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime);
-
   const isEditLegValid =
     editingIndex !== null &&
     editLeg.pickup &&
@@ -119,15 +126,6 @@ const CheckoutSummary = ({
     editLeg.pickupDate &&
     editLeg.pickupTime &&
     !isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime);
-
-  const handleAddLeg = () => {
-    setNewLegTouched(true);
-    if (!isNewLegValid) return;
-    onAddLeg(newLeg);
-    setNewLeg({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
-    setShowAddForm(false);
-    setNewLegTouched(false);
-  };
 
   const handleStartEdit = (i: number) => {
     setEditingIndex(i);
@@ -143,126 +141,147 @@ const CheckoutSummary = ({
     setEditLegTouched(false);
   };
 
-  // grandTotal already includes tax, don't add it again
-  const displayTotal = grandTotal;
+  const isNewLegValid =
+    newLeg.pickup && newLeg.dropoff && newLeg.pickupDate && newLeg.pickupTime && !isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime);
+
+  const handleStartAdd = () => {
+    setIsAddingLeg(true);
+    setNewLeg({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
+    setNewLegTouched(false);
+  };
+
+  const handleSaveAdd = () => {
+    setNewLegTouched(true);
+    if (!newLeg.pickup || !newLeg.dropoff || !newLeg.pickupDate || !newLeg.pickupTime || isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime)) return;
+    onAddLeg(newLeg);
+    setIsAddingLeg(false);
+    setNewLegTouched(false);
+  };
+
+  const legsTotal = (legPrices || []).reduce((a, b) => a + b, 0);
+  const fareTotal = basePrice + legsTotal;
+  const durationLabel = formatDuration(durationMinutes);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      className="space-y-6"
-    >
-      <div>
-        <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Review booking request</h2>
-        <p className="text-xs sm:text-sm text-muted-foreground font-body mt-1">
-          Confirm your ride details and submit the request for admin availability review.
-        </p>
-      </div>
-
-      {/* Primary Leg */}
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <div className="md:col-span-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-primary">1</span>
-              </div>
-              <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Primary Route</span>
+    <div className="space-y-5">
+      {/* Trip recap card */}
+      <div className="rounded-2xl border border-border bg-card shadow-glass overflow-hidden">
+        <div className="p-5 sm:p-6 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-display font-bold text-foreground">Your trip</h2>
+              <p className="text-xs text-muted-foreground font-body mt-0.5">{additionalLegs.length > 0 ? `Journey 1 of ${additionalLegs.length + 1}` : "Journey 1"}</p>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={onEditDetails}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1 shrink-0"
+              className="h-8 px-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1 shrink-0"
             >
               <Pencil className="h-3 w-3" /> Edit
             </Button>
           </div>
 
-          <div className="flex items-center justify-between gap-4 mt-3">
-            <div className="flex items-center gap-3">
-              <Car className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-sm font-body text-foreground capitalize">
-                Business {vehicleType === "suv" ? "SUV" : "Class"}
-              </span>
+          {/* Route */}
+          <RouteVisualization pickup={pickup} dropoff={dropoff} />
+
+          <MapPreview pickup={pickup} dropoff={dropoff} className="w-full rounded-lg overflow-hidden" />
+
+          {/* Trip details grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 pt-1">
+            <div className="flex items-start gap-2.5">
+              <Calendar className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground font-body">Date &amp; time</p>
+                <p className="text-sm font-body text-foreground font-medium truncate">
+                  {formatDateStr(pickupDate)} · {formatTimeStr(pickupTime)}
+                </p>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
+            <div className="flex items-start gap-2.5">
+              <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground font-body">Vehicle</p>
+                <p className="text-sm font-body text-foreground font-medium capitalize">
+                  Business {vehicleType === "suv" ? "SUV" : "Class"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <RouteIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground font-body">Distance</p>
+                <p className="text-sm font-body text-foreground font-medium">{distanceMiles.toFixed(1)} mi</p>
+              </div>
+            </div>
+            {durationLabel && (
+              <div className="flex items-start gap-2.5">
+                <Gauge className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground font-body">Est. duration</p>
+                  <p className="text-sm font-body text-foreground font-medium">{durationLabel}</p>
+                </div>
+              </div>
+            )}
+            {flightNumber && (
+              <div className="flex items-start gap-2.5">
+                <Plane className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground font-body">Flight</p>
+                  <p className="text-sm font-body text-foreground font-medium">{flightNumber}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Vehicle image */}
+          <div className="rounded-xl overflow-hidden bg-gradient-to-br from-primary/5 to-transparent border border-border p-3 flex items-center gap-3">
+            {loading ? (
+              <div className="h-16 w-24 shrink-0 animate-pulse bg-muted rounded-md" />
+            ) : (
+              <Image
+                src={vehicleImage || (vehicleType === "suv" ? "/assets/suv-profile.png" : "/assets/sedan-profile.png")}
+                alt={vehicleType === "suv" ? "Selected SUV" : "Selected sedan"}
+                width={160}
+                height={90}
+                className="h-16 w-24 shrink-0 object-cover rounded-md border border-border"
+              />
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-display font-bold text-foreground">Premium Business {vehicleType === "suv" ? "SUV" : "Sedan"}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Comfort and privacy guaranteed</p>
+            </div>
+            <button
+              type="button"
               onClick={onEditVehicle}
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1"
+              className="ml-auto shrink-0 text-xs text-primary hover:underline font-body"
             >
-              <Pencil className="h-3 w-3" /> Change car
-            </Button>
+              Change
+            </button>
           </div>
-
-          <div className="flex items-start gap-3 mt-3">
-            <RouteVisualization pickup={pickup} dropoff={dropoff} index={0} />
-          </div>
-
-          <div className="mt-3">
-            <MapPreview pickup={pickup} dropoff={dropoff} className="w-full" />
-          </div>
-
-          <div className="flex items-center gap-3 mt-2">
-            <Clock className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-sm font-body text-foreground">
-              {formatDateStr(pickupDate)} at {formatTimeStr(pickupTime)}
-            </span>
-          </div>
-
-          {flightNumber && (
-            <div className="flex items-center gap-3">
-              <Plane className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-sm font-body text-foreground">{flightNumber}</span>
-            </div>
-          )}
 
           {specialRequests && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-[11px] text-muted-foreground font-body mb-1">Special Requests</p>
-              <p className="text-xs text-foreground font-body">{specialRequests}</p>
+            <div className="pt-1 border-t border-border">
+              <p className="text-[11px] text-muted-foreground font-body mb-1 mt-3">Special requests</p>
+              <p className="text-sm text-foreground font-body">{specialRequests}</p>
             </div>
           )}
 
           {bookingForSomeoneElse && guestFirstName && (
-            <div className="pt-2 border-t border-border space-y-1.5">
+            <div className="pt-3 border-t border-border space-y-1.5">
               <div className="flex items-center gap-2">
-                <Users className="h-3.5 w-3.5 text-primary shrink-0" />
-                <p className="text-[11px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Booking for Guest</p>
+                <Users className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+                <p className="text-[11px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Booking for guest</p>
               </div>
               <p className="text-sm font-body text-foreground">{guestFirstName} {guestLastName}</p>
               {guestEmail && <p className="text-xs font-body text-muted-foreground">{guestEmail}</p>}
               {guestPhone && <p className="text-xs font-body text-muted-foreground">{guestPhone}</p>}
             </div>
           )}
-
-          <div className="flex justify-between text-xs font-body pt-2 border-t border-border">
-            <span className="text-muted-foreground">{distanceMiles.toFixed(1)} mi</span>
-            <span className="text-foreground font-semibold">${basePrice.toFixed(2)}</span>
-          </div>
-        </div>
-          <div className="md:col-span-1 col-span-1">
-            <div className="rounded-lg overflow-hidden shadow-lg h-full bg-linear-to-br from-white/40 to-primary/5 p-3 flex flex-col items-center justify-center">
-            {loading ? (
-              <div className="h-28 w-full animate-pulse bg-slate-200 rounded-md" />
-            ) : (
-              <Image
-                  src={vehicleImage || (vehicleType === "suv" ? "/assets/suv-profile.png" : "/assets/sedan-profile.png")}
-                  alt={vehicleType === "suv" ? "Selected SUV" : "Selected sedan"}
-                  width={800}
-                  height={360}
-                  className="h-28 sm:h-32 w-full object-cover rounded-md border border-border"
-                />
-            )}
-            <p className="text-sm font-display font-bold mt-3">Premium Business {vehicleType === "suv" ? "SUV" : "Sedan"}</p>
-            <p className="text-xs text-muted-foreground mt-1">Comfort and privacy guaranteed</p>
-          </div>
         </div>
       </div>
 
-      {/* Additional Legs */}
+      {/* Additional legs */}
       <AnimatePresence>
         {(additionalLegs || []).map((leg, i) => (
           <motion.div
@@ -270,20 +289,21 @@ const CheckoutSummary = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="rounded-xl border border-border bg-card p-4 sm:p-5 space-y-3"
+            className="rounded-2xl border border-border bg-card shadow-glass p-5 sm:p-6 space-y-3"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
                   <span className="text-[10px] font-bold text-primary">{i + 2}</span>
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Additional Route</span>
+                <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">Journey {i + 2}</span>
               </div>
               <div className="flex items-center gap-1">
                 {editingIndex !== i && (
                   <Button
                     variant="ghost"
                     size="sm"
+                    disabled={legsLocked}
                     onClick={() => handleStartEdit(i)}
                     className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1"
                   >
@@ -293,6 +313,7 @@ const CheckoutSummary = ({
                 <Button
                   variant="ghost"
                   size="sm"
+                  disabled={legsLocked}
                   onClick={() => { onRemoveLeg(i); if (editingIndex === i) setEditingIndex(null); }}
                   className="h-7 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 gap-1"
                 >
@@ -336,7 +357,7 @@ const CheckoutSummary = ({
                   />
                 </div>
                 {editLegTouched && !isEditLegValid && (
-                  <p className="text-xs text-destructive">Please enter valid pickup, drop-off, date and time (not in the past).</p>
+                  <p role="alert" className="text-xs text-destructive">Please enter valid pickup, drop-off, date and time (not in the past).</p>
                 )}
                 <div className="mt-2">
                   <MapPreview pickup={editLeg.pickup} dropoff={editLeg.dropoff} />
@@ -350,19 +371,16 @@ const CheckoutSummary = ({
               </div>
             ) : (
               <>
-
                 <RouteVisualization pickup={leg.pickup} dropoff={leg.dropoff} index={i + 1} />
                 <div className="mt-3">
                   <MapPreview pickup={leg.pickup} dropoff={leg.dropoff} />
                 </div>
-
                 <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-primary shrink-0" />
+                  <Clock className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
                   <span className="text-sm font-body text-foreground">
                     {formatDateStr(leg.pickupDate)} at {formatTimeStr(leg.pickupTime)}
                   </span>
                 </div>
-
                 <div className="flex justify-between text-xs font-body pt-2 border-t border-border">
                   <span className="text-muted-foreground">Estimated fare</span>
                   <span className="text-foreground font-semibold">${legPrices[i]?.toFixed(2) ?? "—"}</span>
@@ -373,52 +391,56 @@ const CheckoutSummary = ({
         ))}
       </AnimatePresence>
 
-      {/* Add Route Button / Form */}
-      {/* {!showAddForm ? (
-        <Button
-          variant="outline"
-          onClick={() => setShowAddForm(true)}
-          className="w-full border-dashed border-primary/30 text-primary hover:bg-primary/5 gap-2 font-body cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <Route className="h-4 w-4" />
-          Add Another Route
-        </Button>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-primary/20 bg-card p-4 sm:p-5 space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-primary font-body uppercase tracking-wide">New Route</span>
-            <Button variant="ghost" size="sm" onClick={() => setShowAddForm(false)} className="h-7 px-2 text-xs text-muted-foreground">
-              Cancel
-            </Button>
-          </div>
-
-          <div className="grid gap-3">
-            <LocationInput
-              label="Pickup Location"
-              placeholder="e.g. 1600 Pennsylvania Ave NW"
-              value={newLeg.pickup}
-              onChange={(val) => setNewLeg(l => ({ ...l, pickup: val }))}
-              icon="pickup"
-              light
-            />
-            <LocationInput
-              label="Drop-off Location"
-              placeholder="e.g. Dulles International Airport"
-              value={newLeg.dropoff}
-              onChange={(val) => setNewLeg(l => ({ ...l, dropoff: val }))}
-              icon="dropoff"
-              light
-            />
-            <div className="grid grid-cols-2 gap-3">
+      {/* Add another journey */}
+      <AnimatePresence mode="wait">
+        {isAddingLeg ? (
+          <motion.div
+            key="add-leg-form"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="rounded-2xl border border-primary/30 bg-card shadow-glass p-5 sm:p-6 space-y-3"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-full bg-primary/15 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-primary">{additionalLegs.length + 2}</span>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground font-body uppercase tracking-wide">
+                  New journey
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddingLeg(false)}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+              >
+                <X className="h-3 w-3" /> Cancel
+              </Button>
+            </div>
+            <div className="grid gap-3">
+              <LocationInput
+                label="Pickup Location"
+                placeholder="e.g. Reagan National Airport"
+                value={newLeg.pickup}
+                onChange={(val) => setNewLeg((l) => ({ ...l, pickup: val }))}
+                icon="pickup"
+                light
+              />
+              <LocationInput
+                label="Drop-off Location"
+                placeholder="e.g. The Ritz-Carlton"
+                value={newLeg.dropoff}
+                onChange={(val) => setNewLeg((l) => ({ ...l, dropoff: val }))}
+                icon="dropoff"
+                light
+              />
+              <div className="grid grid-cols-2 gap-3">
                 <DatePicker
                   value={newLeg.pickupDate}
                   min={today}
-                  onChange={(v) => setNewLeg(l => ({ ...l, pickupDate: v }))}
+                  onChange={(v) => setNewLeg((l) => ({ ...l, pickupDate: v }))}
                   label="Date"
                   light
                 />
@@ -426,57 +448,76 @@ const CheckoutSummary = ({
                   type="time"
                   min={newLeg.pickupDate === today ? currentTime : "00:00"}
                   value={newLeg.pickupTime}
-                  onChange={(e) => setNewLeg(l => ({ ...l, pickupTime: e.target.value }))}
+                  onChange={(e) => setNewLeg((l) => ({ ...l, pickupTime: e.target.value }))}
                   label="Time"
                 />
+              </div>
+              {newLegTouched && !isNewLegValid && (
+                <p role="alert" className="text-xs text-destructive">Please enter valid pickup, drop-off, date and time (not in the past).</p>
+              )}
+              {newLeg.pickup && newLeg.dropoff && (
+                <div className="mt-2">
+                  <MapPreview pickup={newLeg.pickup} dropoff={newLeg.dropoff} />
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsAddingLeg(false)} className="font-body">Cancel</Button>
+                <Button variant="hero" size="sm" onClick={handleSaveAdd} disabled={!isNewLegValid} className="gap-1 font-body">
+                  <Check className="h-3 w-3" /> Add journey
+                </Button>
+              </div>
             </div>
-            {newLegTouched && !isNewLegValid && (
-              <p className="text-xs text-destructive">Please complete pickup, drop-off, date and time (not in the past).</p>
-            )}
-            <div className="mt-2">
-              <MapPreview pickup={newLeg.pickup} dropoff={newLeg.dropoff} />
-            </div>
+          </motion.div>
+        ) : (
+          <motion.button
+            key="add-leg-button"
+            type="button"
+            onClick={handleStartAdd}
+            disabled={legsLocked}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full rounded-2xl border-2 border-dashed border-border hover:border-primary/40 bg-card/50 hover:bg-primary/5 transition-colors p-4 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary font-body disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:bg-card/50"
+          >
+            <Plus className="h-4 w-4" /> {legsLocked ? "Updating trip…" : "Add another journey"}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-            <Button
-              variant="hero"
-              onClick={handleAddLeg}
-              disabled={!isNewLegValid}
-              className="w-full gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add Route
-            </Button>
-
+      {/* Price breakdown card */}
+      <div className="rounded-2xl border border-border bg-card shadow-glass p-5 sm:p-6">
+        <h2 className="text-base font-display font-bold text-foreground mb-4">Price breakdown</h2>
+        {loading ? (
+          // The caller (checkout/page.tsx) sets loading=true whenever the
+          // authoritative price isn't ready yet AND there's nothing safe to
+          // show in its place (not the labeled quoteError estimate) - a
+          // skeleton here, not "$0.00", is what prevents a not-yet-verified
+          // figure from ever being visible as though it were the real total.
+          <div className="space-y-2.5" role="status" aria-label="Calculating price">
+            <div className="h-4 w-32 animate-pulse bg-muted rounded" />
+            <div className="h-8 w-40 animate-pulse bg-muted rounded mt-2" />
           </div>
-        </motion.div>
-      )} */}
-
-      <div className="flex justify-between text-sm font-body pt-2 border-t border-border">
-        <span className="text-foreground font-semibold">Total</span>
-        <span className="text-primary font-display font-bold text-lg">${Number(displayTotal || 0).toFixed(2)}</span>
+        ) : (
+          <>
+            <dl className="space-y-2.5 text-sm font-body">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Fare</dt>
+                <dd className="text-foreground font-medium">${fareTotal.toFixed(2)}</dd>
+              </div>
+              {gratuity > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Gratuity</dt>
+                  <dd className="text-foreground font-medium">${gratuity.toFixed(2)}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="flex justify-between items-baseline pt-4 mt-4 border-t border-border">
+              <dt className="text-foreground font-semibold">Total due</dt>
+              <dd className="text-primary font-display font-bold text-2xl">${Number(grandTotal || 0).toFixed(2)}</dd>
+            </div>
+          </>
+        )}
       </div>
-
-
-      <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-muted-foreground font-body">
-        <Shield className="h-3.5 w-3.5 shrink-0" />
-        <span>Once availability is confirmed by the admin, you will receive a secure payment link.</span>
-      </div>
-
-      <div className="flex gap-3 pt-2">
-        <Button variant="outline" onClick={onBack} className="font-body">
-          Back
-        </Button>
-        <Button
-          variant="cta"
-          onClick={onPay}
-          disabled={loading}
-          className="flex-1 gap-2"
-        >
-          {loading ? "Submitting…" : "Submit booking request"}
-          {!loading && <ArrowRight className="h-4 w-4" />}
-        </Button>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 

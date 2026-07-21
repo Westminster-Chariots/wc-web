@@ -15,7 +15,19 @@ export default function PremiumDashboard() {
 
   const activeRides = bookings.filter(b => ['enroute', 'onsite', 'inprogress'].includes(b.status)).length;
   const pendingCount = bookings.filter(b => b.status === 'pending').length;
-  const todayRevenue = bookings.filter(b => b.status === 'done').reduce((s, b) => s + b.price, 0);
+  // Was `status === 'done'` - counted a booking's price as revenue based on
+  // dispatch status, with no regard for whether it was ever actually paid
+  // (or was refunded). paymentStatus is the source of truth for revenue.
+  // A multi-leg trip is one payment across N booking rows (all of which
+  // report paymentStatus "paid" once the trip is paid, since payment status
+  // resolves group-wide) - dedupe by trip (groupId, or the row's own id for
+  // a single-leg booking) and use each trip's authoritative groupTotalPrice
+  // exactly once, rather than summing every row's own leg price.
+  const paidTripTotals = new Map<string, number>();
+  bookings.filter(b => b.paymentStatus === 'paid').forEach(b => {
+    paidTripTotals.set(b.groupId ?? b.id, b.groupTotalPrice ?? b.price);
+  });
+  const todayRevenue = Array.from(paidTripTotals.values()).reduce((s, v) => s + v, 0);
   const urgentCount = bookings.filter(b => b.isUrgent && b.status !== 'done' && b.status !== 'cancelled').length;
   
   // Calculate trends (mock data for now)

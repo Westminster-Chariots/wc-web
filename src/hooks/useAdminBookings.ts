@@ -55,6 +55,7 @@ export function useAdminBookings() {
           notes: b.notes,
           // Ensure price is a number (API may return strings like "123.45")
           price: Number(b.totalPrice ?? b.basePrice ?? 0),
+          groupTotalPrice: Number(b.groupTotalPrice ?? b.totalPrice ?? b.basePrice ?? 0),
           isUrgent,
           distanceMiles: b.distanceMiles,
           durationMinutes: b.durationMinutes,
@@ -62,6 +63,10 @@ export function useAdminBookings() {
           legOrder: b.legOrder || 1,
           createdAt: b.createdAt,
           emailPhase: b.emailPhase,
+          paymentStatus: b.paymentStatus,
+          paymentMethod: b.paymentMethod,
+          cloverPaymentId: b.cloverPaymentId,
+          paymentFailureReason: b.paymentFailureReason,
         };
       });
 
