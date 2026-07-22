@@ -372,6 +372,9 @@ export const pricingService = {
   // backend actually read, and nothing in the app called it).
   calculate: async (params: QuotePreviewRequest): Promise<QuotePreviewResponse> => {
     const { data } = await api.post("/pricing/calculate", params);
+    if (!Array.isArray(data?.legs)) {
+      throw new Error(data?.error ?? "Invalid pricing response");
+    }
     return data;
   },
   
