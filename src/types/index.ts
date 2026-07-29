@@ -37,6 +37,12 @@ export interface CreateBookingPayload {
   // Idempotency key for automatic pending-booking creation - see backend
   // db/schema/bookings.ts checkoutAttemptId comment for the full rationale.
   checkoutAttemptId?: string;
+  // Signed quote token from pricingService.calculate() (see backend
+  // lib/quote.ts). When present, the backend locks this booking's price to
+  // that quote's amounts instead of recomputing - see checkout/page.tsx for
+  // how a stale/mismatched quote is detected and re-requested rather than
+  // silently falling back to a different charged amount.
+  quoteId?: string;
 }
 
 export interface User {
@@ -115,6 +121,12 @@ export interface Booking {
   // for a multi-leg trip it's the sum of every sibling leg's own totalPrice,
   // computed server-side. Present on both list and detail responses.
   groupTotalPrice?: number | null;
+  // Which signed quote (if any) this booking's price was locked to, and the
+  // whole-trip total that quote locked in - set once at creation, never
+  // recomputed afterward. Absent/null for a booking created without a
+  // quote (see backend POST /bookings' quoteId fallback).
+  quoteId?: string | null;
+  quotedAmountCents?: number | null;
   // Sibling legs of the same trip (including this row), sorted by legOrder -
   // only populated on the GET /:id detail response, and only when
   // tripGroupId is set; empty/absent for a single-leg booking.

@@ -12,6 +12,7 @@ import { useAdminBookings } from "@/hooks/useAdminBookings";
 import { useDrivers } from "@/hooks/useDrivers";
 import { toast } from "sonner";
 import { bookingService, invoiceService, pricingService, documentService } from "@/lib/services";
+import { estimateFare } from "@/lib/pricingEstimate";
 import { useLoadScript } from "@react-google-maps/api";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -373,32 +374,16 @@ export default function ManifestsPage() {
       if (element?.status === 'OK') {
         const distanceMiles = element.distance.value / 1609.34; // Convert meters to miles
         const durationMinutes = element.duration.value / 60; // Convert seconds to minutes
-        
-        // Get pricing config from database
-        const vehicleTypeNormalized = vehicleType.toLowerCase();
-        const config = pricingConfigs.find(c => c.vehicleType.toLowerCase() === vehicleTypeNormalized);
-        
-        if (!config) {
-          // Fallback to default pricing if config not found
-          console.warn('Pricing config not found, using defaults');
-          let price = 0;
-          if (vehicleTypeNormalized.includes('suv')) {
-            price = 37 + (4.50 * distanceMiles) + (1.55 * durationMinutes);
-          } else {
-            price = 30 + (4.00 * distanceMiles) + (1.25 * durationMinutes);
-          }
-          return Math.round(price * 100) / 100;
-        }
-        
-        // Use database pricing formula:
-        // Price = baseRate + (ratePerMile × miles) + (ratePerMinute × minutes)
-        const baseRate = parseFloat(config.baseRate);
-        const ratePerMile = parseFloat(config.ratePerMile);
-        const ratePerMinute = parseFloat(config.ratePerMinute);
-        
-        const price = baseRate + (ratePerMile * distanceMiles) + (ratePerMinute * durationMinutes);
-        
-        return Math.round(price * 100) / 100; // Round to 2 decimals
+
+        // Same formula the customer-facing booking flow uses (see
+        // pricingEstimate.ts) - this used to hand-roll its own copy of the
+        // pricing formula (reading now-unused pricing_config rows, and
+        // missing the high-mileage adjustment every other copy had). Using
+        // the shared estimate here means this invoice tool can't silently
+        // drift from what a real booking would actually cost.
+        const vehicleTypeNormalized: "sedan" | "suv" = vehicleType.toLowerCase().includes('suv') ? 'suv' : 'sedan';
+        const estimate = estimateFare({ distanceMiles, durationMinutes, vehicleType: vehicleTypeNormalized });
+        return estimate ? estimate.totalPrice : 0;
       }
     } catch (error) {
       console.error('Price calculation error:', error);

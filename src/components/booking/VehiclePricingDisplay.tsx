@@ -15,9 +15,14 @@ interface VehiclePricingDisplayProps {
   features: string[];
   distance: number;
   duration: number;
-  price: number | null;
+  // Full breakdown from estimateFare() (pricingEstimate.ts) - basePrice
+  // already equals total when the flat minimum fare applies, so there is
+  // nothing to derive here; this component only ever displays the numbers
+  // it's given.
+  basePrice: number | null;
+  gratuity: number;
+  total: number;
   priceLoading?: boolean;
-  taxPercent?: number;
   isSelected: boolean;
   isExpanded: boolean;
   onSelect: () => void;
@@ -25,24 +30,7 @@ interface VehiclePricingDisplayProps {
   vehicleId?: string;
 }
 
-// Fallback pricing formulas (same as in usePricing)
-const FALLBACK_PRICING = {
-  sedan: {
-    baseRate: 30,
-    ratePerMile: 4.0,
-    ratePerMinute: 1.25,
-    taxPercent: 20,
-  },
-  suv: {
-    baseRate: 37,
-    ratePerMile: 4.5,
-    ratePerMinute: 1.55,
-    taxPercent: 20,
-  },
-};
-
 export default function VehiclePricingDisplay({
-  vehicleType,
   name,
   subtitle,
   passengers,
@@ -51,18 +39,17 @@ export default function VehiclePricingDisplay({
   features,
   distance,
   duration,
-  price,
+  basePrice,
+  gratuity,
+  total,
   priceLoading = false,
-  taxPercent: propTaxPercent,
   isSelected,
   isExpanded,
   onSelect,
   onToggleExpand,
   vehicleId,
 }: VehiclePricingDisplayProps) {
-  const taxPercent = propTaxPercent || FALLBACK_PRICING[vehicleType].taxPercent;
-  const tax = price ? price * (taxPercent / 100) : 0;
-  const total = price ? price + tax : 0;
+  const price = basePrice;
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -143,17 +130,13 @@ export default function VehiclePricingDisplay({
                   <span className="text-foreground">${price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Tax ({taxPercent}%)</span>
-                  <span className="text-foreground">${tax.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Adjustment</span>
+                  <span className="text-foreground">${gratuity.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
                   <span className="text-foreground font-semibold">Total</span>
                   <span className="text-primary font-display font-bold text-base">${total.toFixed(2)}</span>
                 </div>
-                {/* <div className="text-[10px] text-muted-foreground/70 font-body mt-2 pt-2 border-t border-border">
-                  <p>Based on {distance.toFixed(1)} miles × {duration} minutes</p>
-                  <p className="mt-0.5">Formula: ${FALLBACK_PRICING[vehicleType].baseRate} + (${FALLBACK_PRICING[vehicleType].ratePerMile} × miles) + (${FALLBACK_PRICING[vehicleType].ratePerMinute} × minutes)</p>
-                </div> */}
               </div>
             ) : (
               <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
@@ -162,7 +145,7 @@ export default function VehiclePricingDisplay({
                   <span className="text-foreground animate-pulse">Calculating...</span>
                 </div>
                 <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Tax ({taxPercent}%)</span>
+                  <span className="text-muted-foreground">Adjustment</span>
                   <span className="text-foreground animate-pulse">Calculating...</span>
                 </div>
                 <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">

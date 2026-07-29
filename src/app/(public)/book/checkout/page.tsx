@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import axios from "axios";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
@@ -132,6 +133,21 @@ export default function BookingCheckoutPage() {
     legs: PriceMismatchLeg[];
   } | null>(null);
 
+  // Gate 0: the signed quote presented at booking-creation time was
+  // rejected by the backend (expired, tampered, or the trip no longer
+  // matches what it was quoted for - see POST /bookings' quoteId handling).
+  // A fresh quote has already been fetched into `quote`/`acceptedQuoteCents`
+  // by the time this is set; it is held here ONLY for display, and
+  // deliberately blocks the auto-create effect (see its `quoteInvalidated`
+  // guard below) until the customer explicitly re-accepts via
+  // handleConfirmRefreshedQuote - never retried silently with the new
+  // amount.
+  const [quoteInvalidated, setQuoteInvalidated] = useState<{
+    previousAmountCents: number;
+    newAmountCents: number;
+    legs: PriceMismatchLeg[];
+  } | null>(null);
+
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   // "verifying": an ambiguous charge outcome is being resolved by polling -
   // the Pay button must stay hidden the whole time. "indeterminate": polling
@@ -143,14 +159,24 @@ export default function BookingCheckoutPage() {
 
   const { route } = useRouteDetails(data.pickup, data.dropoff);
 
-  const [legRoutes, setLegRoutes] = useState<RouteDetails[]>([]);
   const [legRouteError, setLegRouteError] = useState(false);
 
+  // Resolves each leg's distance/duration and backfills them into the store
+  // (data.additionalLegs) - the single source of truth every pricing call
+  // (quote and booking creation alike) reads from. This effect no longer
+  // keeps its own separate copy of the resolved routes: that used to exist
+  // as `legRoutes` state and be read by the quote request instead of
+  // data.additionalLegs, which could disagree with what createBooking() sent
+  // whenever this effect's async fetch hadn't finished yet on a fresh mount
+  // (data.additionalLegs can already hold valid values from before this
+  // mount; the old legRoutes state always started empty). See git history
+  // for the removed state if a legs-specific route cache is needed again -
+  // just make sure both the quote and booking creation keep reading the same
+  // array.
   useEffect(() => {
     let isMounted = true;
     async function fetchLegRoutes() {
       if ((data.additionalLegs || []).length === 0) {
-        setLegRoutes([]);
         setLegRouteError(false);
         return;
       }
@@ -159,7 +185,6 @@ export default function BookingCheckoutPage() {
       );
       if (!isMounted) return;
       const validRoutes = routes.filter(Boolean) as RouteDetails[];
-      setLegRoutes(validRoutes);
       setLegRouteError(validRoutes.length !== (data.additionalLegs || []).length);
 
       // The Add/Edit journey form only collects pickup/dropoff/date/time - it
@@ -210,40 +235,74 @@ export default function BookingCheckoutPage() {
   // trip has nothing "prior" to compare against). Compared against what
   // booking creation actually persists - see Gate A, below.
   const [acceptedQuoteCents, setAcceptedQuoteCents] = useState<number | null>(null);
+  // Guards against an in-flight request's response landing after a NEWER
+  // request has already been issued (e.g. the trip was edited again before
+  // the first quote came back) - only the most recently issued request's
+  // result is allowed to update state. Every call to fetchQuote() (from the
+  // effect below or a manual retry after an expired/mismatched quote) claims
+  // the next id; a response is applied only if its id is still current.
+  const quoteRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchQuote() {
-      if (!route || !data.selectedVehicle || !legsReady) {
-        setQuote(null);
-        return;
-      }
-      setQuoteLoading(true);
-      setQuoteError(false);
-      try {
-        const result = await getAuthoritativeQuote({
-          vehicleType: data.selectedVehicle!,
-          vehicleId: data.selectedVehicleId || undefined,
-          distanceMiles: route.distance,
-          durationMinutes: route.duration,
-          additionalLegs: legRoutes.map((lr) => ({ distanceMiles: lr.distance, durationMinutes: lr.duration })),
-        });
-        if (cancelled) return;
+  // Extracted from the effect below so a stale/expired/mismatched quote
+  // discovered at booking-creation time (see handleQuoteInvalidated) can
+  // request a fresh one on demand, not just on trip-detail changes.
+  // Returns the fresh quote so a caller mid-retry can use its (new)
+  // combinedTotalCents/quoteId immediately, without waiting on a re-render.
+  const fetchQuote = useCallback(async (): Promise<QuotePreviewResponse | null> => {
+    const requestId = ++quoteRequestIdRef.current;
+    if (!route || !data.selectedVehicle || !legsReady) {
+      if (requestId === quoteRequestIdRef.current) setQuote(null);
+      return null;
+    }
+    setQuoteLoading(true);
+    setQuoteError(false);
+    try {
+      const result = await getAuthoritativeQuote({
+        vehicleType: data.selectedVehicle!,
+        vehicleId: data.selectedVehicleId || undefined,
+        distanceMiles: route.distance,
+        durationMinutes: route.duration,
+        // Must read the same source createBooking() reads (the store's
+        // data.additionalLegs), not the separate legRoutes component state.
+        // legRoutes is reset to [] on every mount and only repopulates
+        // after its own async fetch resolves (see the fetchLegRoutes
+        // effect above), while data.additionalLegs can already hold valid,
+        // previously-backfilled distances/durations from before this
+        // mount (e.g. returning from /book/details, or a page refresh).
+        // legsReady (which gates this whole effect) is itself computed
+        // from data.additionalLegs, so it can already be true while
+        // legRoutes is still empty - sending legRoutes here would quote
+        // (and let the customer accept) a total missing every additional
+        // leg's cost, moments before createBooking() creates the real
+        // booking with all legs included. Root cause of "the quote was
+        // right, the created booking's total was different."
+        additionalLegs: (data.additionalLegs || []).map((leg) => ({
+          distanceMiles: leg.distanceMiles ?? 0,
+          durationMinutes: leg.durationMinutes ?? 0,
+        })),
+      });
+      if (requestId === quoteRequestIdRef.current) {
         setQuote(result);
         setAcceptedQuoteCents(result.combinedTotalCents);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Failed to fetch authoritative quote:", err);
+      }
+      return result;
+    } catch (err) {
+      console.error("Failed to fetch authoritative quote:", err);
+      if (requestId === quoteRequestIdRef.current) {
         setQuote(null);
         setQuoteError(true);
-      } finally {
-        if (!cancelled) setQuoteLoading(false);
       }
+      return null;
+    } finally {
+      if (requestId === quoteRequestIdRef.current) setQuoteLoading(false);
     }
-    fetchQuote();
-    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, data.selectedVehicle, data.selectedVehicleId, legRoutes, legsReady]);
+  }, [route, data.selectedVehicle, data.selectedVehicleId, data.additionalLegs, legsReady]);
+
+  useEffect(() => {
+    fetchQuote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route, data.selectedVehicle, data.selectedVehicleId, data.additionalLegs, legsReady]);
 
   // Estimate-only display for when the quote endpoint can't be reached -
   // clearly labeled as such in the render below, and never used to gate
@@ -251,17 +310,21 @@ export default function BookingCheckoutPage() {
   // blocks those).
   const fallbackEstimate = useMemo(() => {
     if (!route || !data.selectedVehicle) return null;
-    const fbBase = calculatePrice(route.distance, route.duration, data.selectedVehicle) || 0;
-    const fbGratuity = fbBase * 0.2;
-    const fbLegPrices = legRoutes.map((lr) => calculatePrice(lr.distance, lr.duration, data.selectedVehicle || "sedan") || 0);
+    const fb = calculatePrice(route.distance, route.duration, data.selectedVehicle);
+    if (!fb) return null;
+    // Same source as createBooking() and the authoritative-quote request
+    // above - see the comment there.
+    const fbLegPrices = (data.additionalLegs || []).map(
+      (leg) => calculatePrice(leg.distanceMiles ?? 0, leg.durationMinutes ?? 0, data.selectedVehicle || "sedan")?.totalPrice ?? 0
+    );
     return {
-      basePrice: fbBase,
-      gratuity: fbGratuity,
-      total: fbBase + fbGratuity,
+      basePrice: fb.basePrice,
+      gratuity: fb.gratuity,
+      total: fb.totalPrice,
       legPrices: fbLegPrices,
-      grandTotal: fbBase + fbGratuity + fbLegPrices.reduce((a, b) => a + b, 0),
+      grandTotal: fb.totalPrice + fbLegPrices.reduce((a, b) => a + b, 0),
     };
-  }, [route, data.selectedVehicle, legRoutes, calculatePrice]);
+  }, [route, data.selectedVehicle, data.additionalLegs, calculatePrice]);
 
   // Reproduced bug: while the authoritative quote is genuinely still in
   // flight (not yet resolved, not yet errored - e.g. the ~800ms route-fetch
@@ -344,6 +407,12 @@ export default function BookingCheckoutPage() {
             additionalLegs: data.additionalLegs || [],
           })
         ),
+        // Locks this booking's price to the quote the customer is currently
+        // looking at - never omitted while a valid quote exists. The
+        // backend re-verifies it against these exact trip inputs and
+        // refuses (409, handled below) rather than silently recomputing if
+        // it's expired, tampered, or no longer matches this trip.
+        quoteId: quote?.quoteId,
       };
 
       const booking = await bookingService.create(bookingPayload, controller.signal);
@@ -372,6 +441,38 @@ export default function BookingCheckoutPage() {
         setCreationMismatch(null);
       }
     } catch (err) {
+      // The backend rejected the quote presented alongside this request
+      // (expired, tampered, or the trip changed since it was issued - see
+      // POST /bookings' quoteId validation). Never fall back to a locally
+      // recomputed amount here: fetch a genuinely fresh, backend-signed
+      // quote and require the customer to explicitly review and re-accept
+      // it (Gate 0, below) before booking creation is retried.
+      const quoteRejectionCode =
+        axios.isAxiosError(err) && err.response?.status === 409 && typeof err.response.data?.code === "string"
+          ? (err.response.data.code as string)
+          : null;
+      if (quoteRejectionCode && quoteRejectionCode.startsWith("quote_")) {
+        const previousAmountCents = acceptedQuoteCents;
+        bookingCreateAttempted.current = false;
+        const fresh = await fetchQuote();
+        if (fresh && previousAmountCents !== null && fresh.combinedTotalCents !== previousAmountCents) {
+          const legsForBanner: PriceMismatchLeg[] = fresh.legs.map((leg, i) => ({
+            legOrder: i + 1,
+            pickupLocation: i === 0 ? data.pickup : data.additionalLegs[i - 1]?.pickup ?? "",
+            dropoffLocation: i === 0 ? data.dropoff : data.additionalLegs[i - 1]?.dropoff ?? "",
+            totalPrice: leg.totalPrice,
+          }));
+          setQuoteInvalidated({ previousAmountCents, newAmountCents: fresh.combinedTotalCents, legs: legsForBanner });
+        } else if (!fresh) {
+          setBookingError("Your price quote expired and a new one could not be retrieved. Please try again.");
+        }
+        // fresh && amount unchanged: the quote token itself needed
+        // refreshing (e.g. it simply expired) but the price is identical -
+        // no customer-facing change to review, so the retry below proceeds
+        // automatically with the new token.
+        return;
+      }
+
       const timedOut = controller.signal.aborted;
       const errorMessage = timedOut
         ? "Preparing your reservation is taking longer than expected. Please try again."
@@ -391,16 +492,28 @@ export default function BookingCheckoutPage() {
   // never become reachable) while running on an unverified local estimate.
   useEffect(() => {
     if (bookingCreateAttempted.current) return;
-    if (!user || !route || !data.selectedVehicle || bookingId || !legsReady || !quote) return;
+    // quoteInvalidated (Gate 0) means the customer must explicitly review
+    // the refreshed price first - see handleConfirmRefreshedQuote, the only
+    // path that clears it and retries.
+    if (!user || !route || !data.selectedVehicle || bookingId || !legsReady || !quote || quoteInvalidated) return;
     bookingCreateAttempted.current = true;
     createBooking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, route, data.selectedVehicle, bookingId, legsReady, quote]);
+  }, [user, route, data.selectedVehicle, bookingId, legsReady, quote, quoteInvalidated]);
 
   const handleRetryBookingCreation = () => {
-    if (!legsReady || !quote) return;
+    if (!legsReady || !quote || quoteInvalidated) return;
     bookingCreateAttempted.current = false;
     createBooking();
+  };
+
+  // Gate 0's accept action - the customer has reviewed the refreshed quote
+  // (fetched already, see createBooking's catch block) and explicitly
+  // chosen to proceed at the new amount. Clearing quoteInvalidated is what
+  // lets the auto-create effect above fire again.
+  const handleConfirmRefreshedQuote = () => {
+    setQuoteInvalidated(null);
+    bookingCreateAttempted.current = false;
   };
 
   // Populated when the backend refuses to charge because what this screen
@@ -583,6 +696,7 @@ export default function BookingCheckoutPage() {
     // at that moment - editing legs now makes it stale too.
     setPriceMismatch(null);
     setCreationMismatch(null);
+    setQuoteInvalidated(null);
     setCreatedBookingTotalCents(null);
     // acceptedQuoteCents is deliberately NOT reset here - the quote-fetch
     // effect re-establishes it once the edited trip's new route/legs
@@ -762,6 +876,26 @@ export default function BookingCheckoutPage() {
               </div>
             )}
 
+            {/* Gate 0: the signed quote presented at booking-creation time
+                was rejected by the backend (expired, or the trip changed
+                since it was issued) and a fresh one has already been
+                fetched. Shown instead of Gate A/booking creation retrying
+                automatically - the customer must explicitly accept the
+                refreshed price. */}
+            {quoteInvalidated && (
+              <PriceMismatchBanner
+                title="Your quote needed to be refreshed"
+                reason="Your previous price quote expired or no longer matched your trip details."
+                previousAmount={quoteInvalidated.previousAmountCents / 100}
+                newAmount={quoteInvalidated.newAmountCents / 100}
+                legs={quoteInvalidated.legs}
+              >
+                <Button onClick={handleConfirmRefreshedQuote} disabled={paymentProcessing || creatingBooking} className="w-full">
+                  Confirm price and continue
+                </Button>
+              </PriceMismatchBanner>
+            )}
+
             {/* Gate A: booking creation's actual total differs from what the
                 customer accepted before it fired. CloverPayment is not
                 rendered at all while this is showing - the card cannot be
@@ -798,7 +932,7 @@ export default function BookingCheckoutPage() {
               </PriceMismatchBanner>
             )}
 
-            {!creatingBooking && !bookingError && bookingId && paymentVerification === "idle" && !priceMismatch && !creationMismatch && quote && (
+            {!creatingBooking && !bookingError && bookingId && paymentVerification === "idle" && !priceMismatch && !creationMismatch && !quoteInvalidated && quote && (
               <CloverPayment
                 amount={grandTotal}
                 onSuccess={handlePaymentSuccess}

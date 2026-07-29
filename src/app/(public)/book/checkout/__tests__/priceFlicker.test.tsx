@@ -48,14 +48,14 @@ vi.mock("@/hooks/useFleet", () => ({
 }));
 
 // calculatePrice is the local, lower-trust estimate (usePricing.ts) - stands
-// in for FALLBACK_PRICING/stale-config-race producing a materially different
-// number than the backend-authoritative quote. Returns a flat 100 regardless
-// of input, giving a deterministic fallbackEstimate.grandTotal of 120.00
-// (100 base + 20% flat gratuity) under the pre-fix code path.
+// in for a materially different number than the backend-authoritative quote.
+// Returns a flat {basePrice:100, gratuity:20, totalPrice:120} regardless of
+// input, giving a deterministic fallbackEstimate.grandTotal of 120.00 under
+// the pre-fix code path.
 const getAuthoritativeQuoteMock = vi.fn();
 vi.mock("@/hooks/usePricing", () => ({
   usePricing: () => ({
-    calculatePrice: () => 100,
+    calculatePrice: () => ({ basePrice: 100, gratuity: 20, totalPrice: 120, floorApplied: false }),
     getAuthoritativeQuote: getAuthoritativeQuoteMock,
   }),
 }));

@@ -362,14 +362,21 @@ export interface QuotePreviewResponse {
   legs: QuotePreviewLegResult[];
   combinedTotal: number;
   combinedTotalCents: number;
+  // Opaque, signed quote token (see backend lib/quote.ts) - the frontend
+  // must carry this unchanged into CreateBookingPayload.quoteId and must
+  // never compute or submit an amount independently of it. There is no
+  // separate lookup: the token itself IS the quote, verified fresh by the
+  // backend every time it's presented.
+  quoteId: string;
+  expiresAt: string;
 }
 
 export const pricingService = {
-  // Backend-authoritative quote - the same getPricingSnapshot()/
-  // calculateLegPriceCents() booking creation itself uses, so a quote shown
-  // here and a booking's actual created total can never independently
-  // drift apart (previously: this endpoint's contract didn't match what the
-  // backend actually read, and nothing in the app called it).
+  // Backend-authoritative, signed quote - the same calculateAdaptiveFareCents()
+  // booking creation itself falls back to, so a quote shown here and a
+  // booking's actual created total can never independently drift apart. The
+  // returned quoteId locks this exact price; see checkout/page.tsx for how
+  // it's carried through to booking creation and re-requested on expiry.
   calculate: async (params: QuotePreviewRequest): Promise<QuotePreviewResponse> => {
     const { data } = await api.post("/pricing/calculate", params);
     return data;

@@ -9,22 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 import { X } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
 import DatePicker from "@/components/ui/date-picker";
 import TimePicker from "@/components/ui/time-picker";
 import LocationInput from "@/components/booking/LocationInput";
-
-interface PricingConfig {
-  id: string;
-  vehicleType: string;
-  baseRate: number;
-  ratePerMile: number;
-  ratePerMinute: number;
-  taxPercent: number;
-  waitTimeHourly: number;
-}
+import { PRICING_CONSTANTS } from "@/lib/pricingEstimate";
 
 interface FlatZone {
   id: string;
@@ -34,14 +24,6 @@ interface FlatZone {
   suvPrice: number;
   radiusMiles: number;
   isActive: boolean;
-}
-
-interface VehicleSpecificPricing {
-  vehicleId: string;
-  baseRate?: number;
-  ratePerMile?: number;
-  ratePerMinute?: number;
-  taxPercent?: number;
 }
 
 interface FleetVehicle {
@@ -54,16 +36,22 @@ interface FleetVehicle {
   status: string;
 }
 
+// The pricing engine (calculateAdaptiveFareCents in wc-backend-1/src/lib/
+// pricing.ts, mirrored on this side by estimateFare in
+// src/lib/pricingEstimate.ts) uses fixed, verified constants - it does not
+// read the pricing_config/vehicle_pricing tables. The "Live Pricing Formula"
+// card below displays those real constants directly from pricingEstimate.ts
+// (so it can never drift from what customers are actually charged) instead
+// of an editable form backed by database rows that no longer affect price.
+// The "Zones" section further below is a separate, pre-existing feature
+// (radius-based flat fares) that was never wired into price calculation -
+// left as-is, out of scope for this page's pricing-accuracy fix.
 export default function AdminPricingPage() {
   const [activeTab, setActiveTab] = useState<"config" | "calculator">("config");
-  const [configs, setConfigs] = useState<PricingConfig[]>([]);
   const [zones, setZones] = useState<FlatZone[]>([]);
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
-  const [vehiclePricing, setVehiclePricing] = useState<Record<string, VehicleSpecificPricing>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
-  const [initializing, setInitializing] = useState(false);
 
   // Calculator state
   const [calcPickup, setCalcPickup] = useState("");
@@ -83,7 +71,7 @@ export default function AdminPricingPage() {
     shouldFetchRoute ? calcDropoff : ""
   );
 
-  const { calculateVehicleSpecificPrice, getTaxPercent, getVehicleTaxPercent } = usePricing();
+  const { calculateVehicleSpecificPrice } = usePricing();
 
   useEffect(() => {
     loadPricingData();
@@ -110,55 +98,20 @@ export default function AdminPricingPage() {
   const loadPricingData = async () => {
     setLoading(true);
     try {
-      const [configData, zoneData, fleetData, vehiclePricingData] = await Promise.all([
-        pricingService.getConfig().catch((err) => {
-          console.error("Failed to load pricing config:", err);
-          setUsingFallback(true);
-          return [
-            { id: "fallback-sedan", vehicleType: "sedan", baseRate: "30", ratePerMile: "4.0", ratePerMinute: "1.25", taxPercent: "20", waitTimeHourly: "95" },
-            { id: "fallback-suv", vehicleType: "suv", baseRate: "37", ratePerMile: "4.5", ratePerMinute: "1.55", taxPercent: "20", waitTimeHourly: "95" },
-          ];
-        }),
+      const [zoneData, fleetData] = await Promise.all([
         pricingService.getZones().catch(() => []),
         fleetService.getAll().catch(() => []),
-        pricingService.getVehiclePricing().catch(() => [])
       ]);
-      
-      const parsedConfigs = configData.map((c: any) => ({
-        ...c,
-        baseRate: parseFloat(c.baseRate),
-        ratePerMile: parseFloat(c.ratePerMile),
-        ratePerMinute: parseFloat(c.ratePerMinute),
-        taxPercent: parseFloat(c.taxPercent),
-        waitTimeHourly: parseFloat(c.waitTimeHourly),
-      }));
-      
+
       const parsedZones = zoneData.map((z: any) => ({
         ...z,
         sedanPrice: parseFloat(z.sedanPrice),
         suvPrice: parseFloat(z.suvPrice),
         radiusMiles: parseFloat(z.radiusMiles),
       }));
-      
-      const parsedVehiclePricing: Record<string, VehicleSpecificPricing> = {};
-      vehiclePricingData.forEach((vp: any) => {
-        parsedVehiclePricing[vp.vehicleId] = {
-          vehicleId: vp.vehicleId,
-          baseRate: vp.baseRate ? parseFloat(vp.baseRate) : undefined,
-          ratePerMile: vp.ratePerMile ? parseFloat(vp.ratePerMile) : undefined,
-          ratePerMinute: vp.ratePerMinute ? parseFloat(vp.ratePerMinute) : undefined,
-          taxPercent: vp.taxPercent ? parseFloat(vp.taxPercent) : undefined,
-        };
-      });
-      
-      setConfigs(parsedConfigs);
+
       setZones(parsedZones);
       setVehicles(fleetData);
-      setVehiclePricing(parsedVehiclePricing);
-      
-      if (configData.length > 0 && configData[0]?.id?.startsWith("fallback")) {
-        toast.warning("Backend pricing API unavailable. Using read-only default pricing for calculator.", { duration: 5000 });
-      }
     } catch (error: any) {
       toast.error(error.message || "Failed to load pricing data");
     } finally {
@@ -166,33 +119,7 @@ export default function AdminPricingPage() {
     }
   };
 
-  const saveConfig = async (config: PricingConfig) => {
-    if (usingFallback) {
-      toast.error("Cannot save pricing. Backend API is unavailable. Please contact support.");
-      return;
-    }
-    setSaving(true);
-    try {
-      await pricingService.updateConfig(config.id, {
-        baseRate: config.baseRate,
-        ratePerMile: config.ratePerMile,
-        ratePerMinute: config.ratePerMinute,
-        taxPercent: config.taxPercent,
-        waitTimeHourly: config.waitTimeHourly,
-      });
-      toast.success(`${config.vehicleType.toUpperCase()} pricing saved`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save pricing");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const saveZone = async (zone: FlatZone) => {
-    if (usingFallback) {
-      toast.error("Cannot save zones. Backend API is unavailable. Please contact support.");
-      return;
-    }
     setSaving(true);
     try {
       await pricingService.updateZone(zone.id, {
@@ -209,110 +136,10 @@ export default function AdminPricingPage() {
     }
   };
 
-  const updateConfig = (id: string, field: keyof PricingConfig, value: number) => {
-    setConfigs((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
-    );
-  };
-
   const updateZone = (id: string, field: keyof FlatZone, value: number | boolean) => {
     setZones((prev) =>
       prev.map((z) => (z.id === id ? { ...z, [field]: value } : z))
     );
-  };
-
-  const updateVehiclePricing = (vehicleId: string, field: keyof VehicleSpecificPricing, value: number | undefined) => {
-    const updated = { ...vehiclePricing[vehicleId], vehicleId, [field]: value };
-    setVehiclePricing((prev) => ({ ...prev, [vehicleId]: updated }));
-  };
-
-  const saveVehiclePricing = async (vehicleId: string) => {
-    const pricing = vehiclePricing[vehicleId];
-    if (!pricing) return;
-
-    setSaving(true);
-    try {
-      await pricingService.upsertVehiclePricing(vehicleId, {
-        baseRate: pricing.baseRate,
-        ratePerMile: pricing.ratePerMile,
-        ratePerMinute: pricing.ratePerMinute,
-        taxPercent: pricing.taxPercent,
-      });
-      toast.success("Vehicle pricing saved");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to save vehicle pricing");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const clearVehiclePricing = async (vehicleId: string) => {
-    setSaving(true);
-    try {
-      await pricingService.deleteVehiclePricing(vehicleId);
-      setVehiclePricing((prev) => {
-        const updated = { ...prev };
-        delete updated[vehicleId];
-        return updated;
-      });
-      toast.success("Reset to category defaults");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to clear vehicle pricing");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const initializePricing = async () => {
-    setInitializing(true);
-    try {
-      await Promise.all([
-        pricingService.createConfig({
-          vehicleType: "sedan",
-          baseRate: 30,
-          ratePerMile: 4.0,
-          ratePerMinute: 1.25,
-          taxPercent: 20,
-          waitTimeHourly: 95,
-        }),
-        pricingService.createConfig({
-          vehicleType: "suv",
-          baseRate: 37,
-          ratePerMile: 4.5,
-          ratePerMinute: 1.55,
-          taxPercent: 20,
-          waitTimeHourly: 95,
-        }),
-      ]);
-      
-      toast.success("Pricing configurations initialized successfully!");
-      setUsingFallback(false);
-      await loadPricingData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to initialize pricing");
-    } finally {
-      setInitializing(false);
-    }
-  };
-
-  const calculatePrice = (distance: number, duration: number, vehicleId: string) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    if (!vehicle) return null;
-
-    const specificPricing = vehiclePricing[vehicleId];
-    const defaultConfig = configs.find(c => c.vehicleType === vehicle.vehicleType);
-    if (!defaultConfig) return null;
-
-    const baseRate = specificPricing?.baseRate ?? defaultConfig.baseRate;
-    const ratePerMile = specificPricing?.ratePerMile ?? defaultConfig.ratePerMile;
-    const ratePerMinute = specificPricing?.ratePerMinute ?? defaultConfig.ratePerMinute;
-    const taxPercent = specificPricing?.taxPercent ?? defaultConfig.taxPercent;
-
-    const basePrice = baseRate + (ratePerMile * distance) + (ratePerMinute * duration);
-    const tax = basePrice * (taxPercent / 100);
-    const total = basePrice + tax;
-
-    return { basePrice, tax, total, taxPercent };
   };
 
   const validateCalculator = (): boolean => {
@@ -393,35 +220,21 @@ export default function AdminPricingPage() {
         if (!isActive) break;
         
         try {
-          // Use calculateVehicleSpecificPrice which fetches from API
-          const basePrice = await calculateVehicleSpecificPrice(
+          const estimate = await calculateVehicleSpecificPrice(
             route.distance,
             route.duration,
-            vehicle.vehicleType as "sedan" | "suv",
-            vehicle.id
+            vehicle.vehicleType as "sedan" | "suv"
           );
-          
-          if (basePrice !== null && basePrice !== undefined) {
-            const taxPercent = getVehicleTaxPercent(vehicle.id);
-            const tax = basePrice * (taxPercent / 100);
-            const total = basePrice + tax;
-            
-            newPrices[vehicle.id] = {
-              basePrice,
-              tax,
-              total,
-              taxPercent
-            };
-          } else {
-            // Fallback calculation if API fails
-            const price = calculatePrice(route.distance, route.duration, vehicle.id);
-            newPrices[vehicle.id] = price;
-          }
+
+          newPrices[vehicle.id] = estimate && {
+            basePrice: estimate.basePrice,
+            tax: estimate.gratuity,
+            total: estimate.totalPrice,
+            taxPercent: estimate.basePrice > 0 ? Math.round((estimate.gratuity / estimate.basePrice) * 10000) / 100 : 0,
+          };
         } catch (error) {
           console.error(`Error calculating price for vehicle ${vehicle.id}:`, error);
-          // Fallback calculation
-          const price = calculatePrice(route.distance, route.duration, vehicle.id);
-          newPrices[vehicle.id] = price;
+          newPrices[vehicle.id] = null;
         }
         
         newLoadingStates[vehicle.id] = false;
@@ -438,7 +251,7 @@ export default function AdminPricingPage() {
     return () => {
       isActive = false;
     };
-  }, [route, shouldFetchRoute, vehicles.length, calculateVehicleSpecificPrice, getVehicleTaxPercent]);
+  }, [route, shouldFetchRoute, vehicles.length, calculateVehicleSpecificPrice]);
 
   const calculatedPrice = calcVehicle && vehiclePrices[calcVehicle] ? vehiclePrices[calcVehicle] : null;
 
@@ -800,12 +613,6 @@ export default function AdminPricingPage() {
                                       {vehicle.plate ? `${vehicle.plate} • ` : ''}
                                       {vehicle.color || 'Premium'}
                                     </p>
-                                    {vehiclePricing[vehicle.id] && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                                        <Car className="h-3 w-3" />
-                                        Custom Pricing
-                                      </span>
-                                    )}
                                   </div>
                                   <div className="text-right">
                                     {isLoading ? (
@@ -870,25 +677,14 @@ export default function AdminPricingPage() {
                         <span className="text-2xl font-display font-bold text-primary">${calculatedPrice.total.toFixed(2)}</span>
                       </div>
                       
-                      {/* Show which pricing was used */}
+                      {/* Same formula every customer-facing page uses - see the
+                          "Live Pricing Formula" card on the Configuration tab. */}
                       <div className="pt-3 border-t border-border">
                         <p className="text-xs text-muted-foreground flex items-center gap-2">
-                          {vehiclePricing[calcVehicle] ? (
-                            <>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                                <Car className="h-3 w-3" />
-                                Vehicle-Specific
-                              </span>
-                              Using custom pricing for this vehicle
-                            </>
-                          ) : (
-                            <>
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
-                                Category Default
-                              </span>
-                              Using standard {vehicles.find(v => v.id === calcVehicle)?.vehicleType} pricing
-                            </>
-                          )}
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
+                            Live formula
+                          </span>
+                          Using standard {vehicles.find(v => v.id === calcVehicle)?.vehicleType} pricing
                         </p>
                       </div>
                     </div>
@@ -908,242 +704,75 @@ export default function AdminPricingPage() {
         </div>
       ) : (
         <>
-          {usingFallback && (
-            <div className="glass-card rounded-xl p-6 mb-6 border-amber-500/30 bg-amber-500/5">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-amber-500/10">
-                  <DollarSign className="h-6 w-6 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="text-base font-semibold text-foreground mb-2">Pricing Database Not Initialized</h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        The pricing configuration table is empty. Initialize default pricing for Sedan and SUV categories first.
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-4">
-                        <strong>What will be created:</strong>
-                        <br />• <strong>Sedan Category:</strong> $30 base + $4.00/mile + $1.25/min + 20% tax + $95/hr wait time
-                        <br />• <strong>SUV Category:</strong> $37 base + $4.50/mile + $1.55/min + 20% tax + $95/hr wait time
-                      </p>
-                      <Button
-                        onClick={initializePricing}
-                        disabled={initializing}
-                        size="lg"
-                        className="gap-2 bg-blue-gradient shadow-blue"
-                      >
-                        {initializing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Initializing Database...
-                          </>
-                        ) : (
-                          <>
-                            <DollarSign className="h-4 w-4" />
-                            Initialize Pricing Database
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Rate Equations */}
+          {/* Live Pricing Formula - read-only, sourced directly from
+              src/lib/pricingEstimate.ts (the same constants the backend's
+              calculateAdaptiveFareCents uses). This replaced an editable
+              form backed by pricing_config/vehicle_pricing database rows -
+              those tables are no longer read when computing a price, so an
+              editable form here could only ever mislead an admin into
+              thinking a save had an effect it didn't. See the file header
+              comment above for the full explanation. */}
           <section>
-            <h3 className="text-base font-display font-semibold text-foreground mb-1">Rate Equations</h3>
+            <h3 className="text-base font-display font-semibold text-foreground mb-1">Live Pricing Formula</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Price = Base + (Rate/Mile × distance) + (Rate/Min × duration)
+              total = round-to-nearest-${PRICING_CONSTANTS.roundToNearest}( max( minimum fare, (base + per-mile×distance + per-minute×duration) × (1 + {PRICING_CONSTANTS.demandCoefficient}×demand level) ) ) — read-only; this is what every quote, booking, and charge actually uses.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {configs.map((c) => (
-                <div key={c.id} className="rounded-lg border border-border bg-card p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-display font-semibold text-foreground capitalize">
-                      Business {c.vehicleType}
-                    </h4>
-                    <button
-                      onClick={() => saveConfig(c)}
-                      disabled={saving || usingFallback}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      title={usingFallback ? "Cannot save - Backend API unavailable" : "Save pricing configuration"}
-                    >
-                      <Save className="h-3 w-3" />
-                      Save
-                    </button>
-                  </div>
+              {(["sedan", "suv"] as const).map((vehicleType) => (
+                <div key={vehicleType} className="rounded-lg border border-border bg-card p-4 space-y-3">
+                  <h4 className="text-sm font-display font-semibold text-foreground capitalize">
+                    Business {vehicleType}
+                  </h4>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {(
-                      [
-                        ["baseRate", "Base ($)"],
-                        ["ratePerMile", "$/Mile"],
-                        ["ratePerMinute", "$/Minute"],
-                        ["taxPercent", "Tax (%)"],
-                        ["waitTimeHourly", "Wait ($/hr)"],
-                      ] as const
-                    ).map(([field, label]) => (
-                      <div key={field}>
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                          {label}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={(c as any)[field]}
-                          onChange={(e) =>
-                            updateConfig(c.id, field as keyof PricingConfig, parseFloat(e.target.value) || 0)
-                          }
-                          className="w-full mt-0.5 bg-secondary border border-border rounded-md px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
+                    <div>
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Base fare</label>
+                      <div className="w-full mt-0.5 bg-secondary border border-border rounded-md px-3 py-1.5 text-sm text-foreground">
+                        ${PRICING_CONSTANTS.baseFare[vehicleType].toFixed(2)}
                       </div>
-                    ))}
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Per mile</label>
+                      <div className="w-full mt-0.5 bg-secondary border border-border rounded-md px-3 py-1.5 text-sm text-foreground">
+                        ${PRICING_CONSTANTS.perMile[vehicleType].toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Per minute</label>
+                      <div className="w-full mt-0.5 bg-secondary border border-border rounded-md px-3 py-1.5 text-sm text-foreground">
+                        ${PRICING_CONSTANTS.perMinute[vehicleType].toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Minimum fare</label>
+                      <div className="w-full mt-0.5 bg-primary/10 border border-primary/30 rounded-md px-3 py-1.5 text-sm font-semibold text-primary">
+                        ${PRICING_CONSTANTS.minimumFare[vehicleType].toFixed(2)}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="text-[11px] text-muted-foreground bg-secondary/50 rounded px-2 py-1.5">
-                    Formula: ${c.baseRate} + (${c.ratePerMile} × miles) + (${c.ratePerMinute} × mins) + {c.taxPercent}% tax
+                    Applies at every distance - not a short-trip/long-trip switch, and never overridden by a specific fleet vehicle.
                   </div>
                 </div>
               ))}
             </div>
-          </section>
 
-          {/* Vehicle-Specific Pricing */}
-          <section>
-            <div className="mb-4">
-              <h3 className="text-base font-display font-semibold text-foreground mb-1">Vehicle-Specific Pricing Overrides</h3>
-              <p className="text-xs text-muted-foreground">
-                Set custom pricing for individual vehicles. Fields show category defaults in <span className="text-primary font-semibold">[brackets]</span>. Leave empty to use category pricing.
-              </p>
+            <div className="mt-4 rounded-lg border border-border bg-card p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Demand coefficient</label>
+                <div className="text-sm text-foreground mt-0.5">{PRICING_CONSTANTS.demandCoefficient} per demand level</div>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Default demand level</label>
+                <div className="text-sm text-foreground mt-0.5">{PRICING_CONSTANTS.defaultDemandLevel} (no live demand signal exists yet - every quote uses this)</div>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Rounding</label>
+                <div className="text-sm text-foreground mt-0.5">Nearest ${PRICING_CONSTANTS.roundToNearest}</div>
+              </div>
             </div>
-
-            {vehicles.length === 0 ? (
-              <div className="glass-card rounded-lg p-8 text-center">
-                <Car className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground mb-1">No vehicles in fleet</p>
-                <p className="text-xs text-muted-foreground">Add vehicles in <Link href="/admin/fleet" className="text-primary hover:underline">Fleet Management</Link> first</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {vehicles.map((vehicle) => {
-                  const defaultConfig = configs.find(c => c.vehicleType === vehicle.vehicleType);
-                  const specific = vehiclePricing[vehicle.id];
-                  const hasOverride = specific && (specific.baseRate !== undefined || specific.ratePerMile !== undefined || specific.ratePerMinute !== undefined || specific.taxPercent !== undefined);
-
-                  return (
-                    <div key={vehicle.id} className={`rounded-lg border p-4 space-y-3 transition-all ${
-                      hasOverride ? "border-primary/40 bg-primary/5 shadow-blue" : "border-border bg-card"
-                    }`}>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-sm font-display font-semibold text-foreground">
-                            {vehicle.make} {vehicle.model}
-                          </h4>
-                          <p className="text-xs text-muted-foreground">
-                            {vehicle.plate} • <span className="uppercase font-semibold">{vehicle.vehicleType}</span>
-                          </p>
-                          {defaultConfig && (
-                            <p className="text-[10px] text-muted-foreground mt-1">
-                              Category defaults: ${defaultConfig.baseRate} + ${defaultConfig.ratePerMile}/mi + ${defaultConfig.ratePerMinute}/min
-                            </p>
-                          )}
-                        </div>
-                        {hasOverride && (
-                          <span className="text-[10px] px-2 py-1 rounded-full bg-primary text-primary-foreground font-semibold">
-                            CUSTOM
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
-                            Base Rate ($)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={specific?.baseRate ?? ""}
-                            onChange={(e) => updateVehiclePricing(vehicle.id, "baseRate", e.target.value ? parseFloat(e.target.value) : undefined)}
-                            placeholder={defaultConfig?.baseRate.toString() || "30"}
-                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
-                            Rate Per Mile ($)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={specific?.ratePerMile ?? ""}
-                            onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMile", e.target.value ? parseFloat(e.target.value) : undefined)}
-                            placeholder={defaultConfig?.ratePerMile.toString() || "4.00"}
-                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
-                            Rate Per Minute ($)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={specific?.ratePerMinute ?? ""}
-                            onChange={(e) => updateVehiclePricing(vehicle.id, "ratePerMinute", e.target.value ? parseFloat(e.target.value) : undefined)}
-                            placeholder={defaultConfig?.ratePerMinute.toString() || "1.25"}
-                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-1">
-                            Tax Percent (%)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={specific?.taxPercent ?? ""}
-                            onChange={(e) => updateVehiclePricing(vehicle.id, "taxPercent", e.target.value ? parseFloat(e.target.value) : undefined)}
-                            placeholder={defaultConfig?.taxPercent.toString() || "20"}
-                            className="w-full bg-secondary border border-border rounded-md px-2 py-1.5 text-sm text-foreground placeholder:text-primary/60 focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => saveVehiclePricing(vehicle.id)}
-                          disabled={saving || usingFallback}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Save className="h-3 w-3" />
-                          Save Pricing
-                        </button>
-                        {hasOverride && (
-                          <button
-                            onClick={() => clearVehiclePricing(vehicle.id)}
-                            disabled={saving}
-                            className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:border-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <X className="h-3 w-3" />
-                            Clear
-                          </button>
-                        )}
-                      </div>
-
-                      {!defaultConfig && (
-                        <p className="text-[10px] text-amber-600 bg-amber-500/10 rounded px-2 py-1">
-                          ⚠️ No category pricing found for {vehicle.vehicleType}. Initialize pricing first.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </section>
 
           {/* Flat Rate Zones */}
@@ -1169,9 +798,9 @@ export default function AdminPricingPage() {
                     </div>
                     <button
                       onClick={() => saveZone(zone)}
-                      disabled={saving || usingFallback}
+                      disabled={saving}
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      title={usingFallback ? "Cannot save - Backend API unavailable" : "Save zone configuration"}
+                      title="Save zone configuration"
                     >
                       <Save className="h-3 w-3" />
                       Save

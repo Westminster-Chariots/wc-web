@@ -85,12 +85,15 @@ vi.mock("@/components/booking/CheckoutSummary", () => ({
 
 const { default: BookingCheckoutPage } = await import("../page");
 
+let quoteCounter = 0;
 function quoteResponse(combinedTotalCents: number): QuotePreviewResponse {
   const combinedTotal = combinedTotalCents / 100;
   return {
     legs: [{ basePrice: combinedTotal * 0.8, gratuity: combinedTotal * 0.2, totalPrice: combinedTotal }],
     combinedTotal,
     combinedTotalCents,
+    quoteId: `test-quote-${++quoteCounter}`,
+    expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
   };
 }
 

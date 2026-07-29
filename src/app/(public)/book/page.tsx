@@ -10,6 +10,7 @@ import { useBookingStore } from "@/hooks/useBookingStore";
 import { getGatekeeperStatus } from "@/lib/pricing";
 import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { usePricing } from "@/hooks/usePricing";
+import type { FareEstimate } from "@/lib/pricingEstimate";
 import { format } from "date-fns";
 import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
@@ -57,7 +58,7 @@ export default function BookingPage() {
   });
 
   const { route, isLoading: isLoadingRoute, error: routeError } = useRouteDetails(pickup, dropoff);
-  const { calculatePrice, calculateVehicleSpecificPrice, getTaxPercent, getVehicleTaxPercent, loading: pricingLoading, error: pricingError } = usePricing();
+  const { calculatePrice } = usePricing();
 
   // Track if we've already calculated prices to prevent infinite loops
   const hasCalculatedPrices = useRef(false);
@@ -107,124 +108,44 @@ export default function BookingPage() {
   }, [fleetVehicles]);
 
   // State for individual vehicle prices
-  const [vehiclePrices, setVehiclePrices] = useState<Record<string, number | null>>({});
+  const [vehiclePrices, setVehiclePrices] = useState<Record<string, FareEstimate | null>>({});
   const [loadingVehiclePrices, setLoadingVehiclePrices] = useState<Record<string, boolean>>({});
 
   const gatekeeperStatus = useMemo(() => getGatekeeperStatus(pickupDate, pickupTime), [pickupDate, pickupTime]);
 
-  // Calculate prices for each vehicle when route or vehicles change
+  // Calculate prices for each vehicle when route or vehicles change. This is
+  // now a pure, synchronous, offline computation (see pricingEstimate.ts) -
+  // no network call, no timeout/fallback race needed, since there is nothing
+  // left that can fail.
   useEffect(() => {
-    // Skip if no route or vehicles
     if (!route || vehicles.length === 0) return;
-    
-    // Check if we need to recalculate (route changed or vehicles changed)
-    const routeChanged = 
-      lastRouteDistance.current !== route.distance || 
+
+    const routeChanged =
+      lastRouteDistance.current !== route.distance ||
       lastRouteDuration.current !== route.duration;
     const vehiclesChanged = lastVehiclesCount.current !== vehicles.length;
-    
-    // If nothing changed and we've already calculated, skip
+
     if (hasCalculatedPrices.current && !routeChanged && !vehiclesChanged) {
       return;
     }
 
-    let isActive = true;
+    hasCalculatedPrices.current = true;
+    lastRouteDistance.current = route.distance;
+    lastRouteDuration.current = route.duration;
+    lastVehiclesCount.current = vehicles.length;
 
-    const calculateAllPrices = async () => {
-      if (!isActive) return;
-      
-      // Mark as calculating
-      hasCalculatedPrices.current = true;
-      lastRouteDistance.current = route.distance;
-      lastRouteDuration.current = route.duration;
-      lastVehiclesCount.current = vehicles.length;
-      
-      const newPrices: Record<string, number | null> = {};
-      const newLoadingStates: Record<string, boolean> = {};
-      
-      // Set all to loading initially
-      vehicles.forEach(vehicle => {
-        newLoadingStates[vehicle.id] = true;
-      });
-      setLoadingVehiclePrices(prev => ({ ...prev, ...newLoadingStates }));
-      
-      // Use simple fallback pricing if API calls fail
-      const fallbackPrices: Record<string, number> = {};
-      vehicles.forEach(vehicle => {
-        // Simple fallback pricing formula
-        const baseRate = vehicle.type === "sedan" ? 30 : 37;
-        const ratePerMile = vehicle.type === "sedan" ? 4.0 : 4.5;
-        const ratePerMinute = vehicle.type === "sedan" ? 1.25 : 1.55;
-        let price = baseRate + (ratePerMile * route.distance) + (ratePerMinute * route.duration);
-        
-        // Apply 2x multiplier if distance is over 50 miles
-        if (route.distance > 50) {
-          price = price * 2;
-        }
-        
-        fallbackPrices[vehicle.id] = Math.round(price * 100) / 100;
-      });
-      
-      // Try to calculate prices with API, fall back to simple calculation
-      for (const vehicle of vehicles) {
-        try {
-          // Try to get vehicle-specific pricing with timeout
-          const pricePromise = calculateVehicleSpecificPrice(
-            route.distance, 
-            route.duration, 
-            vehicle.type, 
-            vehicle.id
-          );
-          
-          // Add timeout to prevent hanging
-          const timeoutPromise = new Promise<number | null>((_, reject) => 
-            setTimeout(() => reject(new Error("Price calculation timeout")), 5000)
-          );
-          
-          const price = await Promise.race([pricePromise, timeoutPromise]);
-          
-          if (price !== null && price !== undefined) {
-            newPrices[vehicle.id] = price;
-          } else {
-            newPrices[vehicle.id] = fallbackPrices[vehicle.id];
-          }
-        } catch (error) {
-          console.error(`Error calculating price for vehicle ${vehicle.id}:`, error);
-          // Use fallback pricing
-          newPrices[vehicle.id] = fallbackPrices[vehicle.id];
-        }
-      }
-      
-      if (!isActive) return;
-      
-      // Update all prices at once
-      setVehiclePrices(prev => ({ ...prev, ...newPrices }));
-      
-      // Set all to not loading
-      const finishedLoadingStates: Record<string, boolean> = {};
-      vehicles.forEach(vehicle => {
-        finishedLoadingStates[vehicle.id] = false;
-      });
-      setLoadingVehiclePrices(prev => ({ ...prev, ...finishedLoadingStates }));
-    };
+    const newPrices: Record<string, FareEstimate | null> = {};
+    vehicles.forEach((vehicle) => {
+      newPrices[vehicle.id] = calculatePrice(route.distance, route.duration, vehicle.type);
+    });
+    setVehiclePrices((prev) => ({ ...prev, ...newPrices }));
+    setLoadingVehiclePrices((prev) => {
+      const next = { ...prev };
+      vehicles.forEach((vehicle) => { next[vehicle.id] = false; });
+      return next;
+    });
+  }, [route, vehicles, calculatePrice]);
 
-    calculateAllPrices();
-    
-    // Cleanup function
-    return () => {
-      isActive = false;
-      // Only reset calculation flag if route or vehicles actually changed
-      if (routeChanged || vehiclesChanged) {
-        hasCalculatedPrices.current = false;
-      }
-    };
-  }, [route, vehicles.length, calculatePrice, calculateVehicleSpecificPrice]);
-
-  const selectedPrice = selectedVehicleId ? vehiclePrices[selectedVehicleId] : null;
-  const taxPercent = selectedVehicle ? getTaxPercent(selectedVehicle) / 100 : 0.2;
-  const tax = selectedPrice ? selectedPrice * taxPercent : 0;
-  const total = selectedPrice ? selectedPrice + tax : 0;
-  
   // Check if prices are loaded for the selected vehicle
   const isPriceLoaded = selectedVehicleId ? vehiclePrices[selectedVehicleId] !== undefined && vehiclePrices[selectedVehicleId] !== null : false;
   const isPriceLoading = selectedVehicleId ? loadingVehiclePrices[selectedVehicleId] : false;
@@ -552,13 +473,6 @@ export default function BookingPage() {
                 <p className="text-xs sm:text-sm text-muted-foreground font-body mt-1">All prices include estimated fees, tolls, and tax</p>
               </div>
 
-              {pricingError && (
-                <div className="mb-4 p-4 rounded-lg border border-destructive/30 bg-destructive/10">
-                  <p className="text-sm text-destructive font-semibold">⚠️ Pricing Error</p>
-                  <p className="text-xs text-destructive/80 mt-1">{pricingError}</p>
-                </div>
-              )}
-
               {vehicles.length === 0 && !loadingFleet && (
                 <div className="mb-4 p-6 rounded-lg border border-border bg-card text-center">
                   <Car className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
@@ -592,9 +506,10 @@ export default function BookingPage() {
                       features={v.features}
                       distance={route?.distance || 0}
                       duration={route?.duration || 0}
-                      price={vehiclePrice}
+                      basePrice={vehiclePrice?.basePrice ?? null}
+                      gratuity={vehiclePrice?.gratuity ?? 0}
+                      total={vehiclePrice?.totalPrice ?? 0}
                       priceLoading={isLoadingPrice}
-                      taxPercent={getVehicleTaxPercent(v.id)}
                       isSelected={isSelected}
                       isExpanded={isExpanded}
                       onSelect={() => {
