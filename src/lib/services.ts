@@ -379,6 +379,9 @@ export const pricingService = {
   // it's carried through to booking creation and re-requested on expiry.
   calculate: async (params: QuotePreviewRequest): Promise<QuotePreviewResponse> => {
     const { data } = await api.post("/pricing/calculate", params);
+    if (!Array.isArray(data?.legs)) {
+      throw new Error(data?.error ?? "Invalid pricing response");
+    }
     return data;
   },
   

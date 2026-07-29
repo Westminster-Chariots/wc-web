@@ -47,7 +47,7 @@ function buildCsp() {
   const cloverHosts = "https://*.clover.com";
   const apiConnectSrc = isProd
     ? "https://wc-backend-ayx0.onrender.com"
-    : "https://wc-backend-ayx0.onrender.com http://localhost:3001";
+    : "https://wc-backend-ayx0.onrender.com https://wc-backend-ayx0.onrender.com";
 
   const directives = [
     `default-src 'self'`,
