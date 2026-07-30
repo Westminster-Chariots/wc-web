@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJsApiLoader } from "@react-google-maps/api";
+import { isInServiceArea, SERVICE_AREA_BOUNDS, SERVICE_AREA_LABEL } from "@/lib/serviceArea";
 
 const LIBRARIES: ("places")[] = ["places"];
 const AIRPORT_KEYWORDS = ["airport", "iad", "dca", "bwi", "jfk", "lga", "ewr", "phl", "rdu", "clt"];
@@ -42,7 +43,10 @@ interface Props {
   onPlaceDetails?: (details: PlaceDetails) => void;
   icon?: "pickup" | "dropoff";
   light?: boolean;
-  restrictToVirginia?: boolean;
+  // Restricts suggestions/validation to the DMV service area (Virginia,
+  // Maryland, Washington D.C.) - see src/lib/serviceArea.ts. Country (US)
+  // is always enforced below regardless of this flag.
+  restrictToServiceArea?: boolean;
   onValidationError?: (error: string) => void;
 }
 
@@ -54,7 +58,7 @@ export default function LocationInput({
   onPlaceDetails,
   icon = "pickup",
   light = false,
-  restrictToVirginia = false,
+  restrictToServiceArea = false,
   onValidationError,
 }: Props) {
   const [query, setQuery] = useState(value);
@@ -125,8 +129,8 @@ export default function LocationInput({
         sessionToken: sessionTokenRef.current,
       };
 
-      if (restrictToVirginia) {
-        request.locationBias = { north: 39.466, south: 36.5407, east: -75.242, west: -83.6753 };
+      if (restrictToServiceArea) {
+        request.locationBias = SERVICE_AREA_BOUNDS;
       } else {
         request.locationBias = { north: 39.8, south: 37.8, east: -75.5, west: -78.8 };
       }
@@ -135,11 +139,8 @@ export default function LocationInput({
         setIsSearching(false);
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
           let filtered = predictions as PlacePrediction[];
-          if (restrictToVirginia) {
-            filtered = filtered.filter((p) => {
-              const desc = p.description.toLowerCase();
-              return desc.includes(", va") || desc.includes(", virginia") || desc.includes("virginia");
-            });
+          if (restrictToServiceArea) {
+            filtered = filtered.filter((p) => isInServiceArea(p.description));
           }
           setSuggestions(filtered);
           setIsOpen(filtered.length > 0);
@@ -150,7 +151,7 @@ export default function LocationInput({
         }
       });
     },
-    [restrictToVirginia]
+    [restrictToServiceArea]
   );
 
   useEffect(() => {
@@ -255,12 +256,9 @@ export default function LocationInput({
   };
 
   const validateLocation = () => {
-    if (!query || !restrictToVirginia) return true;
-    const lower = query.toLowerCase();
-    const isVA =
-      lower.includes(", va") || lower.includes(", virginia") || lower.includes("virginia");
-    if (!isVA) {
-      const error = "Pickup location must be in Virginia";
+    if (!query || !restrictToServiceArea) return true;
+    if (!isInServiceArea(query)) {
+      const error = `Location must be within our service area (${SERVICE_AREA_LABEL})`;
       setValidationError(error);
       if (onValidationError) onValidationError(error);
       return false;
@@ -304,7 +302,7 @@ export default function LocationInput({
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
           onBlur={() => {
             setTimeout(() => {
-              if (restrictToVirginia && query && !selected) validateLocation();
+              if (restrictToServiceArea && query && !selected) validateLocation();
             }, 200);
           }}
           onKeyDown={handleKeyDown}

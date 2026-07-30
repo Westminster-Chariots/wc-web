@@ -16,6 +16,7 @@ import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
 import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
+import { isInServiceArea, SERVICE_AREA_BOUNDS, SERVICE_AREA_LABEL } from "@/lib/serviceArea";
 import type { FleetVehicle } from "@/types";
 import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
@@ -235,36 +236,33 @@ export default function BookingPage() {
   useEffect(() => {
     if (!isLoaded || !isEditingTrip) return;
 
-    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void, restrictToVirginia: boolean = false) => {
+    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void, restrictToServiceArea: boolean = false) => {
       if (!input || !window.google) return;
-      
+
+      // Country stays restricted to the US regardless of the service-area
+      // check below - previously this was only applied when
+      // restrictToServiceArea was true, so the dropoff field (called with
+      // false) had no country restriction at all.
       const options: google.maps.places.AutocompleteOptions = {
         fields: ["formatted_address"],
+        componentRestrictions: { country: "us" },
       };
-      
-      if (restrictToVirginia) {
-        options.componentRestrictions = { country: "us" };
-        options.bounds = {
-          north: 39.4660,
-          south: 36.5407,
-          east: -75.2420,
-          west: -83.6753
-        };
+
+      if (restrictToServiceArea) {
+        options.bounds = SERVICE_AREA_BOUNDS;
         options.strictBounds = false;
       }
-      
+
       const autocomplete = new window.google.maps.places.Autocomplete(input, options);
 
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
-          // If restricting to Virginia, validate the address
-          if (restrictToVirginia) {
-            const address = place.formatted_address.toLowerCase();
-            if (address.includes(', va') || address.includes(', virginia') || address.includes('virginia')) {
+          if (restrictToServiceArea) {
+            if (isInServiceArea(place.formatted_address)) {
               setter(place.formatted_address);
             } else {
-              notify.error("Please select a location in Virginia");
+              notify.error(`Please select a location in our service area (${SERVICE_AREA_LABEL})`);
               input.value = "";
             }
           } else {
@@ -274,8 +272,11 @@ export default function BookingPage() {
       });
     };
 
+    // Same validation now applies to both fields - previously only pickup
+    // was restricted, leaving dropoff both unrestricted by area AND (see
+    // above) unrestricted by country.
     setupAutocomplete(pickupInputRef.current, setEditPickup, true);
-    setupAutocomplete(dropoffInputRef.current, setEditDropoff, false);
+    setupAutocomplete(dropoffInputRef.current, setEditDropoff, true);
   }, [isLoaded, isEditingTrip]);
 
   // Loading/redirecting state - moved after every hook above (rules of

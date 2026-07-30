@@ -129,7 +129,7 @@ export default function BookingModal({
                       value={value}
                       onChange={(v, isAirport) => onChange(v, isAirport)}
                       icon={type}
-                      restrictToVirginia={type === "pickup"}
+                      restrictToServiceArea={type === "pickup"}
                       onValidationError={(error) => setValidationError(error)}
                     />
                   </div>

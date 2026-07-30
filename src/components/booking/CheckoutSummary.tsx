@@ -106,9 +106,16 @@ const CheckoutSummary = ({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editLeg, setEditLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
   const [editLegTouched, setEditLegTouched] = useState(false);
+  // Same service-area validation as the main pickup/dropoff fields (see
+  // LocationInput's restrictToServiceArea) - additional stops previously had
+  // no area restriction at all.
+  const [editPickupError, setEditPickupError] = useState("");
+  const [editDropoffError, setEditDropoffError] = useState("");
   const [isAddingLeg, setIsAddingLeg] = useState(false);
   const [newLeg, setNewLeg] = useState<TripLeg>({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
   const [newLegTouched, setNewLegTouched] = useState(false);
+  const [newPickupError, setNewPickupError] = useState("");
+  const [newDropoffError, setNewDropoffError] = useState("");
 
   const now = new Date();
   const today = format(now, "yyyy-MM-dd");
@@ -125,34 +132,42 @@ const CheckoutSummary = ({
     editLeg.dropoff &&
     editLeg.pickupDate &&
     editLeg.pickupTime &&
+    !editPickupError &&
+    !editDropoffError &&
     !isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime);
 
   const handleStartEdit = (i: number) => {
     setEditingIndex(i);
     setEditLeg({ ...additionalLegs[i] });
+    setEditPickupError("");
+    setEditDropoffError("");
   };
 
   const handleSaveEdit = () => {
     setEditLegTouched(true);
     if (editingIndex === null) return;
-    if (!editLeg.pickup || !editLeg.dropoff || !editLeg.pickupDate || !editLeg.pickupTime || isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime)) return;
+    if (!editLeg.pickup || !editLeg.dropoff || !editLeg.pickupDate || !editLeg.pickupTime || editPickupError || editDropoffError || isDateTimeInPast(editLeg.pickupDate, editLeg.pickupTime)) return;
     onUpdateLeg(editingIndex, editLeg);
     setEditingIndex(null);
     setEditLegTouched(false);
   };
 
   const isNewLegValid =
-    newLeg.pickup && newLeg.dropoff && newLeg.pickupDate && newLeg.pickupTime && !isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime);
+    newLeg.pickup && newLeg.dropoff && newLeg.pickupDate && newLeg.pickupTime &&
+    !newPickupError && !newDropoffError &&
+    !isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime);
 
   const handleStartAdd = () => {
     setIsAddingLeg(true);
     setNewLeg({ pickup: "", dropoff: "", pickupDate: "", pickupTime: "" });
     setNewLegTouched(false);
+    setNewPickupError("");
+    setNewDropoffError("");
   };
 
   const handleSaveAdd = () => {
     setNewLegTouched(true);
-    if (!newLeg.pickup || !newLeg.dropoff || !newLeg.pickupDate || !newLeg.pickupTime || isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime)) return;
+    if (!newLeg.pickup || !newLeg.dropoff || !newLeg.pickupDate || !newLeg.pickupTime || newPickupError || newDropoffError || isDateTimeInPast(newLeg.pickupDate, newLeg.pickupTime)) return;
     onAddLeg(newLeg);
     setIsAddingLeg(false);
     setNewLegTouched(false);
@@ -331,6 +346,8 @@ const CheckoutSummary = ({
                   onChange={(val) => setEditLeg(l => ({ ...l, pickup: val }))}
                   icon="pickup"
                   light
+                  restrictToServiceArea
+                  onValidationError={setEditPickupError}
                 />
                 <LocationInput
                   label="Drop-off Location"
@@ -339,6 +356,8 @@ const CheckoutSummary = ({
                   onChange={(val) => setEditLeg(l => ({ ...l, dropoff: val }))}
                   icon="dropoff"
                   light
+                  restrictToServiceArea
+                  onValidationError={setEditDropoffError}
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <DatePicker
@@ -427,6 +446,8 @@ const CheckoutSummary = ({
                 onChange={(val) => setNewLeg((l) => ({ ...l, pickup: val }))}
                 icon="pickup"
                 light
+                restrictToServiceArea
+                onValidationError={setNewPickupError}
               />
               <LocationInput
                 label="Drop-off Location"
@@ -435,6 +456,8 @@ const CheckoutSummary = ({
                 onChange={(val) => setNewLeg((l) => ({ ...l, dropoff: val }))}
                 icon="dropoff"
                 light
+                restrictToServiceArea
+                onValidationError={setNewDropoffError}
               />
               <div className="grid grid-cols-2 gap-3">
                 <DatePicker
