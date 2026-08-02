@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import LocationInput from "./LocationInput";
@@ -48,7 +47,13 @@ export default function BookingModal({
   minTime,
 }: BookingModalProps) {
   const content = modalContent[type];
-  const [validationError, setValidationError] = useState("");
+  // No longer settable - the service-area validation that used to populate
+  // this via LocationInput's onValidationError was removed (autocomplete
+  // is now US-only, no state/region restriction). This dead component
+  // (unreachable - see BookingBar.tsx, itself unused) never surfaces an
+  // error again; kept as an empty constant so the existing disabled/
+  // display checks below don't need their own separate cleanup.
+  const validationError = "";
 
   const handleConfirm = () => {
     if (value && !validationError) {
@@ -129,8 +134,6 @@ export default function BookingModal({
                       value={value}
                       onChange={(v, isAirport) => onChange(v, isAirport)}
                       icon={type}
-                      restrictToServiceArea={type === "pickup"}
-                      onValidationError={(error) => setValidationError(error)}
                     />
                   </div>
                 )}

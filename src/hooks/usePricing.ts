@@ -21,16 +21,6 @@ export function usePricing() {
     []
   );
 
-  // Retained as a distinct name for existing call sites; no longer makes a
-  // network call or depends on a specific fleet vehicle, since per-vehicle
-  // rate overrides are no longer read by the backend either.
-  const calculateVehicleSpecificPrice = useCallback(
-    async (distance: number, duration: number, vehicleType: VehicleType): Promise<FareEstimate | null> => {
-      return calculatePrice(distance, duration, vehicleType);
-    },
-    [calculatePrice]
-  );
-
   // Backend-authoritative quote - calls the same shared calculation booking
   // creation itself uses (calculateAdaptiveFareCents() on the backend), so
   // this and the total a booking is actually created with can never
@@ -46,7 +36,6 @@ export function usePricing() {
 
   return {
     calculatePrice,
-    calculateVehicleSpecificPrice,
     getAuthoritativeQuote,
   };
 }

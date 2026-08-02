@@ -29,17 +29,17 @@ describe("estimateFare", () => {
     expect(result?.totalPrice).toBe(expectedTotal);
   });
 
-  it("basePrice + gratuity always sums exactly to totalPrice", () => {
+  it("basePrice + demandAdjustment always sums exactly to totalPrice", () => {
     for (const D of [1, 12, 40, 75]) {
       const result = estimateFare({ distanceMiles: D, durationMinutes: T(D), vehicleType: "sedan" });
-      expect(Math.round((result!.basePrice + result!.gratuity) * 100) / 100).toBe(result!.totalPrice);
+      expect(Math.round((result!.basePrice + result!.demandAdjustment) * 100) / 100).toBe(result!.totalPrice);
     }
   });
 
-  it("returns gratuity=0 and basePrice=totalPrice when the minimum fare applies", () => {
+  it("returns demandAdjustment=0 and basePrice=totalPrice when the minimum fare applies", () => {
     const result = estimateFare({ distanceMiles: 1, durationMinutes: 2, vehicleType: "sedan" });
     expect(result?.floorApplied).toBe(true);
-    expect(result?.gratuity).toBe(0);
+    expect(result?.demandAdjustment).toBe(0);
     expect(result?.basePrice).toBe(result?.totalPrice);
   });
 

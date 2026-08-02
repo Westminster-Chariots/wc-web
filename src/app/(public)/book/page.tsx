@@ -16,7 +16,6 @@ import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
 import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
-import { isInServiceArea, SERVICE_AREA_BOUNDS, SERVICE_AREA_LABEL } from "@/lib/serviceArea";
 import type { FleetVehicle } from "@/types";
 import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
@@ -236,47 +235,28 @@ export default function BookingPage() {
   useEffect(() => {
     if (!isLoaded || !isEditingTrip) return;
 
-    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void, restrictToServiceArea: boolean = false) => {
+    const setupAutocomplete = (input: HTMLInputElement | null, setter: (value: string) => void) => {
       if (!input || !window.google) return;
 
-      // Country stays restricted to the US regardless of the service-area
-      // check below - previously this was only applied when
-      // restrictToServiceArea was true, so the dropoff field (called with
-      // false) had no country restriction at all.
+      // US-only, no state/region restriction - any valid US address is a
+      // valid pickup or dropoff.
       const options: google.maps.places.AutocompleteOptions = {
         fields: ["formatted_address"],
         componentRestrictions: { country: "us" },
       };
-
-      if (restrictToServiceArea) {
-        options.bounds = SERVICE_AREA_BOUNDS;
-        options.strictBounds = false;
-      }
 
       const autocomplete = new window.google.maps.places.Autocomplete(input, options);
 
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (place.formatted_address) {
-          if (restrictToServiceArea) {
-            if (isInServiceArea(place.formatted_address)) {
-              setter(place.formatted_address);
-            } else {
-              notify.error(`Please select a location in our service area (${SERVICE_AREA_LABEL})`);
-              input.value = "";
-            }
-          } else {
-            setter(place.formatted_address);
-          }
+          setter(place.formatted_address);
         }
       });
     };
 
-    // Same validation now applies to both fields - previously only pickup
-    // was restricted, leaving dropoff both unrestricted by area AND (see
-    // above) unrestricted by country.
-    setupAutocomplete(pickupInputRef.current, setEditPickup, true);
-    setupAutocomplete(dropoffInputRef.current, setEditDropoff, true);
+    setupAutocomplete(pickupInputRef.current, setEditPickup);
+    setupAutocomplete(dropoffInputRef.current, setEditDropoff);
   }, [isLoaded, isEditingTrip]);
 
   // Loading/redirecting state - moved after every hook above (rules of
@@ -508,7 +488,7 @@ export default function BookingPage() {
                       distance={route?.distance || 0}
                       duration={route?.duration || 0}
                       basePrice={vehiclePrice?.basePrice ?? null}
-                      gratuity={vehiclePrice?.gratuity ?? 0}
+                      demandAdjustment={vehiclePrice?.demandAdjustment ?? 0}
                       total={vehiclePrice?.totalPrice ?? 0}
                       priceLoading={isLoadingPrice}
                       isSelected={isSelected}

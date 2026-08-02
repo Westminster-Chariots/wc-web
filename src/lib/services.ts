@@ -400,6 +400,20 @@ export const pricingService = {
     return data;
   },
   
+  // Admin-configured automatic gratuity (see backend lib/gratuity.ts) -
+  // toggle + percentage applied once to a trip's combined subtotal.
+  // Changing this never affects an already-issued quote or existing
+  // bookings; it only takes effect for quotes issued after the change.
+  getGratuitySettings: async (): Promise<{ enabled: boolean; percent: number }> => {
+    const { data } = await api.get("/pricing/gratuity");
+    return data;
+  },
+
+  updateGratuitySettings: async (settings: { enabled: boolean; percent: number }): Promise<{ enabled: boolean; percent: number }> => {
+    const { data } = await api.patch("/pricing/gratuity", settings);
+    return data;
+  },
+
   getZones: async () => {
     const { data } = await api.get("/pricing/zones");
     return data;

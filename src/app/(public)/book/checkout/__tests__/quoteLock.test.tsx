@@ -58,7 +58,7 @@ vi.mock("@/hooks/useFleet", () => ({
 const getAuthoritativeQuoteMock = vi.fn<(request: QuotePreviewRequest) => Promise<QuotePreviewResponse>>();
 vi.mock("@/hooks/usePricing", () => ({
   usePricing: () => ({
-    calculatePrice: () => ({ basePrice: 100, gratuity: 15, totalPrice: 115, floorApplied: false }),
+    calculatePrice: () => ({ basePrice: 100, demandAdjustment: 15, totalPrice: 115, floorApplied: false }),
     getAuthoritativeQuote: getAuthoritativeQuoteMock,
   }),
 }));

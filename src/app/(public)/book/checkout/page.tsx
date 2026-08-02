@@ -307,7 +307,12 @@ export default function BookingCheckoutPage() {
   // Estimate-only display for when the quote endpoint can't be reached -
   // clearly labeled as such in the render below, and never used to gate
   // booking creation or payment (quote stays null, which is what actually
-  // blocks those).
+  // blocks those). Deliberately carries no gratuity figure at all: the
+  // admin-configurable gratuity (wc-backend-1/src/lib/gratuity.ts) is a
+  // backend-authoritative amount this offline calculation has no way to
+  // know - calculatePrice()'s demandAdjustment field is a different,
+  // unrelated concept (see pricingEstimate.ts) and must never be labeled or
+  // treated as gratuity here.
   const fallbackEstimate = useMemo(() => {
     if (!route || !data.selectedVehicle) return null;
     const fb = calculatePrice(route.distance, route.duration, data.selectedVehicle);
@@ -319,7 +324,6 @@ export default function BookingCheckoutPage() {
     );
     return {
       basePrice: fb.basePrice,
-      gratuity: fb.gratuity,
       total: fb.totalPrice,
       legPrices: fbLegPrices,
       grandTotal: fb.totalPrice + fbLegPrices.reduce((a, b) => a + b, 0),
@@ -340,7 +344,14 @@ export default function BookingCheckoutPage() {
   const priceReady = quote != null;
   const showFallback = !priceReady && quoteError;
   const basePrice = priceReady ? quote!.legs[0]?.basePrice ?? 0 : showFallback ? fallbackEstimate?.basePrice ?? 0 : 0;
-  const gratuity = priceReady ? quote!.legs[0]?.gratuity ?? 0 : showFallback ? fallbackEstimate?.gratuity ?? 0 : 0;
+  // Gratuity is exclusively a backend-authoritative figure - approved
+  // 2026-07-30: a customer must never see a nonzero "Gratuity" line unless
+  // it came from a real, signed backend quote. The fallback estimate always
+  // contributes exactly $0 here, regardless of what calculatePrice()'s
+  // demandAdjustment happens to be, so an admin turning gratuity off (or a
+  // transient quote-endpoint failure) can never result in a phantom
+  // gratuity amount reaching the customer.
+  const gratuity = priceReady ? quote!.legs[0]?.gratuity ?? 0 : 0;
   const legPrices = priceReady ? quote!.legs.slice(1).map((l) => l.totalPrice) : showFallback ? fallbackEstimate?.legPrices ?? [] : [];
   const grandTotal = priceReady ? quote!.combinedTotal : showFallback ? fallbackEstimate?.grandTotal ?? 0 : 0;
 
@@ -767,11 +778,22 @@ export default function BookingCheckoutPage() {
           {quoteError && (
             <div role="status" className="flex gap-3 p-3 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p>
-                <span className="font-medium text-foreground">Estimated total</span> — we couldn&apos;t reach our pricing
-                service to confirm your exact price. Booking and payment are unavailable until this is resolved; please
-                try again in a moment.
-              </p>
+              <div className="space-y-2">
+                <p>
+                  <span className="font-medium text-foreground">Estimated total</span> — we couldn&apos;t reach our pricing
+                  service to confirm your exact price, including any gratuity. Booking and payment are unavailable
+                  until this is resolved.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchQuote()}
+                  disabled={quoteLoading}
+                >
+                  {quoteLoading ? "Retrying…" : "Try again"}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -791,6 +813,7 @@ export default function BookingCheckoutPage() {
             legPrices={legPrices || []}
             gratuity={gratuity}
             grandTotal={grandTotal}
+            isEstimate={showFallback}
             loading={quoteLoading || (!priceReady && !showFallback)}
             bookingForSomeoneElse={data.bookingForSomeoneElse}
             guestFirstName={data.guestFirstName}
@@ -848,6 +871,17 @@ export default function BookingCheckoutPage() {
                   Calculating journey distances…
                 </div>
               )
+            )}
+
+            {/* legsReady but the authoritative quote couldn't be fetched -
+                the banner above already explains why and offers retry;
+                booking creation cannot proceed (gated on `quote`, see the
+                auto-create effect) so this is the terminal state for the
+                Secure payment card until a retry succeeds. */}
+            {!creatingBooking && !bookingError && !bookingId && legsReady && quoteError && (
+              <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center text-center">
+                Waiting for a confirmed price before payment can be enabled.
+              </div>
             )}
 
             {paymentVerification === "verifying" && (

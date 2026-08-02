@@ -44,7 +44,14 @@ export interface FareEstimateInput {
 
 export interface FareEstimate {
   basePrice: number; // pre-demand-markup fare; equals totalPrice when the minimum fare applies
-  gratuity: number; // demand-adjustment portion; 0 when the minimum fare applies
+  // Demand-adjustment portion only; 0 when the minimum fare applies. This is
+  // NOT the admin-configurable gratuity (see wc-backend-1/src/lib/gratuity.ts)
+  // - that is a separate, backend-authoritative amount this offline estimate
+  // has no way to compute (it depends on live admin config). Deliberately
+  // named to not collide with that concept; a caller that needs the real
+  // gratuity a customer will be charged must use getAuthoritativeQuote()
+  // (see usePricing.ts), never this field.
+  demandAdjustment: number;
   totalPrice: number;
   floorApplied: boolean;
 }
@@ -77,10 +84,10 @@ export function estimateFare(input: FareEstimateInput): FareEstimate | null {
   const totalPrice = Math.round(raw / ROUND_TO) * ROUND_TO;
 
   if (floorApplied) {
-    return { basePrice: totalPrice, gratuity: 0, totalPrice, floorApplied };
+    return { basePrice: totalPrice, demandAdjustment: 0, totalPrice, floorApplied };
   }
 
   const basePrice = Math.round(linear * 100) / 100;
-  const gratuity = Math.round((totalPrice - basePrice) * 100) / 100;
-  return { basePrice, gratuity, totalPrice, floorApplied };
+  const demandAdjustment = Math.round((totalPrice - basePrice) * 100) / 100;
+  return { basePrice, demandAdjustment, totalPrice, floorApplied };
 }

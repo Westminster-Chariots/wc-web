@@ -20,7 +20,10 @@ interface VehiclePricingDisplayProps {
   // nothing to derive here; this component only ever displays the numbers
   // it's given.
   basePrice: number | null;
-  gratuity: number;
+  // Client-side demand-adjustment estimate only (see pricingEstimate.ts) -
+  // NOT the admin-configurable gratuity. Rendered under the "Adjustment"
+  // label below, never "Gratuity".
+  demandAdjustment: number;
   total: number;
   priceLoading?: boolean;
   isSelected: boolean;
@@ -40,7 +43,7 @@ export default function VehiclePricingDisplay({
   distance,
   duration,
   basePrice,
-  gratuity,
+  demandAdjustment,
   total,
   priceLoading = false,
   isSelected,
@@ -131,7 +134,7 @@ export default function VehiclePricingDisplay({
                 </div>
                 <div className="flex justify-between text-xs font-body">
                   <span className="text-muted-foreground">Adjustment</span>
-                  <span className="text-foreground">${gratuity.toFixed(2)}</span>
+                  <span className="text-foreground">${demandAdjustment.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
                   <span className="text-foreground font-semibold">Total</span>

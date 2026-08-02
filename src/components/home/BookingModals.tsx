@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
 import LocationInput from "@/components/booking/LocationInput";
 import type { PlaceDetails } from "@/components/booking/LocationInput";
@@ -48,15 +47,10 @@ export default function BookingModals({
   handleTimeConfirm,
 }: BookingModalsProps) {
   const { update } = useBookingStore();
-  const [pickupError, setPickupError] = useState("");
-  const [dropoffError, setDropoffError] = useState("");
 
   const today = new Date();
   const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const currentTime = `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`;
-
-  const canProceedPickup = pickup && !pickupError;
-  const canProceedDropoff = dropoff && !dropoffError;
 
   if (!activeModal) return null;
 
@@ -129,8 +123,6 @@ export default function BookingModals({
                   })
                 }
                 icon="pickup"
-                restrictToServiceArea={true}
-                onValidationError={(error) => setPickupError(error)}
               />
             </motion.div>
 
@@ -139,20 +131,11 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               onClick={handlePickupConfirm}
-              disabled={!canProceedPickup}
+              disabled={!pickup}
               className="w-full mt-4 bg-blue-gradient shadow-blue rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Continue
             </motion.button>
-            {pickupError && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2 text-xs text-red-400 font-body text-center"
-              >
-                Please select a valid location in Virginia, Maryland, or Washington, D.C. to continue
-              </motion.p>
-            )}
           </div>
         )}
 
@@ -184,8 +167,6 @@ export default function BookingModals({
                   })
                 }
                 icon="dropoff"
-                restrictToServiceArea={true}
-                onValidationError={(error) => setDropoffError(error)}
               />
             </motion.div>
 
@@ -194,20 +175,11 @@ export default function BookingModals({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
               onClick={handleDropoffConfirm}
-              disabled={!canProceedDropoff}
+              disabled={!dropoff}
               className="w-full mt-4 bg-blue-gradient shadow-blue rounded-full px-6 py-3 text-sm font-semibold text-primary-foreground hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continue
             </motion.button>
-            {dropoffError && (
-              <motion.p
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-2 text-xs text-red-400 font-body text-center"
-              >
-                Please select a valid location in Virginia, Maryland, or Washington, D.C. to continue
-              </motion.p>
-            )}
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import type { QuotePreviewResponse } from "@/lib/services";
 
 // --- Mocks: every hook/service/component checkout/page.tsx depends on -----
@@ -49,13 +49,15 @@ vi.mock("@/hooks/useFleet", () => ({
 
 // calculatePrice is the local, lower-trust estimate (usePricing.ts) - stands
 // in for a materially different number than the backend-authoritative quote.
-// Returns a flat {basePrice:100, gratuity:20, totalPrice:120} regardless of
-// input, giving a deterministic fallbackEstimate.grandTotal of 120.00 under
-// the pre-fix code path.
+// Returns a flat {basePrice:100, demandAdjustment:20, totalPrice:120}
+// regardless of input, giving a deterministic fallbackEstimate.grandTotal of
+// 120.00 under the pre-fix code path. demandAdjustment is deliberately
+// nonzero here so a test asserting "no gratuity from the fallback" is
+// actually exercising something, not trivially true because both are 0.
 const getAuthoritativeQuoteMock = vi.fn();
 vi.mock("@/hooks/usePricing", () => ({
   usePricing: () => ({
-    calculatePrice: () => ({ basePrice: 100, gratuity: 20, totalPrice: 120, floorApplied: false }),
+    calculatePrice: () => ({ basePrice: 100, demandAdjustment: 20, totalPrice: 120, floorApplied: false }),
     getAuthoritativeQuote: getAuthoritativeQuoteMock,
   }),
 }));
@@ -80,13 +82,19 @@ vi.mock("@/components/booking/CloverPayment", () => ({
   default: () => <button>MockPayButton</button>,
 }));
 
-const checkoutSummaryProps: { grandTotal?: number; basePrice?: number; loading?: boolean }[] = [];
+const checkoutSummaryProps: { grandTotal?: number; basePrice?: number; gratuity?: number; isEstimate?: boolean; loading?: boolean }[] = [];
 vi.mock("@/components/booking/CheckoutSummary", () => ({
-  default: (props: { grandTotal: number; basePrice: number; loading: boolean }) => {
-    checkoutSummaryProps.push({ grandTotal: props.grandTotal, basePrice: props.basePrice, loading: props.loading });
+  default: (props: { grandTotal: number; basePrice: number; gratuity: number; isEstimate?: boolean; loading: boolean }) => {
+    checkoutSummaryProps.push({
+      grandTotal: props.grandTotal,
+      basePrice: props.basePrice,
+      gratuity: props.gratuity,
+      isEstimate: props.isEstimate,
+      loading: props.loading,
+    });
     return (
       <div data-testid="checkout-summary" data-loading={String(props.loading)}>
-        Total due: ${Number(props.grandTotal || 0).toFixed(2)}
+        Total due: ${Number(props.grandTotal || 0).toFixed(2)}, Gratuity: ${Number(props.gratuity || 0).toFixed(2)}
       </div>
     );
   },
@@ -138,6 +146,100 @@ describe("Checkout price display - fallback-estimate flicker", () => {
     await waitFor(() => {
       const last = checkoutSummaryProps[checkoutSummaryProps.length - 1];
       expect(last.grandTotal).toBe(120);
+    });
+  });
+
+  it("displays the backend's authoritative gratuity once the quote succeeds", async () => {
+    const quote: QuotePreviewResponse = {
+      legs: [{ basePrice: 130, gratuity: 19.5, totalPrice: 149.5 }],
+      combinedTotal: 149.5,
+      combinedTotalCents: 14950,
+      quoteId: "signed-quote-token",
+      expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
+    };
+    getAuthoritativeQuoteMock.mockResolvedValue(quote);
+    // A real quote succeeding triggers this page's own auto-create-booking
+    // effect - give it something to resolve to so that unrelated flow
+    // doesn't throw and pollute this test with an unrelated bookingError.
+    createBookingMock.mockResolvedValue({ id: "booking-1", totalPrice: 149.5, legs: [] });
+
+    render(<BookingCheckoutPage />);
+
+    await waitFor(() => {
+      const last = checkoutSummaryProps[checkoutSummaryProps.length - 1];
+      expect(last.gratuity).toBe(19.5);
+      expect(last.grandTotal).toBe(149.5);
+      expect(last.isEstimate).toBeFalsy();
+    });
+  });
+
+  it("never invents a gratuity figure from the client-side demand-adjustment estimate when the quote endpoint fails", async () => {
+    // calculatePrice() (mocked above) returns demandAdjustment:20 - a
+    // nonzero value distinct from gratuity, so this test only passes if
+    // that number is genuinely never surfaced as "gratuity", not merely
+    // coincidentally zero.
+    getAuthoritativeQuoteMock.mockRejectedValue(new Error("network error"));
+
+    render(<BookingCheckoutPage />);
+
+    await waitFor(() => expect(screen.getByText(/Estimated total/i)).toBeInTheDocument());
+    await waitFor(() => {
+      const last = checkoutSummaryProps[checkoutSummaryProps.length - 1];
+      expect(last.gratuity).toBe(0);
+      expect(last.isEstimate).toBe(true);
+    });
+  });
+
+  it("disables payment entirely while the quote endpoint has failed (no fallback-priced charge is ever possible)", async () => {
+    getAuthoritativeQuoteMock.mockRejectedValue(new Error("network error"));
+
+    render(<BookingCheckoutPage />);
+
+    await waitFor(() => expect(screen.getByText(/Estimated total/i)).toBeInTheDocument());
+    // Booking creation is gated on a real `quote` (see the auto-create
+    // effect in page.tsx), so bookingId never gets set from the fallback
+    // estimate alone - CloverPayment (mocked as "MockPayButton") must never
+    // mount in this state.
+    expect(screen.queryByText("MockPayButton")).not.toBeInTheDocument();
+    expect(createBookingMock).not.toHaveBeenCalled();
+  });
+
+  it("replaces the estimate with the authoritative quote once a retry succeeds", async () => {
+    // Kept failing (not "Once") until the assertions below confirm the
+    // initial error/estimate state has fully settled - queuing a single
+    // resolved call with mockResolvedValueOnce would be a race if this
+    // effect ever fires more than once before the explicit retry click.
+    getAuthoritativeQuoteMock.mockRejectedValue(new Error("network error"));
+
+    render(<BookingCheckoutPage />);
+
+    await waitFor(() => expect(screen.getByText(/Estimated total/i)).toBeInTheDocument());
+    await waitFor(() => {
+      const last = checkoutSummaryProps[checkoutSummaryProps.length - 1];
+      expect(last.isEstimate).toBe(true);
+      expect(last.gratuity).toBe(0);
+    });
+
+    const quote: QuotePreviewResponse = {
+      legs: [{ basePrice: 130, gratuity: 19.5, totalPrice: 149.5 }],
+      combinedTotal: 149.5,
+      combinedTotalCents: 14950,
+      quoteId: "signed-quote-token",
+      expiresAt: new Date(Date.now() + 20 * 60_000).toISOString(),
+    };
+    getAuthoritativeQuoteMock.mockResolvedValue(quote);
+    // A real quote succeeding triggers this page's own auto-create-booking
+    // effect - give it something to resolve to so that unrelated flow
+    // doesn't throw and pollute this test with an unrelated bookingError.
+    createBookingMock.mockResolvedValue({ id: "booking-1", totalPrice: 149.5, legs: [] });
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+
+    await waitFor(() => {
+      const last = checkoutSummaryProps[checkoutSummaryProps.length - 1];
+      expect(last.isEstimate).toBeFalsy();
+      expect(last.gratuity).toBe(19.5);
+      expect(last.grandTotal).toBe(149.5);
     });
   });
 });

@@ -3,7 +3,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MapPin, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJsApiLoader } from "@react-google-maps/api";
-import { isInServiceArea, SERVICE_AREA_BOUNDS, SERVICE_AREA_LABEL } from "@/lib/serviceArea";
 
 const LIBRARIES: ("places")[] = ["places"];
 const AIRPORT_KEYWORDS = ["airport", "iad", "dca", "bwi", "jfk", "lga", "ewr", "phl", "rdu", "clt"];
@@ -43,11 +42,6 @@ interface Props {
   onPlaceDetails?: (details: PlaceDetails) => void;
   icon?: "pickup" | "dropoff";
   light?: boolean;
-  // Restricts suggestions/validation to the DMV service area (Virginia,
-  // Maryland, Washington D.C.) - see src/lib/serviceArea.ts. Country (US)
-  // is always enforced below regardless of this flag.
-  restrictToServiceArea?: boolean;
-  onValidationError?: (error: string) => void;
 }
 
 export default function LocationInput({
@@ -58,15 +52,12 @@ export default function LocationInput({
   onPlaceDetails,
   icon = "pickup",
   light = false,
-  restrictToServiceArea = false,
-  onValidationError,
 }: Props) {
   const [query, setQuery] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState(!!value);
   const [suggestions, setSuggestions] = useState<PlacePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [validationError, setValidationError] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const ref = useRef<HTMLDivElement>(null);
@@ -123,27 +114,19 @@ export default function LocationInput({
         sessionTokenRef.current = new google.maps.places.AutocompleteSessionToken();
       }
 
+      // US-only, no state/region bounds or post-selection filtering - any
+      // valid US address is a valid pickup/dropoff/stop.
       const request: google.maps.places.AutocompletionRequest = {
         input,
         componentRestrictions: { country: "us" },
         sessionToken: sessionTokenRef.current,
       };
 
-      if (restrictToServiceArea) {
-        request.locationBias = SERVICE_AREA_BOUNDS;
-      } else {
-        request.locationBias = { north: 39.8, south: 37.8, east: -75.5, west: -78.8 };
-      }
-
       svcRef.current.getPlacePredictions(request, (predictions, status) => {
         setIsSearching(false);
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          let filtered = predictions as PlacePrediction[];
-          if (restrictToServiceArea) {
-            filtered = filtered.filter((p) => isInServiceArea(p.description));
-          }
-          setSuggestions(filtered);
-          setIsOpen(filtered.length > 0);
+          setSuggestions(predictions as PlacePrediction[]);
+          setIsOpen(predictions.length > 0);
           setActiveIndex(-1);
         } else {
           setSuggestions([]);
@@ -151,7 +134,7 @@ export default function LocationInput({
         }
       });
     },
-    [restrictToServiceArea]
+    []
   );
 
   useEffect(() => {
@@ -185,8 +168,6 @@ export default function LocationInput({
       setSelected(true);
       setIsOpen(false);
       setActiveIndex(-1);
-      setValidationError("");
-      if (onValidationError) onValidationError("");
       onChange(p.description, isAirportPlace(p.description, p.types));
 
       // Fetch place details; this call + the preceding predictions share one billing session
@@ -224,7 +205,7 @@ export default function LocationInput({
         sessionTokenRef.current = null;
       }
     },
-    [onChange, onPlaceDetails, onValidationError]
+    [onChange, onPlaceDetails]
   );
 
   const handleClear = () => {
@@ -232,9 +213,7 @@ export default function LocationInput({
     setSelected(false);
     setSuggestions([]);
     setActiveIndex(-1);
-    setValidationError("");
     sessionTokenRef.current = null;
-    if (onValidationError) onValidationError("");
     onChange("", false);
   };
 
@@ -253,19 +232,6 @@ export default function LocationInput({
       setIsOpen(false);
       setActiveIndex(-1);
     }
-  };
-
-  const validateLocation = () => {
-    if (!query || !restrictToServiceArea) return true;
-    if (!isInServiceArea(query)) {
-      const error = `Location must be within our service area (${SERVICE_AREA_LABEL})`;
-      setValidationError(error);
-      if (onValidationError) onValidationError(error);
-      return false;
-    }
-    setValidationError("");
-    if (onValidationError) onValidationError("");
-    return true;
   };
 
   const isLight = !!light;
@@ -296,23 +262,12 @@ export default function LocationInput({
             setQuery(e.target.value);
             setSelected(false);
             onChange(e.target.value, false);
-            setValidationError("");
-            if (onValidationError) onValidationError("");
           }}
           onFocus={() => suggestions.length > 0 && setIsOpen(true)}
-          onBlur={() => {
-            setTimeout(() => {
-              if (restrictToServiceArea && query && !selected) validateLocation();
-            }, 200);
-          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className={`w-full rounded-lg border ${
-            validationError
-              ? "border-red-500"
-              : isLight
-              ? "border-slate-200"
-              : "border-white/20"
+            isLight ? "border-slate-200" : "border-white/20"
           } ${
             isLight ? "bg-white text-black" : "bg-white/5 text-white"
           } pl-11 pr-10 py-3.5 text-sm font-body placeholder:${
@@ -339,11 +294,6 @@ export default function LocationInput({
           </button>
         )}
       </div>
-      {validationError && (
-        <p className={`mt-2 text-xs ${isLight ? "text-red-600" : "text-red-400"} font-body`}>
-          {validationError}
-        </p>
-      )}
       <AnimatePresence>
         {isOpen && suggestions.length > 0 && (
           <motion.div

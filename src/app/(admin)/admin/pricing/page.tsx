@@ -53,6 +53,19 @@ export default function AdminPricingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Automatic gratuity - see backend lib/gratuity.ts. Applied once to a
+  // trip's combined subtotal (never per leg, never touching base fare/
+  // mileage/duration/minimum-fare/demand/$5-rounding). Off by default
+  // (0%) until explicitly turned on here. gratuityDraft holds the
+  // in-progress edit; gratuitySaved is what's actually persisted, used to
+  // detect unsaved changes and to reset "Cancel".
+  const [gratuitySaved, setGratuitySaved] = useState<{ enabled: boolean; percent: number } | null>(null);
+  const [gratuityDraft, setGratuityDraft] = useState<{ enabled: boolean; percent: number }>({ enabled: false, percent: 0 });
+  const [gratuityLoading, setGratuityLoading] = useState(true);
+  const [gratuitySaving, setGratuitySaving] = useState(false);
+  const gratuityDirty =
+    !!gratuitySaved && (gratuityDraft.enabled !== gratuitySaved.enabled || gratuityDraft.percent !== gratuitySaved.percent);
+
   // Calculator state
   const [calcPickup, setCalcPickup] = useState("");
   const [calcDropoff, setCalcDropoff] = useState("");
@@ -63,7 +76,7 @@ export default function AdminPricingPage() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [shouldFetchRoute, setShouldFetchRoute] = useState(false);
-  const [vehiclePrices, setVehiclePrices] = useState<Record<string, { basePrice: number; tax: number; total: number; taxPercent: number } | null>>({});
+  const [vehiclePrices, setVehiclePrices] = useState<Record<string, { basePrice: number; gratuity: number; total: number; quoteId: string } | null>>({});
   const [loadingVehiclePrices, setLoadingVehiclePrices] = useState<Record<string, boolean>>({});
 
   const { route, isLoading: routeLoading, error: routeError } = useRouteDetails(
@@ -71,10 +84,11 @@ export default function AdminPricingPage() {
     shouldFetchRoute ? calcDropoff : ""
   );
 
-  const { calculateVehicleSpecificPrice } = usePricing();
+  const { getAuthoritativeQuote } = usePricing();
 
   useEffect(() => {
     loadPricingData();
+    loadGratuitySettings();
   }, []);
 
   // Close date/time pickers when clicking outside
@@ -116,6 +130,43 @@ export default function AdminPricingPage() {
       toast.error(error.message || "Failed to load pricing data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadGratuitySettings = async () => {
+    setGratuityLoading(true);
+    try {
+      const settings = await pricingService.getGratuitySettings();
+      setGratuitySaved(settings);
+      setGratuityDraft(settings);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load gratuity settings");
+    } finally {
+      setGratuityLoading(false);
+    }
+  };
+
+  const saveGratuitySettings = async () => {
+    setGratuitySaving(true);
+    try {
+      const updated = await pricingService.updateGratuitySettings(gratuityDraft);
+      setGratuitySaved(updated);
+      setGratuityDraft(updated);
+      // Invalidate any already-calculated results on the Calculator tab -
+      // they were computed under the OLD gratuity setting and would
+      // otherwise keep showing a stale gratuity figure that contradicts the
+      // setting just saved (vehiclePrices lives on this page component, not
+      // the Calculator tab, so it survives a tab switch and would not
+      // recompute on its own). Mirrors clearCalculator()'s reset, but keeps
+      // the entered trip details so the admin only has to press Calculate
+      // again, not re-enter the whole form.
+      setVehiclePrices({});
+      setShouldFetchRoute(false);
+      toast.success("Gratuity settings saved");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save gratuity settings");
+    } finally {
+      setGratuitySaving(false);
     }
   };
 
@@ -206,40 +257,46 @@ export default function AdminPricingPage() {
     let isActive = true;
 
     const calculateAllPrices = async () => {
-      const newPrices: Record<string, { basePrice: number; tax: number; total: number; taxPercent: number } | null> = {};
+      const newPrices: Record<string, { basePrice: number; gratuity: number; total: number; quoteId: string } | null> = {};
       const newLoadingStates: Record<string, boolean> = {};
-      
+
       // Set all to loading
       vehicles.forEach(vehicle => {
         newLoadingStates[vehicle.id] = true;
       });
       setLoadingVehiclePrices(newLoadingStates);
-      
-      // Calculate price for each vehicle using the same logic as booking page
+
+      // Calls the same backend-authoritative POST /pricing/calculate every
+      // real quote/booking/checkout uses (see usePricing.ts's
+      // getAuthoritativeQuote) - never the client-side estimate. This is
+      // what makes this calculator immediately reflect the saved admin
+      // gratuity toggle/percentage instead of a stale, disconnected number.
       for (const vehicle of vehicles) {
         if (!isActive) break;
-        
-        try {
-          const estimate = await calculateVehicleSpecificPrice(
-            route.distance,
-            route.duration,
-            vehicle.vehicleType as "sedan" | "suv"
-          );
 
-          newPrices[vehicle.id] = estimate && {
-            basePrice: estimate.basePrice,
-            tax: estimate.gratuity,
-            total: estimate.totalPrice,
-            taxPercent: estimate.basePrice > 0 ? Math.round((estimate.gratuity / estimate.basePrice) * 10000) / 100 : 0,
+        try {
+          const quote = await getAuthoritativeQuote({
+            vehicleType: vehicle.vehicleType as "sedan" | "suv",
+            vehicleId: vehicle.id,
+            distanceMiles: route.distance,
+            durationMinutes: route.duration,
+          });
+          const leg = quote.legs[0];
+
+          newPrices[vehicle.id] = leg && {
+            basePrice: leg.basePrice,
+            gratuity: leg.gratuity,
+            total: quote.combinedTotal,
+            quoteId: quote.quoteId,
           };
         } catch (error) {
           console.error(`Error calculating price for vehicle ${vehicle.id}:`, error);
           newPrices[vehicle.id] = null;
         }
-        
+
         newLoadingStates[vehicle.id] = false;
       }
-      
+
       if (isActive) {
         setVehiclePrices(newPrices);
         setLoadingVehiclePrices(newLoadingStates);
@@ -247,11 +304,11 @@ export default function AdminPricingPage() {
     };
 
     calculateAllPrices();
-    
+
     return () => {
       isActive = false;
     };
-  }, [route, shouldFetchRoute, vehicles.length, calculateVehicleSpecificPrice]);
+  }, [route, shouldFetchRoute, vehicles.length, getAuthoritativeQuote]);
 
   const calculatedPrice = calcVehicle && vehiclePrices[calcVehicle] ? vehiclePrices[calcVehicle] : null;
 
@@ -625,7 +682,7 @@ export default function AdminPricingPage() {
                                         <p className="text-xs text-muted-foreground mb-1">Total Price</p>
                                         <p className="text-2xl font-bold text-primary">${price.total.toFixed(2)}</p>
                                         <p className="text-[10px] text-muted-foreground mt-1">
-                                          Base: ${price.basePrice.toFixed(2)} + Tax: ${price.tax.toFixed(2)}
+                                          Base: ${price.basePrice.toFixed(2)} + Gratuity: ${price.gratuity.toFixed(2)}
                                         </p>
                                       </div>
                                     ) : (
@@ -668,23 +725,32 @@ export default function AdminPricingPage() {
                         <span className="font-semibold text-foreground">${calculatedPrice.basePrice.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax ({calculatedPrice.taxPercent}%)</span>
-                        <span className="font-semibold text-foreground">${calculatedPrice.tax.toFixed(2)}</span>
+                        <span className="text-muted-foreground">Gratuity</span>
+                        <span className="font-semibold text-foreground">${calculatedPrice.gratuity.toFixed(2)}</span>
                       </div>
                       <div className="h-px bg-border" />
                       <div className="flex justify-between">
                         <span className="text-base font-semibold text-foreground">Total</span>
                         <span className="text-2xl font-display font-bold text-primary">${calculatedPrice.total.toFixed(2)}</span>
                       </div>
-                      
-                      {/* Same formula every customer-facing page uses - see the
-                          "Live Pricing Formula" card on the Configuration tab. */}
-                      <div className="pt-3 border-t border-border">
+
+                      {/* This calculator now calls the real POST
+                          /pricing/calculate (see getAuthoritativeQuote in
+                          usePricing.ts), so it reflects the saved admin
+                          gratuity toggle/percentage immediately, not a
+                          disconnected client-side estimate. quoteId is the
+                          same signed token a real checkout would carry -
+                          shown for traceability only; this calculator never
+                          creates a booking or charge with it. */}
+                      <div className="pt-3 border-t border-border space-y-1">
                         <p className="text-xs text-muted-foreground flex items-center gap-2">
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-semibold">
-                            Live formula
+                            Live quote
                           </span>
                           Using standard {vehicles.find(v => v.id === calcVehicle)?.vehicleType} pricing
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono break-all">
+                          Quote ID: {calculatedPrice.quoteId}
                         </p>
                       </div>
                     </div>
@@ -773,6 +839,100 @@ export default function AdminPricingPage() {
                 <div className="text-sm text-foreground mt-0.5">Nearest ${PRICING_CONSTANTS.roundToNearest}</div>
               </div>
             </div>
+          </section>
+
+          {/* Automatic Gratuity - the only editable pricing control on this
+              page; see backend lib/gratuity.ts. Applied once to a trip's
+              combined subtotal, never per leg, never touching the formula
+              above. Changing this takes effect for quotes issued AFTER
+              saving - it never alters an already-issued quote or an
+              existing booking. */}
+          <section>
+            <h3 className="text-base font-display font-semibold text-foreground mb-1">Automatic Gratuity</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Optional, applied once to a trip&apos;s total (not per stop) on top of the pricing formula above. Off by default. Changes only apply to quotes issued after saving - never to a quote a customer already accepted or a booking already created.
+            </p>
+
+            {gratuityLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading gratuity settings…
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border bg-card p-4 space-y-4 max-w-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label htmlFor="gratuity-enabled" className="text-sm font-medium text-foreground">
+                      Automatic gratuity
+                    </label>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {gratuityDraft.enabled ? "On - added to every new quote" : "Off - no gratuity is added"}
+                    </p>
+                  </div>
+                  <button
+                    id="gratuity-enabled"
+                    role="switch"
+                    aria-checked={gratuityDraft.enabled}
+                    onClick={() => setGratuityDraft((d) => ({ ...d, enabled: !d.enabled }))}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
+                      gratuityDraft.enabled ? "bg-primary" : "bg-secondary"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        gratuityDraft.enabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div>
+                  <label htmlFor="gratuity-percent" className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    Gratuity percentage
+                  </label>
+                  <div className="relative mt-0.5">
+                    <input
+                      id="gratuity-percent"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.1"
+                      value={gratuityDraft.percent}
+                      disabled={!gratuityDraft.enabled}
+                      onChange={(e) => {
+                        const raw = parseFloat(e.target.value);
+                        const clamped = Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : 0;
+                        setGratuityDraft((d) => ({ ...d, percent: clamped }));
+                      }}
+                      className="w-full bg-secondary border border-border rounded-md px-3 py-1.5 pr-8 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    onClick={saveGratuitySettings}
+                    disabled={gratuitySaving || !gratuityDirty}
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    {gratuitySaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Save
+                  </Button>
+                  {gratuityDirty && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={gratuitySaving}
+                      onClick={() => gratuitySaved && setGratuityDraft(gratuitySaved)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Flat Rate Zones */}
