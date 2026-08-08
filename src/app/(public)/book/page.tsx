@@ -16,7 +16,8 @@ import Image from "next/image";
 import TermsModal from "@/components/booking/TermsModal";
 import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
-import type { FleetVehicle } from "@/types";
+import type { Service } from "@/types";
+import { serviceService } from "@/lib/services";
 import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 
@@ -38,12 +39,12 @@ export default function BookingPage() {
 
   const [currentStep] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(data.selectedVehicleId);
-  const [expandedVehicleId, setExpandedVehicleId] = useState<string | null>(null);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(data.selectedServiceId);
+  const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const [showTerms, setShowTerms] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
-  const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
-  const [loadingFleet, setLoadingFleet] = useState(true);
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
   const [isEditingTrip, setIsEditingTrip] = useState(false);
   const [editPickup, setEditPickup] = useState(pickup);
   const [editDropoff, setEditDropoff] = useState(dropoff);
@@ -67,45 +68,45 @@ export default function BookingPage() {
   const lastVehiclesCount = useRef<number>(0);
 
   useEffect(() => {
-    const fetchFleet = async () => {
+    const fetchServices = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://wc-backend-ayx0.onrender.com/api/v1"}/fleet`, {
-          credentials: "include"
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setFleetVehicles(data.filter((v: FleetVehicle) => v.status === "available"));
-        }
+        // Public, active-only listing (see wc-backend-1 routes/services.ts) -
+        // this is the customer-facing source of pricing cards now, no
+        // longer derived from live Fleet inventory. An inactive service
+        // simply won't appear here, regardless of how many (or how few)
+        // physical vehicles exist for its vehicleType.
+        const data = await serviceService.getAll();
+        setAvailableServices(data);
       } catch (error) {
-        console.error("Error fetching fleet:", error);
+        console.error("Error fetching services:", error);
       } finally {
-        setLoadingFleet(false);
+        setLoadingServices(false);
       }
     };
-    fetchFleet();
+    fetchServices();
   }, []);
 
   const vehicles = useMemo(() => {
-    return fleetVehicles
-      .filter((v) => v.status === "available")
-      .map((vehicle) => ({
-        id: vehicle.id,
-        type: vehicle.vehicleType,
-        name: `${vehicle.make} ${vehicle.model}${vehicle.year ? ` (${vehicle.year})` : ""}`,
-        subtitle: `${vehicle.vehicleType === "sedan" ? "Business Class" : "Business SUV"}${vehicle.color ? ` • ${vehicle.color}` : ""}${vehicle.plate ? ` • ${vehicle.plate}` : ""}`,
-        passengers: vehicle.passengerCapacity || (vehicle.vehicleType === "sedan" ? 3 : 5),
-        luggage: vehicle.luggageCapacity || (vehicle.vehicleType === "sedan" ? 2 : 5),
-        image: vehicle.imageUrl || (vehicle.vehicleType === "sedan" ? "/assets/sedan-profile.png" : "/assets/suv-profile.png"),
-        features: [
-          `${vehicle.make} ${vehicle.model}`,
-          vehicle.color ? `${vehicle.color} exterior` : "Premium exterior",
-          `Seats ${vehicle.passengerCapacity || (vehicle.vehicleType === "sedan" ? 3 : 5)} passengers`,
-          `Fits ${vehicle.luggageCapacity || (vehicle.vehicleType === "sedan" ? 2 : 5)} luggage pieces`,
+    return availableServices
+      .slice()
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
+      .map((service) => ({
+        id: service.id,
+        type: service.vehicleType,
+        name: service.name,
+        subtitle: `${service.description || (service.vehicleType === "sedan" ? "Business Class" : "Business SUV")}`,
+        passengers: service.passengerCapacity,
+        luggage: service.luggageCapacity,
+        image: service.imageUrl || (service.vehicleType === "sedan" ? "/assets/sedan-profile.png" : "/assets/suv-profile.png"),
+        features: service.features.length > 0 ? service.features : [
+          service.name,
+          `Seats ${service.passengerCapacity} passengers`,
+          `Fits ${service.luggageCapacity} luggage pieces`,
           "Professional chauffeur",
           "Bottled water & amenities",
         ],
       }));
-  }, [fleetVehicles]);
+  }, [availableServices]);
 
   // State for individual vehicle prices
   const [vehiclePrices, setVehiclePrices] = useState<Record<string, FareEstimate | null>>({});
@@ -147,8 +148,8 @@ export default function BookingPage() {
   }, [route, vehicles, calculatePrice]);
 
   // Check if prices are loaded for the selected vehicle
-  const isPriceLoaded = selectedVehicleId ? vehiclePrices[selectedVehicleId] !== undefined && vehiclePrices[selectedVehicleId] !== null : false;
-  const isPriceLoading = selectedVehicleId ? loadingVehiclePrices[selectedVehicleId] : false;
+  const isPriceLoaded = selectedServiceId ? vehiclePrices[selectedServiceId] !== undefined && vehiclePrices[selectedServiceId] !== null : false;
+  const isPriceLoading = selectedServiceId ? loadingVehiclePrices[selectedServiceId] : false;
 
   const formattedDate = pickupDate ? format(new Date(pickupDate + "T00:00:00"), "EEE, MMM d, yyyy") : null;
   const formattedTime = pickupTime ? (() => {
@@ -200,12 +201,18 @@ export default function BookingPage() {
       : null;
 
   const handleVehicleContinue = () => {
-    if (!selectedVehicle || !selectedVehicleId) return;
+    if (!selectedVehicle || !selectedServiceId) return;
     if (route && route.distance < 0.1) {
       notify.error("Pickup and dropoff locations are too close or identical. Please select different locations.");
       return;
     }
-    update({ selectedVehicle, selectedVehicleId });
+    const selectedService = availableServices.find((s) => s.id === selectedServiceId);
+    update({
+      selectedVehicle,
+      selectedServiceId,
+      selectedServiceName: selectedService?.name ?? null,
+      selectedServiceImage: selectedService?.imageUrl ?? null,
+    });
     router.push("/book/details");
   };
 
@@ -450,15 +457,15 @@ export default function BookingPage() {
           {currentStep === 0 && gatekeeperStatus !== "emergency" && (
             <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
               <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Select a vehicle class</h2>
+                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Select a service class</h2>
                 <p className="text-xs sm:text-sm text-muted-foreground font-body mt-1">All prices include estimated fees, tolls, and tax</p>
               </div>
 
-              {vehicles.length === 0 && !loadingFleet && (
+              {vehicles.length === 0 && !loadingServices && (
                 <div className="mb-4 p-6 rounded-lg border border-border bg-card text-center">
                   <Car className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm font-semibold text-foreground">No Vehicles Available</p>
-                  <p className="text-xs text-muted-foreground mt-1">All vehicles are currently in use. Please try again later or contact us directly.</p>
+                  <p className="text-sm font-semibold text-foreground">No Service Classes Available</p>
+                  <p className="text-xs text-muted-foreground mt-1">Please try again later or contact us directly.</p>
                   <a href="tel:+15714351832" className="mt-3 inline-block">
                     <Button variant="outline" size="sm" className="gap-2">
                       <Phone className="h-3.5 w-3.5" />
@@ -470,8 +477,8 @@ export default function BookingPage() {
 
               <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
                 {vehicles.map((v, i) => {
-                  const isSelected = selectedVehicleId === v.id;
-                  const isExpanded = expandedVehicleId === v.id;
+                  const isSelected = selectedServiceId === v.id;
+                  const isExpanded = expandedServiceId === v.id;
                   const vehiclePrice = vehiclePrices[v.id];
                   const isLoadingPrice = loadingVehiclePrices[v.id] || false;
 
@@ -488,19 +495,18 @@ export default function BookingPage() {
                       distance={route?.distance || 0}
                       duration={route?.duration || 0}
                       basePrice={vehiclePrice?.basePrice ?? null}
-                      demandAdjustment={vehiclePrice?.demandAdjustment ?? 0}
                       total={vehiclePrice?.totalPrice ?? 0}
                       priceLoading={isLoadingPrice}
                       isSelected={isSelected}
                       isExpanded={isExpanded}
                       onSelect={() => {
                         setSelectedVehicle(v.type);
-                        setSelectedVehicleId(v.id);
-                        // Collapse other vehicles when selecting a new one
-                        setExpandedVehicleId(v.id);
+                        setSelectedServiceId(v.id);
+                        // Collapse other services when selecting a new one
+                        setExpandedServiceId(v.id);
                       }}
-                      onToggleExpand={() => setExpandedVehicleId(expandedVehicleId === v.id ? null : v.id)}
-                      vehicleId={v.id}
+                      onToggleExpand={() => setExpandedServiceId(expandedServiceId === v.id ? null : v.id)}
+                      serviceId={v.id}
                     />
                   );
                 })}
@@ -523,7 +529,7 @@ export default function BookingPage() {
             <Button 
               size="lg" 
               className="gap-2 px-8 sm:px-12 bg-blue-gradient shadow-blue hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
-              disabled={!selectedVehicle || !selectedVehicleId || !!routeError || !isPriceLoaded || isPriceLoading} 
+              disabled={!selectedVehicle || !selectedServiceId || !!routeError || !isPriceLoaded || isPriceLoading} 
               onClick={handleVehicleContinue}
             >
               {isPriceLoading ? (

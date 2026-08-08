@@ -3,6 +3,66 @@ export type BookingStatus =
 
 export type VehicleType = "sedan" | "suv";
 
+// Customer-facing booking class (e.g. "Business Sedan", "First Class") -
+// what a customer actually selects on /book and is priced against. Backed
+// by wc-backend-1's `services` table. Owns NO pricing data of its own -
+// `pricingConfigurationId` references a named formula profile in the
+// Pricing module (see PricingConfiguration below), which is the single
+// source of truth for every number the adaptive formula reads. Also has no
+// reference to a specific physical vehicle: `vehicleType` is used only as a
+// display/dispatch-matching hint against Fleet inventory (and as the
+// compatibility check against its assigned configuration's own
+// vehicleType, enforced server-side) - never as a link to one specific
+// car. See FleetVehicle below for the separate, internal-only
+// physical-vehicle entity.
+export interface Service {
+  id: string;
+  name: string;
+  slug: string;
+  vehicleType: VehicleType;
+  pricingConfigurationId: string;
+  description: string | null;
+  imageUrl: string | null;
+  passengerCapacity: number;
+  luggageCapacity: number;
+  features: string[];
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// A named, reusable adaptive-formula pricing profile - owned entirely by
+// the Pricing module. Field names mirror the formula's own symbols, not a
+// flat mileage/time-rate model:
+//   P = roundingIncrement * round(
+//         max(minimumFare, (calculationBase + distanceCoefficient*D +
+//             timeCoefficient*T + F) * (1 + adjustmentCoefficient*A)) /
+//         roundingIncrement
+//       )
+// Multiple Services may reference the same configuration. There is
+// deliberately no admin UI to create/edit these yet (see the Services
+// form's Pricing Configuration dropdown, which only ever *selects* one) -
+// that's deferred to the future Pricing-module redesign.
+export interface PricingConfiguration {
+  id: string;
+  name: string;
+  vehicleType: VehicleType;
+  // Postgres numeric columns serialize as strings over the raw API
+  // response - pricingConfigurationService normalizes these to real
+  // numbers before returning a PricingConfiguration to any caller.
+  calculationBase: number;
+  distanceCoefficient: number;
+  timeCoefficient: number;
+  minimumFare: number;
+  adjustmentCoefficient: number;
+  roundingIncrement: number;
+  formulaVersion: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Request types for API calls
 export interface TripLeg {
   pickup: string;
@@ -19,7 +79,16 @@ export interface CreateBookingPayload {
   pickupDate: string;
   pickupTime: string;
   vehicleType?: VehicleType;
-  vehicleId?: string;
+  // Which Service (see the Service interface above) this booking is priced
+  // against - the customer-facing selection. vehicleType above is still
+  // sent alongside it (derived from the selected service's own
+  // vehicleType) since the backend's bookings.vehicleType column and
+  // dispatch matching still key off it - the backend derives/validates it
+  // server-side from the service once serviceId is present, never trusting
+  // a conflicting client-submitted value. serviceId is what actually
+  // determines the pricing configuration now (see wc-backend-1
+  // lib/servicePricing.ts's resolveServicePricingConfiguration).
+  serviceId?: string;
   distanceMiles: number;
   durationMinutes: number;
   isAirportPickup?: boolean;
@@ -76,6 +145,11 @@ export interface Booking {
   pickupDate: string;
   pickupTime: string;
   vehicleType: VehicleType;
+  // Which Service/Class this booking was priced against - null for every
+  // booking created before this field existed (see wc-backend-1's additive
+  // bookings.service_id migration). Never rewritten for historical bookings;
+  // vehicleType above remains fully accurate for those regardless.
+  serviceId?: string | null;
   isAirportPickup: boolean | null;
   flightNumber: string | null;
   specialRequests: string | null;

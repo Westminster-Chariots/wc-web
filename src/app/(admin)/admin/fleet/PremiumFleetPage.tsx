@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { notify } from "@/lib/notify";
 import PageTransition from "@/components/ui/PageTransition";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 const vehicleStatusOptions = [
   { value: "available", label: "Available", color: "bg-emerald-500", icon: CheckCircle },
@@ -228,7 +229,7 @@ export default function PremiumFleetPage() {
     <PageTransition>
       <div className="p-4 md:p-8 space-y-8">
         {/* Header */}
-        <div className="glass-strong rounded-2xl p-6 border border-white/[0.12] shadow-glass-elevated">
+        <div className="rounded-2xl p-6 border border-border bg-card shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
@@ -236,7 +237,10 @@ export default function PremiumFleetPage() {
                   <div className="absolute inset-0 bg-primary/10 rounded-full blur-md" />
                   <Car className="relative h-8 w-8 text-primary" />
                 </div>
-                <h1 className="text-2xl font-display font-bold text-foreground">Fleet Management</h1>
+                <h1 className="text-2xl font-display font-bold text-foreground flex items-center gap-1.5">
+                  Fleet Management
+                  <InfoTooltip text="Internal vehicles used for dispatch after a booking has been confirmed." />
+                </h1>
               </div>
               <p className="text-sm text-muted-foreground font-body">
                 Manage your luxury vehicle fleet with real-time status tracking
@@ -267,7 +271,7 @@ export default function PremiumFleetPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Total</p>
@@ -277,7 +281,7 @@ export default function PremiumFleetPage() {
             </div>
           </div>
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Available</p>
@@ -287,7 +291,7 @@ export default function PremiumFleetPage() {
             </div>
           </div>
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">In Use</p>
@@ -297,7 +301,7 @@ export default function PremiumFleetPage() {
             </div>
           </div>
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Maintenance</p>
@@ -307,7 +311,7 @@ export default function PremiumFleetPage() {
             </div>
           </div>
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">Sedans</p>
@@ -317,7 +321,7 @@ export default function PremiumFleetPage() {
             </div>
           </div>
           
-          <div className="glass rounded-xl p-4 border border-white/[0.06]">
+          <div className="rounded-xl p-4 border border-border bg-card">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-body">SUVs</p>
@@ -329,7 +333,7 @@ export default function PremiumFleetPage() {
         </div>
 
         {/* Search and Filters */}
-        <div className="glass-strong rounded-2xl p-5 border border-white/[0.12] shadow-glass-elevated">
+        <div className="rounded-2xl p-5 border border-border bg-card shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="relative flex-1 max-w-lg">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -387,19 +391,19 @@ export default function PremiumFleetPage() {
 
         {/* Vehicle Grid */}
         {loading ? (
-          <div className="glass-strong rounded-2xl p-8 border border-white/[0.12] flex items-center justify-center">
+          <div className="rounded-2xl p-8 border border-border bg-card flex items-center justify-center">
             <div className="text-center space-y-3">
               <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-sm text-muted-foreground font-body">Loading fleet...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="glass-strong rounded-2xl p-8 border border-white/[0.12] text-center">
+          <div className="rounded-2xl p-8 border border-border bg-card text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-3" />
             <p className="text-sm text-destructive font-body">{error}</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="glass-strong rounded-2xl p-8 border border-white/[0.12] text-center">
+          <div className="rounded-2xl p-8 border border-border bg-card text-center">
             <Car className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <h4 className="text-lg font-display font-semibold text-foreground mb-2">
               {vehicles.length === 0 ? "No vehicles yet" : "No results found"}
@@ -436,7 +440,7 @@ export default function PremiumFleetPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/2 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
                   {/* Main card */}
-                  <div className="relative glass-strong rounded-2xl border border-white/[0.12] shadow-glass-elevated hover:shadow-glass-elevated-hover transition-all duration-300 overflow-hidden">
+                  <div className="relative rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
                     
                     {/* Animated gradient border */}
                     <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-br from-primary/20 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -481,12 +485,12 @@ export default function PremiumFleetPage() {
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-2 rounded-lg glass hover:bg-secondary/50 transition-colors relative group">
+                            <button className="p-2 rounded-lg hover:bg-secondary/50 transition-colors relative group">
                               <div className="absolute inset-0 bg-primary/10 rounded-lg blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                               <MoreVertical className="relative h-4 w-4 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass-strong border border-white/[0.12] shadow-glass-elevated">
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openEdit(vehicle)} className="gap-2 py-2.5">
                               <Pencil className="h-4 w-4" />
                               <span className="font-body">Edit</span>
@@ -659,23 +663,29 @@ export default function PremiumFleetPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Passenger Capacity</Label>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    max="20" 
-                    value={form.passengerCapacity} 
-                    onChange={(e) => update("passengerCapacity", e.target.value)} 
-                    placeholder="3" 
+                  <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+                    Passenger Capacity
+                    <InfoTooltip text="Maximum number of passengers this vehicle can accommodate." />
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={form.passengerCapacity}
+                    onChange={(e) => update("passengerCapacity", e.target.value)}
+                    placeholder="3"
                     className="bg-secondary/50 border-border"
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Luggage Capacity</Label>
-                  <Input 
-                    type="number" 
-                    min="0" 
+                  <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+                    Luggage Capacity
+                    <InfoTooltip text="Maximum number of luggage pieces this vehicle can accommodate." />
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
                     max="20" 
                     value={form.luggageCapacity} 
                     onChange={(e) => update("luggageCapacity", e.target.value)} 
@@ -686,7 +696,10 @@ export default function PremiumFleetPage() {
               </div>
               
               <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Status</Label>
+                <Label className="text-sm font-medium text-foreground flex items-center gap-1">
+                  Status
+                  <InfoTooltip text="Retired or in-maintenance vehicles are hidden from dispatch assignment but remain in fleet records." />
+                </Label>
                 <select
                   className="w-full rounded-lg border border-border bg-secondary/50 px-3 py-2 text-sm font-body text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   value={form.status}

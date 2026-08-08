@@ -20,17 +20,13 @@ interface VehiclePricingDisplayProps {
   // nothing to derive here; this component only ever displays the numbers
   // it's given.
   basePrice: number | null;
-  // Client-side demand-adjustment estimate only (see pricingEstimate.ts) -
-  // NOT the admin-configurable gratuity. Rendered under the "Adjustment"
-  // label below, never "Gratuity".
-  demandAdjustment: number;
   total: number;
   priceLoading?: boolean;
   isSelected: boolean;
   isExpanded: boolean;
   onSelect: () => void;
   onToggleExpand: () => void;
-  vehicleId?: string;
+  serviceId?: string;
 }
 
 export default function VehiclePricingDisplay({
@@ -43,14 +39,13 @@ export default function VehiclePricingDisplay({
   distance,
   duration,
   basePrice,
-  demandAdjustment,
   total,
   priceLoading = false,
   isSelected,
   isExpanded,
   onSelect,
   onToggleExpand,
-  vehicleId,
+  serviceId,
 }: VehiclePricingDisplayProps) {
   const price = basePrice;
 
@@ -127,31 +122,15 @@ export default function VehiclePricingDisplay({
             </div>
             
             {!priceLoading && price !== null ? (
-              <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
+              <div className="mt-3 sm:mt-4 pt-3 border-t border-border">
                 <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Base fare</span>
-                  <span className="text-foreground">${price.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Adjustment</span>
-                  <span className="text-foreground">${demandAdjustment.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
                   <span className="text-foreground font-semibold">Total</span>
                   <span className="text-primary font-display font-bold text-base">${total.toFixed(2)}</span>
                 </div>
               </div>
             ) : (
-              <div className="mt-3 sm:mt-4 pt-3 border-t border-border space-y-1.5">
+              <div className="mt-3 sm:mt-4 pt-3 border-t border-border">
                 <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Base fare</span>
-                  <span className="text-foreground animate-pulse">Calculating...</span>
-                </div>
-                <div className="flex justify-between text-xs font-body">
-                  <span className="text-muted-foreground">Adjustment</span>
-                  <span className="text-foreground animate-pulse">Calculating...</span>
-                </div>
-                <div className="flex justify-between text-xs font-body pt-1.5 border-t border-border">
                   <span className="text-foreground font-semibold">Total</span>
                   <span className="text-primary font-display font-bold text-base animate-pulse">Calculating...</span>
                 </div>

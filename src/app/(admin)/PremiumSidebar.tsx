@@ -1,5 +1,5 @@
 "use client";
-import { LayoutDashboard, Calendar, Car, Users, FileText, Map, DollarSign, Settings, Shield, ChevronLeft, Menu, Megaphone, User, LogOut, Home, BarChart3, Bell, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Calendar, Car, Users, FileText, Map, DollarSign, Settings, Shield, ChevronLeft, Menu, Megaphone, User, LogOut, Home, BarChart3, Bell, HelpCircle, Tag } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
@@ -20,6 +20,7 @@ const navGroups = [
   {
     title: "Resources",
     items: [
+      { icon: Tag, label: 'Services', path: '/admin/services' },
       { icon: Car, label: 'Fleet', path: '/admin/fleet' },
       { icon: Users, label: 'Drivers', path: '/admin/drivers' },
       { icon: Users, label: 'Clients', path: '/admin/clients' },

@@ -19,6 +19,11 @@ interface CheckoutSummaryProps {
   pickupDate: string;
   pickupTime: string;
   vehicleType: "sedan" | "suv";
+  // Display name of the selected Service/Class (e.g. "First Class"),
+  // cached at selection time on /book. Falls back to a generic
+  // "Business Sedan/SUV" label below when absent (e.g. an older booking
+  // flow that never set it) - see the two render sites for the fallback.
+  serviceName?: string;
   vehicleImage?: string;
   basePrice: number;
   distanceMiles: number;
@@ -86,6 +91,7 @@ const CheckoutSummary = ({
   pickupDate,
   pickupTime,
   vehicleType,
+  serviceName,
   vehicleImage,
   basePrice,
   distanceMiles,
@@ -209,9 +215,9 @@ const CheckoutSummary = ({
             <div className="flex items-start gap-2.5">
               <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="text-[11px] text-muted-foreground font-body">Vehicle</p>
+                <p className="text-[11px] text-muted-foreground font-body">Service</p>
                 <p className="text-sm font-body text-foreground font-medium capitalize">
-                  Business {vehicleType === "suv" ? "SUV" : "Class"}
+                  {serviceName || `Business ${vehicleType === "suv" ? "SUV" : "Class"}`}
                 </p>
               </div>
             </div>
@@ -256,7 +262,7 @@ const CheckoutSummary = ({
               />
             )}
             <div className="min-w-0">
-              <p className="text-sm font-display font-bold text-foreground">Premium Business {vehicleType === "suv" ? "SUV" : "Sedan"}</p>
+              <p className="text-sm font-display font-bold text-foreground">{serviceName || `Premium Business ${vehicleType === "suv" ? "SUV" : "Sedan"}`}</p>
               <p className="text-xs text-muted-foreground mt-0.5">Comfort and privacy guaranteed</p>
             </div>
             <button

@@ -1,6 +1,44 @@
 import axios from "axios";
 import { api } from "./api";
-import type { Booking, Driver, FleetVehicle, User, Profile, Invoice, CreateBookingPayload } from "@/types";
+import type { Booking, Driver, FleetVehicle, User, Profile, Invoice, CreateBookingPayload, Service, PricingConfiguration } from "@/types";
+
+// Service owns no pricing fields (see the Service type's doc comment) - the
+// only normalization it still needs is defending against a malformed/
+// missing features array.
+type RawService = Omit<Service, "features"> & { features: unknown };
+function normalizeService(raw: RawService): Service {
+  return {
+    ...raw,
+    features: Array.isArray(raw.features) ? raw.features : [],
+  };
+}
+
+// Postgres numeric columns (calculationBase/distanceCoefficient/
+// timeCoefficient/minimumFare/adjustmentCoefficient/roundingIncrement)
+// serialize as strings over the raw API response - mirrors
+// normalizeService/normalizeBooking's precedent for the same reason.
+type RawPricingConfiguration = Omit<
+  PricingConfiguration,
+  "calculationBase" | "distanceCoefficient" | "timeCoefficient" | "minimumFare" | "adjustmentCoefficient" | "roundingIncrement"
+> & {
+  calculationBase: string | number;
+  distanceCoefficient: string | number;
+  timeCoefficient: string | number;
+  minimumFare: string | number;
+  adjustmentCoefficient: string | number;
+  roundingIncrement: string | number;
+};
+function normalizePricingConfiguration(raw: RawPricingConfiguration): PricingConfiguration {
+  return {
+    ...raw,
+    calculationBase: parseFloat(String(raw.calculationBase)),
+    distanceCoefficient: parseFloat(String(raw.distanceCoefficient)),
+    timeCoefficient: parseFloat(String(raw.timeCoefficient)),
+    minimumFare: parseFloat(String(raw.minimumFare)),
+    adjustmentCoefficient: parseFloat(String(raw.adjustmentCoefficient)),
+    roundingIncrement: parseFloat(String(raw.roundingIncrement)),
+  };
+}
 
 // ─── Auth Services ───────────────────────────────────────────────────────────
 export const authService = {
@@ -268,6 +306,84 @@ export const fleetService = {
   },
 };
 
+// ─── Service (customer-facing booking class) Services ────────────────────────
+// Separate from fleetService above by design - see the Service type's
+// doc comment in @/types. GET / is the public, active-only listing the
+// booking page's pricing cards read from; getAllAdmin() is the admin
+// Services module's list view (includes inactive services).
+export const serviceService = {
+  getAll: async (): Promise<Service[]> => {
+    const { data } = await api.get("/services");
+    return Array.isArray(data) ? data.map(normalizeService) : data;
+  },
+
+  getAllAdmin: async (): Promise<Service[]> => {
+    const { data } = await api.get("/services/all");
+    return Array.isArray(data) ? data.map(normalizeService) : data;
+  },
+
+  getById: async (id: string): Promise<Service> => {
+    const { data } = await api.get(`/services/${id}`);
+    return normalizeService(data);
+  },
+
+  create: async (serviceData: Partial<Service>): Promise<Service> => {
+    const { data } = await api.post("/services", serviceData);
+    return normalizeService(data);
+  },
+
+  update: async (id: string, updates: Partial<Service>): Promise<Service> => {
+    const { data } = await api.patch(`/services/${id}`, updates);
+    return normalizeService(data);
+  },
+
+  // Soft-delete only on the backend (see wc-backend-1 routes/services.ts) -
+  // a service with existing bookings is deactivated instead of removed.
+  delete: async (id: string): Promise<{ message: string; service?: Service }> => {
+    const { data } = await api.delete(`/services/${id}`);
+    return data;
+  },
+};
+
+// ─── Pricing Configuration (Pricing module) Services ──────────────────────────
+// Named, reusable adaptive-formula profiles - the Services form's "Pricing
+// Configuration" dropdown reads from getAllAdmin() (optionally filtered by
+// vehicleType), never hardcodes options. There is deliberately no create/
+// edit UI wired to create()/update() yet (out of scope for this task,
+// deferred to the Pricing-module redesign) - they exist here only so the
+// backend's admin CRUD is reachable if/when that UI is built, and so tests
+// can exercise it without a browser.
+export const pricingConfigurationService = {
+  // vehicleType filters server-side to one class; activeOnly further
+  // excludes inactive rows - both are what the Services form's dropdown
+  // needs (only active, compatible configurations - see the "DROPDOWN
+  // BEHAVIOR" requirement).
+  getAllAdmin: async (params?: { vehicleType?: "sedan" | "suv"; activeOnly?: boolean }): Promise<PricingConfiguration[]> => {
+    const { data } = await api.get("/pricing/configurations", { params });
+    return Array.isArray(data) ? data.map(normalizePricingConfiguration) : data;
+  },
+
+  getById: async (id: string): Promise<PricingConfiguration> => {
+    const { data } = await api.get(`/pricing/configurations/${id}`);
+    return normalizePricingConfiguration(data);
+  },
+
+  create: async (configData: Partial<PricingConfiguration>): Promise<PricingConfiguration> => {
+    const { data } = await api.post("/pricing/configurations", configData);
+    return normalizePricingConfiguration(data);
+  },
+
+  update: async (id: string, updates: Partial<PricingConfiguration>): Promise<PricingConfiguration> => {
+    const { data } = await api.patch(`/pricing/configurations/${id}`, updates);
+    return normalizePricingConfiguration(data);
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete(`/pricing/configurations/${id}`);
+    return data;
+  },
+};
+
 // ─── Client Services ─────────────────────────────────────────────────────────
 export const clientService = {
   getAll: async (): Promise<User[]> => {
@@ -348,7 +464,12 @@ export interface QuotePreviewLeg {
 }
 export interface QuotePreviewRequest {
   vehicleType: "sedan" | "suv";
-  vehicleId?: string;
+  // Which Service/Class this quote is for - see the Service type's doc
+  // comment in @/types. Preferred over vehicleType alone: the backend
+  // resolves the actual pricing profile from this when present (see
+  // wc-backend-1 lib/servicePricing.ts), falling back to vehicleType's
+  // default active service when omitted.
+  serviceId?: string;
   distanceMiles: number;
   durationMinutes: number;
   additionalLegs?: QuotePreviewLeg[];

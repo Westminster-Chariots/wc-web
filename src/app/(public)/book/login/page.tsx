@@ -203,7 +203,7 @@ export default function BookingLoginPage() {
                   </div>
                   {data.selectedVehicle && (
                     <p className="text-[10px] text-slate-950/60 uppercase tracking-wider pt-1 border-t border-white/20">
-                      {data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV"}
+                      {data.selectedServiceName || (data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV")}
                     </p>
                   )}
                 </motion.div>

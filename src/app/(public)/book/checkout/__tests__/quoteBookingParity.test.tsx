@@ -36,7 +36,7 @@ const BASE_DATA = {
   pickupDate: "2026-09-01",
   pickupTime: "10:00",
   selectedVehicle: "sedan" as const,
-  selectedVehicleId: null,
+  selectedServiceId: null,
   flightNumber: "",
   specialRequests: "",
   // Already-backfilled, as if this trip's legs were routed in an earlier
@@ -66,10 +66,6 @@ vi.mock("@/hooks/useRouteDetails", () => ({
   // having finished yet. Under the pre-fix code, the quote's additionalLegs
   // came from this (still-empty) source instead of the store.
   fetchRouteDetails: vi.fn(() => new Promise(() => {})),
-}));
-
-vi.mock("@/hooks/useFleet", () => ({
-  useFleet: () => ({ vehicles: [] }),
 }));
 
 const getAuthoritativeQuoteMock = vi.fn<(request: QuotePreviewRequest) => Promise<QuotePreviewResponse>>();

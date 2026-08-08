@@ -23,7 +23,7 @@ const BASE_DATA = {
   pickupDate: "2026-09-01",
   pickupTime: "10:00",
   selectedVehicle: "sedan" as const,
-  selectedVehicleId: null,
+  selectedServiceId: null,
   flightNumber: "",
   specialRequests: "",
   additionalLegs: [] as never[],
@@ -49,10 +49,6 @@ const STABLE_ROUTE = { distance: 12, duration: 22 };
 vi.mock("@/hooks/useRouteDetails", () => ({
   useRouteDetails: () => ({ route: STABLE_ROUTE }),
   fetchRouteDetails: vi.fn(() => Promise.resolve(null)),
-}));
-
-vi.mock("@/hooks/useFleet", () => ({
-  useFleet: () => ({ vehicles: [] }),
 }));
 
 const getAuthoritativeQuoteMock = vi.fn<(request: QuotePreviewRequest) => Promise<QuotePreviewResponse>>();

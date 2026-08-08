@@ -9,7 +9,6 @@ import { useBookingStore, type TripLeg } from "@/hooks/useBookingStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouteDetails, fetchRouteDetails } from "@/hooks/useRouteDetails";
 import { usePricing } from "@/hooks/usePricing";
-import { useFleet } from "@/hooks/useFleet";
 import type { RouteDetails } from "@/types";
 import { notify } from "@/lib/notify";
 import { bookingService } from "@/lib/services";
@@ -72,7 +71,7 @@ export function computeTripFingerprint(args: {
   pickupDate: string;
   pickupTime: string;
   selectedVehicle: string | null;
-  selectedVehicleId: string | null;
+  selectedServiceId: string | null;
   additionalLegs: { pickup: string; dropoff: string; pickupDate: string; pickupTime: string }[];
 }): string {
   return JSON.stringify({
@@ -80,7 +79,7 @@ export function computeTripFingerprint(args: {
     dropoff: args.dropoff,
     pickupDate: args.pickupDate,
     pickupTime: args.pickupTime,
-    vehicle: args.selectedVehicleId || args.selectedVehicle,
+    vehicle: args.selectedServiceId || args.selectedVehicle,
     legs: args.additionalLegs.map((l) => ({ pickup: l.pickup, dropoff: l.dropoff, pickupDate: l.pickupDate, pickupTime: l.pickupTime })),
   });
 }
@@ -111,7 +110,6 @@ export default function BookingCheckoutPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { data, addLeg, removeLeg, updateLeg } = useBookingStore();
-  const { vehicles } = useFleet();
   const prefersReducedMotion = useReducedMotion();
 
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -259,7 +257,7 @@ export default function BookingCheckoutPage() {
     try {
       const result = await getAuthoritativeQuote({
         vehicleType: data.selectedVehicle!,
-        vehicleId: data.selectedVehicleId || undefined,
+        serviceId: data.selectedServiceId || undefined,
         distanceMiles: route.distance,
         durationMinutes: route.duration,
         // Must read the same source createBooking() reads (the store's
@@ -297,12 +295,12 @@ export default function BookingCheckoutPage() {
       if (requestId === quoteRequestIdRef.current) setQuoteLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, data.selectedVehicle, data.selectedVehicleId, data.additionalLegs, legsReady]);
+  }, [route, data.selectedVehicle, data.selectedServiceId, data.additionalLegs, legsReady]);
 
   useEffect(() => {
     fetchQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, data.selectedVehicle, data.selectedVehicleId, data.additionalLegs, legsReady]);
+  }, [route, data.selectedVehicle, data.selectedServiceId, data.additionalLegs, legsReady]);
 
   // Estimate-only display for when the quote endpoint can't be reached -
   // clearly labeled as such in the render below, and never used to gate
@@ -355,13 +353,11 @@ export default function BookingCheckoutPage() {
   const legPrices = priceReady ? quote!.legs.slice(1).map((l) => l.totalPrice) : showFallback ? fallbackEstimate?.legPrices ?? [] : [];
   const grandTotal = priceReady ? quote!.combinedTotal : showFallback ? fallbackEstimate?.grandTotal ?? 0 : 0;
 
-  const vehicleImage = useMemo(() => {
-    if (!data.selectedVehicle || vehicles.length === 0) return null;
-    const vehicle = data.selectedVehicleId
-      ? vehicles.find((v) => v.id === data.selectedVehicleId)
-      : vehicles.find((v) => v.vehicleType === data.selectedVehicle);
-    return vehicle?.imageUrl || null;
-  }, [vehicles, data.selectedVehicle, data.selectedVehicleId]);
+  // Cached on the selected service at /book (see useBookingStore.ts) rather
+  // than re-fetched here - the customer's checkout review shows exactly the
+  // service they picked, not a live re-lookup that could show a different
+  // image if the service's imageUrl changed mid-checkout.
+  const vehicleImage = data.selectedServiceImage;
 
   useEffect(() => {
     if (!user) {
@@ -385,7 +381,7 @@ export default function BookingCheckoutPage() {
         pickupDate: data.pickupDate,
         pickupTime: data.pickupTime,
         vehicleType: data.selectedVehicle,
-        vehicleId: data.selectedVehicleId || undefined,
+        serviceId: data.selectedServiceId || undefined,
         distanceMiles: route.distance,
         durationMinutes: route.duration,
         isAirportPickup: data.isPickupAirport,
@@ -414,7 +410,7 @@ export default function BookingCheckoutPage() {
             pickupDate: data.pickupDate,
             pickupTime: data.pickupTime,
             selectedVehicle: data.selectedVehicle,
-            selectedVehicleId: data.selectedVehicleId,
+            selectedServiceId: data.selectedServiceId,
             additionalLegs: data.additionalLegs || [],
           })
         ),
@@ -803,6 +799,7 @@ export default function BookingCheckoutPage() {
             pickupDate={data.pickupDate}
             pickupTime={data.pickupTime}
             vehicleType={data.selectedVehicle!}
+            serviceName={data.selectedServiceName || undefined}
             vehicleImage={vehicleImage || undefined}
             basePrice={basePrice}
             distanceMiles={route.distance}

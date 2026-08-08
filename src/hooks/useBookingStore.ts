@@ -20,7 +20,15 @@ export interface BookingData {
   pickupDate: string;
   pickupTime: string;
   selectedVehicle: "sedan" | "suv" | null;
-  selectedVehicleId: string | null;
+  // Which Service/Class (see @/types' Service interface) the customer
+  // selected on /book - the customer-facing identifier that flows into
+  // quote/booking creation now, replacing the old fleet-vehicle-id
+  // selection. selectedServiceName/Image are cached here at selection time
+  // (rather than re-fetched from /services on checkout) purely for display -
+  // CheckoutSummary and the trip-detail pages read them directly.
+  selectedServiceId: string | null;
+  selectedServiceName: string | null;
+  selectedServiceImage: string | null;
   flightNumber: string;
   specialRequests: string;
   additionalLegs: TripLeg[];
@@ -40,7 +48,9 @@ export interface BookingData {
 const EMPTY: BookingData = {
   pickup: "", dropoff: "", isPickupAirport: false,
   pickupDate: "", pickupTime: "", selectedVehicle: null,
-  selectedVehicleId: null,
+  selectedServiceId: null,
+  selectedServiceName: null,
+  selectedServiceImage: null,
   flightNumber: "", specialRequests: "", additionalLegs: [],
   bookingForSomeoneElse: false, guestFirstName: "", guestLastName: "",
   guestEmail: "", guestPhone: "",

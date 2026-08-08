@@ -10,12 +10,13 @@ export interface AnalyticsData {
   revenueToday: number;
   revenueThisWeek: number;
   revenueThisMonth: number;
+  
   topRoutes: Array<{ route: string; count: number }>;
 }
 
 // Fallback data when API is not available
 const FALLBACK_DATA: AnalyticsData = {
-  totalRevenue: 0,
+   totalRevenue: 0,
   activeBookings: 0,
   completedToday: 0,
   averageBookingValue: 0,

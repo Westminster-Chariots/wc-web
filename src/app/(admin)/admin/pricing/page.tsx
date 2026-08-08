@@ -15,6 +15,7 @@ import DatePicker from "@/components/ui/date-picker";
 import TimePicker from "@/components/ui/time-picker";
 import LocationInput from "@/components/booking/LocationInput";
 import { PRICING_CONSTANTS } from "@/lib/pricingEstimate";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 interface FlatZone {
   id: string;
@@ -277,7 +278,6 @@ export default function AdminPricingPage() {
         try {
           const quote = await getAuthoritativeQuote({
             vehicleType: vehicle.vehicleType as "sedan" | "suv",
-            vehicleId: vehicle.id,
             distanceMiles: route.distance,
             durationMinutes: route.duration,
           });
@@ -779,7 +779,10 @@ export default function AdminPricingPage() {
               thinking a save had an effect it didn't. See the file header
               comment above for the full explanation. */}
           <section>
-            <h3 className="text-base font-display font-semibold text-foreground mb-1">Live Pricing Formula</h3>
+            <h3 className="text-base font-display font-semibold text-foreground mb-1 flex items-center gap-1.5">
+              Live Pricing Formula
+              <InfoTooltip text="The adaptive formula used to calculate every quote. These values are fixed and verified — not directly editable here." />
+            </h3>
             <p className="text-xs text-muted-foreground mb-4">
               total = round-to-nearest-${PRICING_CONSTANTS.roundToNearest}( max( minimum fare, (base + per-mile×distance + per-minute×duration) × (1 + {PRICING_CONSTANTS.demandCoefficient}×demand level) ) ) — read-only; this is what every quote, booking, and charge actually uses.
             </p>
@@ -848,7 +851,10 @@ export default function AdminPricingPage() {
               saving - it never alters an already-issued quote or an
               existing booking. */}
           <section>
-            <h3 className="text-base font-display font-semibold text-foreground mb-1">Automatic Gratuity</h3>
+            <h3 className="text-base font-display font-semibold text-foreground mb-1 flex items-center gap-1.5">
+              Automatic Gratuity
+              <InfoTooltip text="When enabled, the configured gratuity percentage is automatically added to new quotes and bookings." />
+            </h3>
             <p className="text-xs text-muted-foreground mb-4">
               Optional, applied once to a trip&apos;s total (not per stop) on top of the pricing formula above. Off by default. Changes only apply to quotes issued after saving - never to a quote a customer already accepted or a booking already created.
             </p>

@@ -17,7 +17,7 @@ const baseArgs = {
   pickupDate: "2026-08-01",
   pickupTime: "10:00",
   selectedVehicle: "sedan",
-  selectedVehicleId: "veh-1",
+  selectedServiceId: "veh-1",
   additionalLegs: [],
 };
 

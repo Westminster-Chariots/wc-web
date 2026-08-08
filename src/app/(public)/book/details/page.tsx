@@ -95,7 +95,7 @@ export default function BookingDetailsPage() {
           <div>
             <p className="text-xs text-muted-foreground font-body mb-1">Your Trip</p>
             <h3 className="text-sm sm:text-base font-display font-semibold text-foreground capitalize">
-              {data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV"}
+              {data.selectedServiceName || (data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV")}
             </h3>
           </div>
           <Link href="/book">
