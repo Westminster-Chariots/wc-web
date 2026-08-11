@@ -1,6 +1,6 @@
 import axios from "axios";
 import { api } from "./api";
-import type { Booking, Driver, FleetVehicle, User, Profile, Invoice, CreateBookingPayload, Service, PricingConfiguration } from "@/types";
+import type { Booking, Driver, FleetVehicle, User, Profile, Invoice, CreateBookingPayload, Service, PricingConfiguration, HourlyPricingConfiguration } from "@/types";
 
 // Service owns no pricing fields (see the Service type's doc comment) - the
 // only normalization it still needs is defending against a malformed/
@@ -37,6 +37,28 @@ function normalizePricingConfiguration(raw: RawPricingConfiguration): PricingCon
     minimumFare: parseFloat(String(raw.minimumFare)),
     adjustmentCoefficient: parseFloat(String(raw.adjustmentCoefficient)),
     roundingIncrement: parseFloat(String(raw.roundingIncrement)),
+  };
+}
+
+// Postgres numeric columns (baseHourlyRate/roundingIncrement/each option's
+// includedMiles) serialize as strings over the raw API response - same
+// reasoning as normalizePricingConfiguration above. customPriceCents is a
+// plain integer column already (not numeric), so it needs no conversion.
+type RawHourlyPricingOption = Omit<HourlyPricingConfiguration["options"][number], "includedMiles"> & { includedMiles: string | number };
+type RawHourlyPricingConfiguration = Omit<
+  HourlyPricingConfiguration,
+  "baseHourlyRate" | "roundingIncrement" | "options"
+> & {
+  baseHourlyRate: string | number;
+  roundingIncrement: string | number;
+  options: RawHourlyPricingOption[];
+};
+function normalizeHourlyPricingConfiguration(raw: RawHourlyPricingConfiguration): HourlyPricingConfiguration {
+  return {
+    ...raw,
+    baseHourlyRate: parseFloat(String(raw.baseHourlyRate)),
+    roundingIncrement: parseFloat(String(raw.roundingIncrement)),
+    options: (raw.options ?? []).map((o) => ({ ...o, includedMiles: parseFloat(String(o.includedMiles)) })),
   };
 }
 
@@ -131,6 +153,7 @@ function normalizeBooking<T extends Record<string, unknown>>(raw: T): T {
     basePrice: toFiniteNumberOrNull(raw.basePrice),
     gratuity: toFiniteNumberOrNull(raw.gratuity),
     totalPrice: toFiniteNumberOrNull(raw.totalPrice),
+    ...(raw.includedMiles !== undefined ? { includedMiles: toFiniteNumberOrNull(raw.includedMiles) } : {}),
     // paymentAmount/groupTotalPrice may be legitimately absent (admin-only
     // scoping, or no tripGroupId) - only convert when the key is actually
     // present, so "absent" stays absent rather than becoming an explicit null.
@@ -384,6 +407,111 @@ export const pricingConfigurationService = {
   },
 };
 
+// ─── Hourly Pricing Configuration (Pricing module) Services ──────────────────
+// One config per Service (serviceId NOT NULL/UNIQUE) - structurally
+// parallel to pricingConfigurationService above, but for the separate
+// hourly_pricing_configurations table, plus its nested duration-package
+// (hourly_pricing_options) sub-resource. Backs Admin -> Pricing's Hourly
+// Pricing package builder.
+export const hourlyPricingConfigurationService = {
+  getAllAdmin: async (params?: { vehicleType?: "sedan" | "suv"; enabledOnly?: boolean }): Promise<HourlyPricingConfiguration[]> => {
+    const { data } = await api.get("/pricing/hourly-configurations", { params });
+    return Array.isArray(data) ? data.map(normalizeHourlyPricingConfiguration) : data;
+  },
+
+  getById: async (id: string): Promise<HourlyPricingConfiguration> => {
+    const { data } = await api.get(`/pricing/hourly-configurations/${id}`);
+    return normalizeHourlyPricingConfiguration(data);
+  },
+
+  // The package-builder UI is service-first ("pick a service, see/build its
+  // hourly packages") - null (not a 404) means the service has no
+  // configuration yet, a normal state to render around, not an error.
+  getByService: async (serviceId: string): Promise<HourlyPricingConfiguration | null> => {
+    const { data } = await api.get(`/pricing/hourly-configurations/by-service/${serviceId}`);
+    return data ? normalizeHourlyPricingConfiguration(data) : null;
+  },
+
+  create: async (configData: {
+    serviceId: string; baseHourlyRate: number; enabled?: boolean; durationMode?: "interval" | "custom";
+    minimumDurationMinutes?: number; maximumDurationMinutes?: number; incrementMinutes?: number; roundingIncrement?: number;
+  }): Promise<HourlyPricingConfiguration> => {
+    const { data } = await api.post("/pricing/hourly-configurations", configData);
+    return normalizeHourlyPricingConfiguration(data);
+  },
+
+  update: async (id: string, updates: Partial<{
+    baseHourlyRate: number; enabled: boolean; durationMode: "interval" | "custom";
+    minimumDurationMinutes: number; maximumDurationMinutes: number; incrementMinutes: number; roundingIncrement: number;
+  }>): Promise<HourlyPricingConfiguration> => {
+    const { data } = await api.patch(`/pricing/hourly-configurations/${id}`, updates);
+    return normalizeHourlyPricingConfiguration(data);
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete(`/pricing/hourly-configurations/${id}`);
+    return data;
+  },
+
+  // Interval mode's "Generate" action - syncs hourly_pricing_options to
+  // exactly match the given min/max/increment. Existing rows for durations
+  // still in range keep their price/mileage edits untouched; rows outside
+  // the new range are removed. Returns the full config with its (now
+  // regenerated) options embedded.
+  generateOptions: async (
+    id: string,
+    bounds: { minimumDurationMinutes: number; maximumDurationMinutes: number; incrementMinutes: number }
+  ): Promise<HourlyPricingConfiguration> => {
+    const { data } = await api.post(`/pricing/hourly-configurations/${id}/generate-options`, bounds);
+    return normalizeHourlyPricingConfiguration(data);
+  },
+
+  addOption: async (
+    configId: string,
+    option: { durationMinutes: number; includedMiles: number; customPriceCents?: number | null; isActive?: boolean }
+  ): Promise<HourlyPricingConfiguration["options"][number]> => {
+    const { data } = await api.post(`/pricing/hourly-configurations/${configId}/options`, option);
+    return { ...data, includedMiles: parseFloat(String(data.includedMiles)) };
+  },
+
+  updateOption: async (
+    configId: string,
+    optionId: string,
+    updates: Partial<{ durationMinutes: number; includedMiles: number; customPriceCents: number | null; isActive: boolean }>
+  ): Promise<HourlyPricingConfiguration["options"][number]> => {
+    const { data } = await api.patch(`/pricing/hourly-configurations/${configId}/options/${optionId}`, updates);
+    return { ...data, includedMiles: parseFloat(String(data.includedMiles)) };
+  },
+
+  removeOption: async (configId: string, optionId: string): Promise<{ message: string }> => {
+    const { data } = await api.delete(`/pricing/hourly-configurations/${configId}/options/${optionId}`);
+    return data;
+  },
+};
+
+// ─── Global Hourly Booking availability ──────────────────────────────────────
+// Whether Hourly Booking exists on the customer-facing site at all -
+// distinct from an individual configuration's `enabled` flag, which only
+// affects one service. See wc-backend-1's hourlyBookingSettings doc comment.
+export const hourlyBookingAvailabilityService = {
+  // Public, no auth - the homepage fetches this once to decide whether to
+  // show "By the hour" at all.
+  getAvailability: async (): Promise<{ enabled: boolean }> => {
+    const { data } = await api.get("/pricing/hourly-availability");
+    return data;
+  },
+
+  getSettingsAdmin: async (): Promise<{ id: string | null; isEnabled: boolean; updatedBy: string | null; updatedAt: string | null }> => {
+    const { data } = await api.get("/pricing/hourly-booking-settings");
+    return data;
+  },
+
+  updateSettingsAdmin: async (isEnabled: boolean) => {
+    const { data } = await api.patch("/pricing/hourly-booking-settings", { isEnabled });
+    return data;
+  },
+};
+
 // ─── Client Services ─────────────────────────────────────────────────────────
 export const clientService = {
   getAll: async (): Promise<User[]> => {
@@ -492,6 +620,25 @@ export interface QuotePreviewResponse {
   expiresAt: string;
 }
 
+// Structurally parallel to QuotePreviewResponse above but for the hourly
+// path - no legs (an hourly booking is never multi-leg), flat basePrice/
+// gratuity/total from rate x durationMinutes instead.
+export interface QuoteHourlyPreviewResponse {
+  basePrice: number;
+  gratuity: number;
+  totalPrice: number;
+  totalCents: number;
+  hourlyRate: number;
+  durationMinutes: number;
+  includedMiles: number;
+  // Which pricing style produced this total - "rate" (baseHourlyRate x
+  // duration) or "package" (an admin-set fixed price for this duration).
+  // Locked in with everything else on the quote - see HourlyQuotePayload.
+  priceSource: "rate" | "package";
+  quoteId: string;
+  expiresAt: string;
+}
+
 export const pricingService = {
   // Backend-authoritative, signed quote - the same calculateAdaptiveFareCents()
   // booking creation itself falls back to, so a quote shown here and a
@@ -505,7 +652,24 @@ export const pricingService = {
     }
     return data;
   },
-  
+
+  // Hourly counterpart to calculate() above - same "signed token IS the
+  // quote, carry it unchanged into booking creation" contract, computed
+  // from rate x durationMinutes (see backend lib/hourlyPricing.ts) instead
+  // of distance/duration. Requires auth (same as calculate()) - /book's step
+  // 0 hourly card shows Service.hourlyPricing's public numbers for a
+  // pre-login preview instead of calling this; this is only called once
+  // the customer reaches checkout (post-login), mirroring exactly how
+  // one-way's real quote is deferred past the local pricingEstimate.ts
+  // preview.
+  calculateHourly: async (params: { serviceId: string; durationMinutes: number }): Promise<QuoteHourlyPreviewResponse> => {
+    const { data } = await api.post("/pricing/calculate-hourly", params);
+    if (typeof data?.totalCents !== "number") {
+      throw new Error(data?.error ?? "Invalid hourly pricing response");
+    }
+    return data;
+  },
+
   getConfig: async () => {
     const { data } = await api.get("/pricing/config");
     return data;

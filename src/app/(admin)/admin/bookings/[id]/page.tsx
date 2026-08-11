@@ -13,6 +13,7 @@ import { useDrivers } from "@/hooks/useDrivers";
 import { usePaymentEmailStatus, useResendPaymentEmails } from "@/hooks/useApi";
 import { bookingService } from "@/lib/services";
 import type { PaymentEmailState } from "@/lib/services";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import { toast } from "sonner";
 
 // Renders the single status enum the /email-status endpoint returns for one
@@ -330,13 +331,40 @@ export default function BookingDetailPage() {
             <InfoRow icon={User} label="Client" value={booking.clientName} />
             <InfoRow icon={Mail} label="Email" value={booking.clientEmail} />
             <InfoRow icon={MapPin} label="Pickup" value={booking.pickupLocation} />
-            <InfoRow icon={MapPin} label="Dropoff" value={booking.dropoffLocation} />
+            {booking.bookingType === "hourly" ? (
+              <InfoRow
+                icon={Clock}
+                label="Charter"
+                value={
+                  booking.hourlyDurationMinutes
+                    ? `By the hour - ${formatDurationMinutes(booking.hourlyDurationMinutes)}${
+                        booking.includedMiles != null ? `, ${booking.includedMiles} miles included` : ""
+                      }`
+                    : "By the hour"
+                }
+              />
+            ) : (
+              <InfoRow icon={MapPin} label="Dropoff" value={booking.dropoffLocation} />
+            )}
             <InfoRow icon={Clock} label="Date & Time" value={`${booking.pickupDate} at ${booking.pickupTime}`} />
             <InfoRow icon={Car} label="Vehicle" value={booking.vehicleType.toUpperCase()} />
             {booking.vehicleNumber && <InfoRow icon={Car} label="Vehicle #" value={booking.vehicleNumber} />}
             {booking.flightTail && <InfoRow icon={Plane} label="Flight" value={booking.flightTail} />}
             {booking.specialRequests && <InfoRow icon={FileText} label="Special Requests" value={booking.specialRequests} />}
-            <InfoRow icon={DollarSign} label="Price" value={`$${booking.price}`} />
+            {/* Base/Gratuity breakdown only when THIS booking's own stored
+                gratuity is actually nonzero - never re-derived from the
+                admin's current gratuity setting, so a booking already
+                created stays showing exactly what it was charged even if
+                gratuity is later toggled or its percentage changed. */}
+            {booking.basePrice != null && booking.gratuity != null && booking.gratuity > 0 ? (
+              <>
+                <InfoRow icon={DollarSign} label="Base Price" value={`$${booking.basePrice.toFixed(2)}`} />
+                <InfoRow icon={DollarSign} label="Gratuity" value={`$${booking.gratuity.toFixed(2)}`} />
+                <InfoRow icon={DollarSign} label="Total Price" value={`$${booking.price.toFixed(2)}`} />
+              </>
+            ) : (
+              <InfoRow icon={DollarSign} label="Price" value={`$${booking.price}`} />
+            )}
             {booking.distanceMiles && <InfoRow icon={MapPin} label="Distance" value={`${booking.distanceMiles} miles`} />}
             {booking.durationMinutes && <InfoRow icon={Clock} label="Duration" value={`${booking.durationMinutes} minutes`} />}
           </motion.div>

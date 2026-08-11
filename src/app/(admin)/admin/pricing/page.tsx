@@ -1,21 +1,24 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight, AlertCircle, CheckCircle2, Check } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Loader2, Save, DollarSign, Calculator, MapPin, Calendar, Clock, Car, ArrowRight, AlertCircle, CheckCircle2, Check, Timer } from "lucide-react";
 import { toast } from "sonner";
-import { pricingService, fleetService } from "@/lib/services";
+import { pricingService, fleetService, serviceService, hourlyPricingConfigurationService, hourlyBookingAvailabilityService } from "@/lib/services";
 import { useRouteDetails } from "@/hooks/useRouteDetails";
 import { usePricing } from "@/hooks/usePricing";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, Plus, Trash2, Pencil } from "lucide-react";
 import { format, addDays, parseISO } from "date-fns";
 import DatePicker from "@/components/ui/date-picker";
 import TimePicker from "@/components/ui/time-picker";
 import LocationInput from "@/components/booking/LocationInput";
 import { PRICING_CONSTANTS } from "@/lib/pricingEstimate";
 import InfoTooltip from "@/components/ui/InfoTooltip";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
+import type { Service, HourlyPricingConfiguration, HourlyPricingOption } from "@/types";
 
 interface FlatZone {
   id: string;
@@ -47,8 +50,372 @@ interface FleetVehicle {
 // The "Zones" section further below is a separate, pre-existing feature
 // (radius-based flat fares) that was never wired into price calculation -
 // left as-is, out of scope for this page's pricing-accuracy fix.
+// Redesigned 2026-08-11 into an explicit duration-PACKAGE builder - see
+// HourlyPricingConfiguration's doc comment. baseHourlyRate/duration bounds
+// are entered in dollars/hours here for readability, converted to
+// cents/minutes on save; no field on this page ever asks for raw cents or
+// technical values. minimumHours/maximumHours/incrementMinutes are
+// GENERATOR inputs for the "Generate" action only - they never directly
+// determine what's bookable once options exist (hourlyPricingOptions rows
+// do), so editing them and NOT clicking Generate has no customer-facing
+// effect.
+interface HourlyConfigDraft {
+  baseHourlyRate: number;
+  enabled: boolean;
+  durationMode: "interval" | "custom";
+  minimumHours: number;
+  maximumHours: number;
+  incrementMinutes: number;
+}
+
+const DEFAULT_CONFIG_DRAFT: HourlyConfigDraft = {
+  baseHourlyRate: 0,
+  enabled: true,
+  durationMode: "interval",
+  minimumHours: 2,
+  maximumHours: 12,
+  incrementMinutes: 60,
+};
+
+function configDraftFromConfig(config: HourlyPricingConfiguration): HourlyConfigDraft {
+  return {
+    baseHourlyRate: config.baseHourlyRate,
+    enabled: config.enabled,
+    durationMode: config.durationMode,
+    minimumHours: config.minimumDurationMinutes / 60,
+    maximumHours: config.maximumDurationMinutes / 60,
+    incrementMinutes: config.incrementMinutes,
+  };
+}
+
+// One duration package row's in-progress edit - a plain package-builder
+// form (duration in hours, price in dollars) so the admin never touches
+// raw cents. priceMode "rate" means this duration's price is calculated
+// from baseHourlyRate; "package" means packagePriceDollars is charged
+// exactly as typed.
+interface OptionDraft {
+  durationHours: string;
+  includedMiles: string;
+  priceMode: "rate" | "package";
+  packagePriceDollars: string;
+  isActive: boolean;
+}
+
+function optionDraftFromOption(option: HourlyPricingOption): OptionDraft {
+  return {
+    durationHours: String(option.durationMinutes / 60),
+    includedMiles: String(option.includedMiles),
+    priceMode: option.customPriceCents != null ? "package" : "rate",
+    packagePriceDollars: option.customPriceCents != null ? (option.customPriceCents / 100).toFixed(2) : "",
+    isActive: option.isActive,
+  };
+}
+
+const EMPTY_OPTION_DRAFT: OptionDraft = {
+  durationHours: "",
+  includedMiles: "",
+  priceMode: "rate",
+  packagePriceDollars: "",
+  isActive: true,
+};
+
+// Mirrors calculateHourlyFareCents' rate-based rounding exactly (round to
+// the nearest roundingIncrement) so a rate-priced row never shows a
+// different number here than what checkout will actually charge - see
+// hourlyPricing.ts. Used by both the duration table and the edit form's
+// live preview so the two can't drift from each other either.
+function rateBasedPriceDollars(config: HourlyPricingConfiguration, durationMinutes: number): number {
+  const raw = (config.baseHourlyRate * durationMinutes) / 60;
+  const roundTo = config.roundingIncrement;
+  return Math.round(raw / roundTo) * roundTo;
+}
+
 export default function AdminPricingPage() {
   const [activeTab, setActiveTab] = useState<"config" | "calculator">("config");
+
+  // Hourly Pricing - completely separate module from the adaptive one-way
+  // pricing controls above (own tables, own service selector, own save
+  // flow) - see HourlyPricingConfiguration's doc comment. One config per
+  // Service (serviceId NOT NULL/UNIQUE): picking a service either loads its
+  // existing configuration or offers to create one.
+  const [hourlyServices, setHourlyServices] = useState<Service[]>([]);
+  const [hourlyServicesLoading, setHourlyServicesLoading] = useState(true);
+  const [selectedHourlyServiceId, setSelectedHourlyServiceId] = useState<string>("");
+  const [existingHourlyConfig, setExistingHourlyConfig] = useState<HourlyPricingConfiguration | null>(null);
+  const [hourlyConfigLoading, setHourlyConfigLoading] = useState(false);
+  const [hourlyConfigDraft, setHourlyConfigDraft] = useState<HourlyConfigDraft>(DEFAULT_CONFIG_DRAFT);
+  const [hourlyConfigSaving, setHourlyConfigSaving] = useState(false);
+  const [generatingOptions, setGeneratingOptions] = useState(false);
+
+  // Global "does Hourly Booking exist on the site at all" master toggle -
+  // distinct from an individual configuration's `enabled` below, which only
+  // affects one service. See hourlyBookingAvailabilityService doc comment
+  // in lib/services.ts.
+  const [hourlyBookingSettings, setHourlyBookingSettings] = useState<{ isEnabled: boolean } | null>(null);
+  const [hourlyBookingSettingsSaving, setHourlyBookingSettingsSaving] = useState(false);
+
+  // Every existing hourly configuration, keyed by serviceId - fetched once
+  // (cheap: GET /hourly-configurations already embeds each config's
+  // options) purely so the service selector below can show a "Hourly
+  // enabled / Hourly disabled / No hourly pricing" status badge per service
+  // WITHOUT an extra request per card. The detailed editing view still uses
+  // its own dedicated getByService/getById fetches below - this map is
+  // read-only summary data for the selector, never written to directly.
+  const [hourlyConfigsByServiceId, setHourlyConfigsByServiceId] = useState<Map<string, HourlyPricingConfiguration> | null>(null);
+  const loadHourlyConfigsByServiceId = useCallback(() => {
+    hourlyPricingConfigurationService
+      .getAllAdmin()
+      .then((configs) => setHourlyConfigsByServiceId(new Map(configs.map((c) => [c.serviceId, c]))))
+      .catch((err) => toast.error(err.message || "Failed to load hourly configuration status"));
+  }, []);
+  useEffect(() => {
+    if (activeTab !== "config" || hourlyConfigsByServiceId !== null) return;
+    loadHourlyConfigsByServiceId();
+  }, [activeTab, hourlyConfigsByServiceId, loadHourlyConfigsByServiceId]);
+
+  // Which duration package row is being edited - an existing option's id,
+  // the sentinel "new" for the add-duration form, or null (nothing open).
+  const [editingOptionId, setEditingOptionId] = useState<string | "new" | null>(null);
+  const [optionDraft, setOptionDraft] = useState<OptionDraft>(EMPTY_OPTION_DRAFT);
+  const [optionSaving, setOptionSaving] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== "config" || hourlyServices.length > 0) return;
+    setHourlyServicesLoading(true);
+    serviceService
+      .getAllAdmin()
+      .then(setHourlyServices)
+      .catch((err) => toast.error(err.message || "Failed to load services"))
+      .finally(() => setHourlyServicesLoading(false));
+  }, [activeTab, hourlyServices.length]);
+
+  useEffect(() => {
+    if (activeTab !== "config" || hourlyBookingSettings !== null) return;
+    hourlyBookingAvailabilityService
+      .getSettingsAdmin()
+      .then((s) => setHourlyBookingSettings({ isEnabled: s.isEnabled }))
+      .catch((err) => toast.error(err.message || "Failed to load the Hourly Booking setting"));
+  }, [activeTab, hourlyBookingSettings]);
+
+  const handleToggleHourlyBooking = async () => {
+    if (!hourlyBookingSettings) return;
+    const next = !hourlyBookingSettings.isEnabled;
+    setHourlyBookingSettingsSaving(true);
+    try {
+      await hourlyBookingAvailabilityService.updateSettingsAdmin(next);
+      setHourlyBookingSettings({ isEnabled: next });
+      toast.success(next ? "Hourly Booking is now offered to customers" : "Hourly Booking is now hidden from customers");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to update the Hourly Booking setting");
+    } finally {
+      setHourlyBookingSettingsSaving(false);
+    }
+  };
+
+  const selectedHourlyService = hourlyServices.find((s) => s.id === selectedHourlyServiceId) ?? null;
+
+  useEffect(() => {
+    if (!selectedHourlyService) {
+      setExistingHourlyConfig(null);
+      setHourlyConfigDraft(DEFAULT_CONFIG_DRAFT);
+      setEditingOptionId(null);
+      return;
+    }
+    let cancelled = false;
+    setHourlyConfigLoading(true);
+    setEditingOptionId(null);
+    hourlyPricingConfigurationService
+      .getByService(selectedHourlyService.id)
+      .then((config) => {
+        if (cancelled) return;
+        setExistingHourlyConfig(config);
+        setHourlyConfigDraft(config ? configDraftFromConfig(config) : DEFAULT_CONFIG_DRAFT);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err.message || "Failed to load hourly pricing configuration");
+      })
+      .finally(() => {
+        if (!cancelled) setHourlyConfigLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedHourlyService]);
+
+  const handleSaveHourlyConfig = async () => {
+    if (!selectedHourlyService) return;
+    if (!existingHourlyConfig && hourlyConfigDraft.maximumHours < hourlyConfigDraft.minimumHours) {
+      toast.error("Maximum duration must be greater than or equal to minimum duration");
+      return;
+    }
+    setHourlyConfigSaving(true);
+    try {
+      let saved: HourlyPricingConfiguration;
+      if (existingHourlyConfig) {
+        saved = await hourlyPricingConfigurationService.update(existingHourlyConfig.id, {
+          baseHourlyRate: hourlyConfigDraft.baseHourlyRate,
+          enabled: hourlyConfigDraft.enabled,
+        });
+      } else {
+        saved = await hourlyPricingConfigurationService.create({
+          serviceId: selectedHourlyService.id,
+          baseHourlyRate: hourlyConfigDraft.baseHourlyRate,
+          enabled: hourlyConfigDraft.enabled,
+          durationMode: hourlyConfigDraft.durationMode,
+          minimumDurationMinutes: Math.round(hourlyConfigDraft.minimumHours * 60),
+          maximumDurationMinutes: Math.round(hourlyConfigDraft.maximumHours * 60),
+          incrementMinutes: hourlyConfigDraft.incrementMinutes,
+        });
+      }
+      setExistingHourlyConfig(saved);
+      setHourlyConfigDraft(configDraftFromConfig(saved));
+      loadHourlyConfigsByServiceId();
+      toast.success(`${selectedHourlyService.name}'s hourly pricing saved`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to save hourly pricing");
+    } finally {
+      setHourlyConfigSaving(false);
+    }
+  };
+
+  // The "Generate" action (approved 2026-08-11: "If interval mode is used,
+  // generate the duration rows automatically") - syncs hourly_pricing_options
+  // to exactly match min/max/increment. Existing rows for durations still
+  // in range keep whatever price/mileage the admin already set for them;
+  // only newly-included durations get a starting default and only
+  // no-longer-in-range durations are removed - see that endpoint's doc
+  // comment in routes/pricing.ts.
+  const handleGenerateOptions = async () => {
+    if (!existingHourlyConfig) return;
+    if (hourlyConfigDraft.maximumHours < hourlyConfigDraft.minimumHours) {
+      toast.error("Maximum duration must be greater than or equal to minimum duration");
+      return;
+    }
+    setGeneratingOptions(true);
+    try {
+      const saved = await hourlyPricingConfigurationService.generateOptions(existingHourlyConfig.id, {
+        minimumDurationMinutes: Math.round(hourlyConfigDraft.minimumHours * 60),
+        maximumDurationMinutes: Math.round(hourlyConfigDraft.maximumHours * 60),
+        incrementMinutes: hourlyConfigDraft.incrementMinutes,
+      });
+      setExistingHourlyConfig(saved);
+      toast.success("Duration options generated");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to generate durations");
+    } finally {
+      setGeneratingOptions(false);
+    }
+  };
+
+  function startEditOption(option: HourlyPricingOption) {
+    setEditingOptionId(option.id);
+    setOptionDraft(optionDraftFromOption(option));
+  }
+  function startAddOption() {
+    setEditingOptionId("new");
+    setOptionDraft(EMPTY_OPTION_DRAFT);
+  }
+  function cancelEditOption() {
+    setEditingOptionId(null);
+    setOptionDraft(EMPTY_OPTION_DRAFT);
+  }
+
+  async function refreshExistingConfig() {
+    if (!existingHourlyConfig) return;
+    const refreshed = await hourlyPricingConfigurationService.getById(existingHourlyConfig.id);
+    setExistingHourlyConfig(refreshed);
+  }
+
+  const handleSaveOption = async () => {
+    if (!existingHourlyConfig || !editingOptionId) return;
+    const durationHours = parseFloat(optionDraft.durationHours);
+    const includedMiles = parseFloat(optionDraft.includedMiles);
+    if (!Number.isFinite(durationHours) || durationHours <= 0) {
+      toast.error("Enter a valid duration");
+      return;
+    }
+    if (!Number.isFinite(includedMiles) || includedMiles < 0) {
+      toast.error("Enter a valid included-miles value");
+      return;
+    }
+    let customPriceCents: number | null = null;
+    if (optionDraft.priceMode === "package") {
+      const packagePrice = parseFloat(optionDraft.packagePriceDollars);
+      if (!Number.isFinite(packagePrice) || packagePrice < 0) {
+        toast.error("Enter a valid package price");
+        return;
+      }
+      customPriceCents = Math.round(packagePrice * 100);
+    }
+    const durationMinutes = Math.round(durationHours * 60);
+
+    setOptionSaving(true);
+    try {
+      if (editingOptionId === "new") {
+        await hourlyPricingConfigurationService.addOption(existingHourlyConfig.id, {
+          durationMinutes, includedMiles, customPriceCents, isActive: optionDraft.isActive,
+        });
+      } else {
+        await hourlyPricingConfigurationService.updateOption(existingHourlyConfig.id, editingOptionId, {
+          durationMinutes, includedMiles, customPriceCents, isActive: optionDraft.isActive,
+        });
+      }
+      await refreshExistingConfig();
+      cancelEditOption();
+      toast.success("Duration package saved");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "This duration is already configured - edit the existing row instead, or choose a different duration.");
+    } finally {
+      setOptionSaving(false);
+    }
+  };
+
+  // One-click undo for a package override, separate from opening the full
+  // edit form - approved 2026-08-11: "resetting an overridden price back to
+  // the hourly-rate calculation."
+  const handleResetOptionPrice = async (option: HourlyPricingOption) => {
+    if (!existingHourlyConfig) return;
+    try {
+      await hourlyPricingConfigurationService.updateOption(existingHourlyConfig.id, option.id, { customPriceCents: null });
+      await refreshExistingConfig();
+      toast.success("Reset to the standard hourly rate");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to reset price");
+    }
+  };
+
+  const handleToggleOptionActive = async (option: HourlyPricingOption) => {
+    if (!existingHourlyConfig) return;
+    try {
+      await hourlyPricingConfigurationService.updateOption(existingHourlyConfig.id, option.id, { isActive: !option.isActive });
+      await refreshExistingConfig();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to update duration");
+    }
+  };
+
+  const handleRemoveOption = async (option: HourlyPricingOption) => {
+    if (!existingHourlyConfig) return;
+    try {
+      await hourlyPricingConfigurationService.removeOption(existingHourlyConfig.id, option.id);
+      await refreshExistingConfig();
+      toast.success("Duration removed");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || err.message || "Failed to remove duration");
+    }
+  };
+
+  // Live preview only (mirrors calculateHourlyFareCents' rounding) - shown
+  // in the edit form while priceMode is "rate" so the admin sees what the
+  // standard rate would charge before deciding whether to override it. The
+  // real number is always computed and stored server-side.
+  function previewRatePriceDollars(): number | null {
+    if (!existingHourlyConfig) return null;
+    const durationHours = parseFloat(optionDraft.durationHours);
+    if (!Number.isFinite(durationHours) || durationHours <= 0) return null;
+    return rateBasedPriceDollars(existingHourlyConfig, Math.round(durationHours * 60));
+  }
+
   const [zones, setZones] = useState<FlatZone[]>([]);
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -875,21 +1242,11 @@ export default function AdminPricingPage() {
                       {gratuityDraft.enabled ? "On - added to every new quote" : "Off - no gratuity is added"}
                     </p>
                   </div>
-                  <button
+                  <Switch
                     id="gratuity-enabled"
-                    role="switch"
-                    aria-checked={gratuityDraft.enabled}
-                    onClick={() => setGratuityDraft((d) => ({ ...d, enabled: !d.enabled }))}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                      gratuityDraft.enabled ? "bg-primary" : "bg-secondary"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        gratuityDraft.enabled ? "translate-x-6" : "translate-x-1"
-                      }`}
-                    />
-                  </button>
+                    checked={gratuityDraft.enabled}
+                    onCheckedChange={(checked) => setGratuityDraft((d) => ({ ...d, enabled: checked }))}
+                  />
                 </div>
 
                 <div>
@@ -1017,21 +1374,440 @@ export default function AdminPricingPage() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
+                      <Switch
+                        id={`zone-active-${zone.id}`}
                         checked={zone.isActive}
-                        onChange={(e) => updateZone(zone.id, "isActive", e.target.checked)}
-                        className="h-4 w-4 text-primary"
+                        onCheckedChange={(checked) => updateZone(zone.id, "isActive", checked)}
                       />
-                      <label className="text-xs text-foreground">Active</label>
+                      <label htmlFor={`zone-active-${zone.id}`} className="text-xs text-foreground">Active</label>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
+
+          {/* Hourly Pricing - moved here from its own tab so admins see
+              one-way and hourly pricing on a single page. Still a fully
+              separate set of tables/save-flows under the hood - see
+              HourlyPricingConfiguration's doc comment. Redesigned
+              2026-08-11 into an explicit duration-package builder: every
+              bookable duration is its own row with its own price/mileage,
+              never derived from a per-hour multiplier. */}
+          <section>
+            <h3 className="text-base font-display font-semibold text-foreground mb-1 flex items-center gap-1.5">
+              <Timer className="h-4 w-4 text-primary" />
+              Hourly Pricing
+              <InfoTooltip text="Configures 'by the hour' charter pricing, completely separate from the adaptive one-way formula above. Each service class offers its own duration packages." />
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Pick a service class to build its duration packages. One-way pricing above is never affected by anything on this tab.
+            </p>
+
+            {/* Global master toggle - independent of any single service's
+                `enabled` field below. Disabling this hides Hourly Booking
+                site-wide and the backend rejects new hourly quotes even if
+                a request is crafted to bypass the hidden UI. */}
+            <div className="rounded-lg border border-border bg-secondary/30 px-4 py-3 mb-4 flex items-center justify-between">
+              <div>
+                <label htmlFor="hourly-booking-global" className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                  Hourly Booking
+                  <InfoTooltip text="Master switch for the entire by-the-hour feature. When off, customers cannot see or book by-the-hour, and the backend rejects hourly quote/booking requests regardless of per-service settings below." />
+                </label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {hourlyBookingSettings === null
+                    ? "Loading…"
+                    : hourlyBookingSettings.isEnabled
+                    ? "Offered to customers site-wide"
+                    : "Hidden from customers site-wide"}
+                </p>
+              </div>
+              <Switch
+                id="hourly-booking-global"
+                checked={hourlyBookingSettings?.isEnabled ?? false}
+                disabled={hourlyBookingSettings === null || hourlyBookingSettingsSaving}
+                onCheckedChange={handleToggleHourlyBooking}
+              />
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-4 sm:p-5 space-y-5">
+              <div>
+                <Label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
+                  Service class
+                  <InfoTooltip text="Every active and inactive service class - selecting one loads its existing duration packages, or lets you create a new hourly configuration for it." />
+                </Label>
+                {hourlyServicesLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading service classes…
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {hourlyServices.map((s) => {
+                      const config = hourlyConfigsByServiceId?.get(s.id);
+                      const statusLabel = config ? (config.enabled ? "Hourly enabled" : "Hourly disabled") : "No hourly pricing";
+                      const isSelected = s.id === selectedHourlyServiceId;
+                      return (
+                        <button
+                          type="button"
+                          key={s.id}
+                          onClick={() => setSelectedHourlyServiceId(s.id)}
+                          aria-pressed={isSelected}
+                          className={`text-left rounded-lg border px-3.5 py-2.5 transition-colors ${
+                            isSelected
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                              : "border-border bg-secondary/30 hover:border-primary/40 hover:bg-secondary/50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-sm font-semibold text-foreground truncate">{s.name}</span>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] text-muted-foreground capitalize">{s.vehicleType}</span>
+                            <span className="text-[11px] text-muted-foreground">·</span>
+                            <span className={`text-[11px] ${config?.enabled ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                              {statusLabel}
+                            </span>
+                            {!s.isActive && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {selectedHourlyService && (
+                hourlyConfigLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading hourly pricing…
+                  </div>
+                ) : (
+                  <>
+                    {/* Package identity header - the admin should always be
+                        able to tell at a glance which service they're
+                        editing and its current bookable rate, without
+                        reading the form fields below. */}
+                    <div className="pt-1 pb-2 border-t border-border">
+                      <h4 className="text-base font-display font-semibold text-foreground pt-3">{selectedHourlyService.name}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {existingHourlyConfig
+                          ? `Base hourly rate: $${existingHourlyConfig.baseHourlyRate.toFixed(2)}/hr`
+                          : "No hourly pricing configured yet"}
+                      </p>
+                    </div>
+
+                    {!existingHourlyConfig && (
+                      <div className="flex items-start gap-2 text-xs text-muted-foreground bg-secondary/50 rounded px-3 py-2">
+                        <AlertCircle className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                        Set a base hourly rate below and save to create it, then add duration packages.
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                          Base hourly rate ($/hr)
+                          <InfoTooltip text="Used to calculate any duration package that isn't given a custom price override below, e.g. $65/hr x 2h = $130." />
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={hourlyConfigDraft.baseHourlyRate}
+                          onChange={(e) => setHourlyConfigDraft((d) => ({ ...d, baseHourlyRate: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                          className="h-10"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <div className="rounded-lg border border-border bg-secondary/30 px-4 py-2.5 w-full flex items-center justify-between">
+                          <div>
+                            <label htmlFor="hourly-config-enabled" className="text-sm font-medium text-foreground">
+                              Enabled
+                            </label>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {hourlyConfigDraft.enabled ? "Bookable by the hour" : "Hidden for this class"}
+                            </p>
+                          </div>
+                          <Switch
+                            id="hourly-config-enabled"
+                            checked={hourlyConfigDraft.enabled}
+                            onCheckedChange={(checked) => setHourlyConfigDraft((d) => ({ ...d, enabled: checked }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button onClick={handleSaveHourlyConfig} disabled={hourlyConfigSaving} size="sm" className="gap-1.5">
+                        {hourlyConfigSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                        {existingHourlyConfig ? "Save" : "Create"}
+                      </Button>
+                      {existingHourlyConfig && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={hourlyConfigSaving}
+                          onClick={() => setHourlyConfigDraft(configDraftFromConfig(existingHourlyConfig))}
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+
+                    {existingHourlyConfig && (
+                      <div className="pt-2 border-t border-border space-y-4">
+                        <div>
+                          <h5 className="text-sm font-display font-semibold text-foreground mb-0.5 flex items-center gap-1">
+                            Duration Packages
+                            <InfoTooltip text="Exactly what customers can book - each row is a real, independently priced duration package. Nothing here is calculated from a hidden per-hour multiplier." />
+                          </h5>
+                          <p className="text-[11px] text-muted-foreground mb-2">Each row is its own price and mileage allowance for that duration.</p>
+
+                          <div className="rounded-lg border border-border overflow-hidden">
+                            <div className="grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2 px-3 py-2 bg-secondary/40 text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                              <span>Duration</span>
+                              <span>Price</span>
+                              <span>Included miles</span>
+                              <span className="text-right">Actions</span>
+                            </div>
+                            {existingHourlyConfig.options.length === 0 && editingOptionId !== "new" && (
+                              <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                                No duration packages yet - add one below or use Generate.
+                              </div>
+                            )}
+                            {existingHourlyConfig.options
+                              .slice()
+                              .sort((a, b) => a.durationMinutes - b.durationMinutes)
+                              .map((option) =>
+                                editingOptionId === option.id ? (
+                                  <OptionEditRow
+                                    key={option.id}
+                                    draft={optionDraft}
+                                    setDraft={setOptionDraft}
+                                    saving={optionSaving}
+                                    previewRatePriceDollars={previewRatePriceDollars}
+                                    onSave={handleSaveOption}
+                                    onCancel={cancelEditOption}
+                                  />
+                                ) : (
+                                  <div key={option.id} className={`grid grid-cols-[1fr_1fr_1.4fr_auto] gap-2 px-3 py-2.5 items-center border-t border-border text-sm ${!option.isActive ? "opacity-50" : ""}`}>
+                                    <span className="text-foreground font-medium">{formatDurationMinutes(option.durationMinutes)}</span>
+                                    <span className="text-foreground">
+                                      ${(option.customPriceCents != null ? option.customPriceCents / 100 : rateBasedPriceDollars(existingHourlyConfig, option.durationMinutes)).toFixed(2)}
+                                      {option.customPriceCents != null ? (
+                                        <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary align-middle">package</span>
+                                      ) : (
+                                        <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground align-middle">rate</span>
+                                      )}
+                                    </span>
+                                    <span className="text-muted-foreground">{option.includedMiles} miles included</span>
+                                    <div className="flex items-center justify-end gap-1">
+                                      {option.customPriceCents != null && (
+                                        <button
+                                          type="button"
+                                          title="Reset to standard hourly rate"
+                                          onClick={() => handleResetOptionPrice(option)}
+                                          className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                        >
+                                          <DollarSign className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                      <Switch
+                                        checked={option.isActive}
+                                        onCheckedChange={() => handleToggleOptionActive(option)}
+                                        aria-label={option.isActive ? "Deactivate this duration" : "Activate this duration"}
+                                        className="mx-0.5"
+                                      />
+                                      <button
+                                        type="button"
+                                        title="Edit"
+                                        onClick={() => startEditOption(option)}
+                                        className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        title="Remove"
+                                        onClick={() => handleRemoveOption(option)}
+                                        className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-destructive"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            {editingOptionId === "new" && (
+                              <OptionEditRow
+                                draft={optionDraft}
+                                setDraft={setOptionDraft}
+                                saving={optionSaving}
+                                previewRatePriceDollars={previewRatePriceDollars}
+                                onSave={handleSaveOption}
+                                onCancel={cancelEditOption}
+                              />
+                            )}
+                          </div>
+
+                          {editingOptionId === null && (
+                            <Button variant="ghost" size="sm" onClick={startAddOption} className="gap-1.5 mt-2">
+                              <Plus className="h-3.5 w-3.5" />
+                              Add custom duration
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Bulk generator for interval mode - a convenience
+                            on top of the row-level editor above, not a
+                            replacement for it: existing rows in range keep
+                            their price/mileage, only the set of durations
+                            offered is synced to min/max/increment. */}
+                        <div className="rounded-lg border border-dashed border-border px-4 py-3 space-y-3">
+                          <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                            Bulk generate durations
+                            <InfoTooltip text="Bulk-creates evenly spaced duration rows (e.g. every 60 minutes from 2h to 12h) using the standard hourly rate. Existing rows keep whatever price/mileage you've already set - only missing or now-out-of-range durations change." />
+                          </Label>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground mb-1">Min (hours)</Label>
+                              <Input
+                                type="number" min={0} step="0.5"
+                                value={hourlyConfigDraft.minimumHours}
+                                onChange={(e) => setHourlyConfigDraft((d) => ({ ...d, minimumHours: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                className="h-9"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground mb-1">Max (hours)</Label>
+                              <Input
+                                type="number" min={0} step="0.5"
+                                value={hourlyConfigDraft.maximumHours}
+                                onChange={(e) => setHourlyConfigDraft((d) => ({ ...d, maximumHours: Math.max(0, parseFloat(e.target.value) || 0) }))}
+                                className="h-9"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[10px] text-muted-foreground mb-1">Increment (minutes)</Label>
+                              <Input
+                                type="number" min={1} step="1"
+                                value={hourlyConfigDraft.incrementMinutes}
+                                onChange={(e) => setHourlyConfigDraft((d) => ({ ...d, incrementMinutes: Math.max(1, parseInt(e.target.value, 10) || 1) }))}
+                                className="h-9"
+                              />
+                            </div>
+                          </div>
+                          <Button onClick={handleGenerateOptions} disabled={generatingOptions} size="sm" variant="secondary" className="gap-1.5">
+                            {generatingOptions ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Calculator className="h-3.5 w-3.5" />}
+                            Generate
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )
+              )}
+            </div>
+          </section>
         </>
       )}
+    </div>
+  );
+}
+
+// One duration package's inline edit form - shared between "edit existing
+// row" and "add custom duration" (editingOptionId is either the option's id
+// or the sentinel "new"). Kept outside the page component so its identity
+// is stable across re-renders and it doesn't recreate input focus on every
+// keystroke.
+function OptionEditRow({
+  draft,
+  setDraft,
+  saving,
+  previewRatePriceDollars,
+  onSave,
+  onCancel,
+}: {
+  draft: OptionDraft;
+  setDraft: React.Dispatch<React.SetStateAction<OptionDraft>>;
+  saving: boolean;
+  previewRatePriceDollars: () => number | null;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const ratePreview = previewRatePriceDollars();
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2 px-3 py-3 border-t border-border bg-secondary/20 items-start">
+      <div>
+        <Label className="text-[10px] text-muted-foreground mb-1">Duration (hours)</Label>
+        <Input
+          type="number" min={0} step="0.25"
+          value={draft.durationHours}
+          onChange={(e) => setDraft((d) => ({ ...d, durationHours: e.target.value }))}
+          placeholder="2"
+          className="h-9"
+        />
+      </div>
+      <div>
+        <Label className="text-[10px] text-muted-foreground mb-1">Included miles</Label>
+        <Input
+          type="number" min={0} step="1"
+          value={draft.includedMiles}
+          onChange={(e) => setDraft((d) => ({ ...d, includedMiles: e.target.value }))}
+          placeholder="50"
+          className="h-9"
+        />
+      </div>
+      <div>
+        <Label className="text-[10px] text-muted-foreground mb-1">Price</Label>
+        <div className="inline-flex rounded-md border border-border overflow-hidden mb-1.5">
+          <button
+            type="button"
+            onClick={() => setDraft((d) => ({ ...d, priceMode: "rate" }))}
+            className={`px-2 py-1 text-[11px] font-medium transition-colors ${
+              draft.priceMode === "rate" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Standard rate
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft((d) => ({ ...d, priceMode: "package" }))}
+            className={`px-2 py-1 text-[11px] font-medium transition-colors border-l border-border ${
+              draft.priceMode === "package" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Custom price
+          </button>
+        </div>
+        {draft.priceMode === "rate" ? (
+          <p className="text-xs text-muted-foreground h-9 flex items-center">
+            {ratePreview != null ? `$${ratePreview.toFixed(2)} (calculated)` : "Enter a duration to preview"}
+          </p>
+        ) : (
+          <Input
+            type="number" min={0} step="0.01"
+            value={draft.packagePriceDollars}
+            onChange={(e) => setDraft((d) => ({ ...d, packagePriceDollars: e.target.value }))}
+            placeholder="130.00"
+            className="h-9"
+          />
+        )}
+      </div>
+      <div className="flex items-center gap-1 pt-5">
+        <Button onClick={onSave} disabled={saving} size="sm" className="gap-1.5">
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save
+        </Button>
+        <Button variant="ghost" size="sm" disabled={saving} onClick={onCancel}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 }

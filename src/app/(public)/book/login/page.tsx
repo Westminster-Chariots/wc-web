@@ -11,6 +11,7 @@ import { Input, Label } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
 import { useBookingStore } from "@/hooks/useBookingStore";
 import { notify } from "@/lib/notify";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 
 const typingPhrases = [
   "Almost there...",
@@ -185,7 +186,7 @@ export default function BookingLoginPage() {
               
 
               {/* Booking summary pill */}
-              {data.pickup && data.dropoff && (
+              {data.pickup && (data.dropoff || data.bookingMode === "hourly") && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -197,10 +198,20 @@ export default function BookingLoginPage() {
                     <span className="text-primary mt-0.5">↑</span>
                     <span className="truncate">{data.pickup}</span>
                   </div>
-                  <div className="flex items-start gap-2 text-xs font-body text-slate-950/70">
-                    <span className="text-white/70 mt-0.5">↓</span>
-                    <span className="truncate">{data.dropoff}</span>
-                  </div>
+                  {data.bookingMode === "hourly" ? (
+                    <div className="flex items-start gap-2 text-xs font-body text-slate-950/70">
+                      <span className="text-white/70 mt-0.5">⏱</span>
+                      <span className="truncate">
+                        {formatDurationMinutes(data.hourlyDurationMinutes)} charter
+                        {data.includedMiles != null ? ` · ${data.includedMiles} miles included` : ""}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 text-xs font-body text-slate-950/70">
+                      <span className="text-white/70 mt-0.5">↓</span>
+                      <span className="truncate">{data.dropoff}</span>
+                    </div>
+                  )}
                   {data.selectedVehicle && (
                     <p className="text-[10px] text-slate-950/60 uppercase tracking-wider pt-1 border-t border-white/20">
                       {data.selectedServiceName || (data.selectedVehicle === "sedan" ? "Business Class Sedan" : "Business SUV")}

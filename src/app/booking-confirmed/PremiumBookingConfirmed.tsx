@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ServicesDropdown from "@/components/home/navigation/ServicesDropdown";
 import { bookingService } from "@/lib/services";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import type { Booking } from "@/types";
 
 function PremiumBookingConfirmed() {
@@ -443,11 +444,13 @@ function PremiumBookingConfirmed() {
 
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                              <MapPin className="h-5 w-5 text-blue-500" />
+                              {booking.dropoffLocation ? <MapPin className="h-5 w-5 text-blue-500" /> : <Clock className="h-5 w-5 text-blue-500" />}
                             </div>
                             <div className="flex-1">
-                              <p className="text-sm font-semibold text-muted-foreground">Drop-off Location</p>
-                              <p className="text-lg font-body text-foreground">{booking.dropoffLocation}</p>
+                              <p className="text-sm font-semibold text-muted-foreground">{booking.dropoffLocation ? "Drop-off Location" : "Duration"}</p>
+                              <p className="text-lg font-body text-foreground">
+                                {booking.dropoffLocation || (booking.hourlyDurationMinutes ? `${formatDurationMinutes(booking.hourlyDurationMinutes)} charter · no fixed destination` : "By the hour")}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -491,6 +494,21 @@ function PremiumBookingConfirmed() {
                               <p className="text-base font-body text-foreground">
                                 {booking.distanceMiles.toFixed(1)} miles • {booking.durationMinutes || 0} min
                               </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Included mileage - the real configured allowance for
+                            this exact duration (see bookings.includedMiles' doc
+                            comment), never a per-hour multiplier. */}
+                        {booking.bookingType === "hourly" && booking.includedMiles != null && (
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                              <Sparkles className="h-5 w-5 text-cyan-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-muted-foreground">Included Miles</p>
+                              <p className="text-base font-body text-foreground">{booking.includedMiles} miles included</p>
                             </div>
                           </div>
                         )}
@@ -620,18 +638,26 @@ function PremiumBookingConfirmed() {
                         </div>
                       )}
                       <div className="space-y-2">
-                        {!(booking.legs && booking.legs.length > 1) && (
+                        {/* Base/Gratuity breakdown only when THIS booking's own
+                            stored gratuity is actually nonzero - sourced
+                            directly from the booking row, never re-derived
+                            from the admin's current gratuity setting or a
+                            fixed percentage, so a booking already created
+                            keeps showing exactly what it was charged even if
+                            gratuity is later toggled or its percentage
+                            changed (see lib/gratuity.ts - off by default). */}
+                        {!(booking.legs && booking.legs.length > 1) && booking.basePrice != null && booking.gratuity != null && booking.gratuity > 0 && (
                           <>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Base fare</span>
                               <span className="font-semibold text-foreground">
-                                ${(total * 0.8).toFixed(2)}
+                                ${booking.basePrice.toFixed(2)}
                               </span>
                             </div>
                             <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Gratuity (20%)</span>
+                              <span className="text-muted-foreground">Gratuity</span>
                               <span className="font-semibold text-foreground">
-                                ${(total * 0.2).toFixed(2)}
+                                ${booking.gratuity.toFixed(2)}
                               </span>
                             </div>
                           </>

@@ -44,6 +44,17 @@ describe("computeTripFingerprint", () => {
     });
     expect(fp1).not.toBe(fp2);
   });
+
+  it("is unaffected by an omitted durationMinutes - one-way's fingerprint shape must stay byte-identical", () => {
+    expect(computeTripFingerprint(baseArgs)).toBe(computeTripFingerprint({ ...baseArgs, durationMinutes: undefined }));
+  });
+
+  it("changes when durationMinutes changes - going back and picking a different duration must not reuse a stale checkoutAttemptId", () => {
+    const hourlyArgs = { ...baseArgs, dropoff: "", durationMinutes: 180 };
+    const fp1 = computeTripFingerprint(hourlyArgs);
+    const fp2 = computeTripFingerprint({ ...hourlyArgs, durationMinutes: 240 });
+    expect(fp1).not.toBe(fp2);
+  });
 });
 
 describe("resolveCheckoutAttemptId", () => {

@@ -4,6 +4,7 @@ import { Settings, Building2, Bell, Users, Save, Loader2, Shield, UserCircle, Lo
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -362,11 +363,10 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium">{item.label}</p>
                           <p className="text-xs text-muted-foreground">{item.desc}</p>
                         </div>
-                        <input
-                          type="checkbox"
+                        <Switch
                           checked={notifications[item.key]}
-                          onChange={e => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                          className="rounded"
+                          onCheckedChange={(checked) => setNotifications({ ...notifications, [item.key]: checked })}
+                          aria-label={item.label}
                         />
                       </div>
                     ))}
@@ -384,11 +384,10 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium">{item.label}</p>
                           <p className="text-xs text-muted-foreground">{item.desc}</p>
                         </div>
-                        <input
-                          type="checkbox"
+                        <Switch
                           checked={notifications[item.key]}
-                          onChange={e => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                          className="rounded"
+                          onCheckedChange={(checked) => setNotifications({ ...notifications, [item.key]: checked })}
+                          aria-label={item.label}
                         />
                       </div>
                     ))}
@@ -406,11 +405,10 @@ export default function SettingsPage() {
                           <p className="text-sm font-medium">{item.label}</p>
                           <p className="text-xs text-muted-foreground">{item.desc}</p>
                         </div>
-                        <input
-                          type="checkbox"
+                        <Switch
                           checked={notifications[item.key]}
-                          onChange={e => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                          className="rounded"
+                          onCheckedChange={(checked) => setNotifications({ ...notifications, [item.key]: checked })}
+                          aria-label={item.label}
                         />
                       </div>
                     ))}

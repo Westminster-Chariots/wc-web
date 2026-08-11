@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { Car, ChevronRight, CalendarDays, XCircle, Filter } from "lucide-react";
+import { Car, ChevronRight, CalendarDays, XCircle, Filter, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import MapPreview from "@/components/booking/MapPreview";
 import RouteVisualization from "@/components/booking/RouteVisualization";
 import type { Booking } from "@/types";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import { format, parseISO, differenceInHours } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 
@@ -431,16 +432,39 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
 
                     <div className="grid gap-3 lg:grid-cols-[1.4fr_0.9fr]">
                       <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                        <RouteVisualization pickup={booking.pickupLocation} dropoff={booking.dropoffLocation} />
+                        {booking.dropoffLocation ? (
+                          <RouteVisualization pickup={booking.pickupLocation} dropoff={booking.dropoffLocation} />
+                        ) : (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-slate-500 shrink-0" />
+                            <span className="text-slate-900 font-medium">{booking.pickupLocation}</span>
+                            <span className="text-slate-500">— by the hour, no fixed destination</span>
+                          </div>
+                        )}
                         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Distance</p>
-                            <p className="mt-2 text-sm text-slate-900">{booking.distanceMiles || "—"} mi</p>
-                          </div>
-                          <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
-                            <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Duration</p>
-                            <p className="mt-2 text-sm text-slate-900">{booking.durationMinutes ? `${booking.durationMinutes} mins` : "—"}</p>
-                          </div>
+                          {booking.dropoffLocation ? (
+                            <>
+                              <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Distance</p>
+                                <p className="mt-2 text-sm text-slate-900">{booking.distanceMiles || "—"} mi</p>
+                              </div>
+                              <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Duration</p>
+                                <p className="mt-2 text-sm text-slate-900">{booking.durationMinutes ? `${booking.durationMinutes} mins` : "—"}</p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Duration</p>
+                                <p className="mt-2 text-sm text-slate-900">{booking.hourlyDurationMinutes ? formatDurationMinutes(booking.hourlyDurationMinutes) : "—"}</p>
+                              </div>
+                              <div className="rounded-3xl bg-slate-50 p-3 ring-1 ring-slate-200">
+                                <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">Included miles</p>
+                                <p className="mt-2 text-sm text-slate-900">{booking.includedMiles != null ? `${booking.includedMiles} mi` : "—"}</p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                       <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
@@ -530,7 +554,7 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                 <>
                   <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                     <div className="rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
-                      <MapPreview pickup={selectedBooking.pickupLocation} dropoff={selectedBooking.dropoffLocation} />
+                      <MapPreview pickup={selectedBooking.pickupLocation} dropoff={selectedBooking.dropoffLocation ?? undefined} />
                     </div>
                     <div className="space-y-4 rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
                       <div>
@@ -538,8 +562,10 @@ export default function BookingsList({ bookings, loading, page, pageSize, onPage
                         <p className="mt-2 text-sm text-slate-900">{selectedBooking.pickupLocation}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Drop-off</p>
-                        <p className="mt-2 text-sm text-slate-900">{selectedBooking.dropoffLocation}</p>
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{selectedBooking.dropoffLocation ? "Drop-off" : "Duration"}</p>
+                        <p className="mt-2 text-sm text-slate-900">
+                          {selectedBooking.dropoffLocation || (selectedBooking.hourlyDurationMinutes ? `${formatDurationMinutes(selectedBooking.hourlyDurationMinutes)} charter (by the hour)` : "By the hour")}
+                        </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>

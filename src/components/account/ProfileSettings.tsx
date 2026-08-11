@@ -4,6 +4,7 @@ import { Settings, Edit2, Save, X, Lock, Eye, EyeOff, User, Mail, Phone, Buildin
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui";
 
 interface ProfileData {
   email: string;
@@ -134,15 +135,14 @@ export default function ProfileSettings({ profile, onSave, onChangePassword }: P
                 <Building2 className="h-4 w-4 text-slate-500" /> Corporate
               </Label>
               {editing ? (
-                <label className="flex items-center gap-3 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center justify-between gap-3 text-sm text-slate-700">
+                  <label htmlFor="corporate-billing-toggle">Corporate billing enabled</label>
+                  <Switch
+                    id="corporate-billing-toggle"
                     checked={editForm.isCorporate}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, isCorporate: e.target.checked }))}
-                    className="h-4 w-4 rounded border-slate-300 bg-white"
+                    onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, isCorporate: checked }))}
                   />
-                  Corporate billing enabled
-                </label>
+                </div>
               ) : (
                 <p className="text-sm text-slate-900">{profile.isCorporate ? "Yes" : "No"}</p>
               )}

@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { bookingService } from "@/lib/services";
 import { notify } from "@/lib/notify";
 import type { Booking } from "@/types";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Car, CalendarDays, MapPin, Clock, DollarSign, User, Phone, Star, FileText, AlertCircle, CreditCard, CheckCircle2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -214,7 +215,7 @@ export default function BookingDetailsPage() {
                 <h2 className="text-lg font-semibold text-slate-900">Route</h2>
               </div>
               <div className="rounded-xl overflow-hidden">
-                <MapPreview pickup={booking.pickupLocation} dropoff={booking.dropoffLocation} />
+                <MapPreview pickup={booking.pickupLocation} dropoff={booking.dropoffLocation ?? undefined} />
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-lg bg-slate-50 p-4">
@@ -222,8 +223,17 @@ export default function BookingDetailsPage() {
                   <p className="mt-1 text-slate-600">{booking.pickupLocation}</p>
                 </div>
                 <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900">Drop-off Location</p>
-                  <p className="mt-1 text-slate-600">{booking.dropoffLocation}</p>
+                  {booking.dropoffLocation ? (
+                    <>
+                      <p className="text-sm font-medium text-slate-900">Drop-off Location</p>
+                      <p className="mt-1 text-slate-600">{booking.dropoffLocation}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-slate-900">Duration</p>
+                      <p className="mt-1 text-slate-600">{booking.hourlyDurationMinutes ? `${formatDurationMinutes(booking.hourlyDurationMinutes)} charter` : "By the hour"}</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -244,23 +254,60 @@ export default function BookingDetailsPage() {
                     {booking.pickupDate ? format(parseISO(booking.pickupDate), "EEEE, MMMM d, yyyy") : "—"} · {booking.pickupTime?.slice(0, 5) || "00:00"}
                   </p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="h-4 w-4 text-slate-500" />
-                    <p className="text-sm font-medium text-slate-900">Duration</p>
-                  </div>
-                  <p className="text-slate-600">{booking.durationMinutes || "—"} minutes</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-900 mb-2">Distance</p>
-                  <p className="text-slate-600">{booking.distanceMiles || "—"} miles</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-4">
+                {booking.bookingType === "hourly" ? (
+                  <>
+                    <div className="rounded-lg bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-slate-500" />
+                        <p className="text-sm font-medium text-slate-900">Charter Duration</p>
+                      </div>
+                      <p className="text-slate-600">{booking.hourlyDurationMinutes ? formatDurationMinutes(booking.hourlyDurationMinutes) : "—"}</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-4">
+                      <p className="text-sm font-medium text-slate-900 mb-2">Included Miles</p>
+                      <p className="text-slate-600">{booking.includedMiles != null ? `${booking.includedMiles} mi` : "—"}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-lg bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-slate-500" />
+                        <p className="text-sm font-medium text-slate-900">Duration</p>
+                      </div>
+                      <p className="text-slate-600">{booking.durationMinutes || "—"} minutes</p>
+                    </div>
+                    <div className="rounded-lg bg-slate-50 p-4">
+                      <p className="text-sm font-medium text-slate-900 mb-2">Distance</p>
+                      <p className="text-slate-600">{booking.distanceMiles || "—"} miles</p>
+                    </div>
+                  </>
+                )}
+                <div className="rounded-lg bg-slate-50 p-4 sm:col-span-2">
                   <div className="flex items-center gap-2 mb-2">
                     <DollarSign className="h-4 w-4 text-slate-500" />
                     <p className="text-sm font-medium text-slate-900">{booking.legs && booking.legs.length > 1 ? "Total Price (all journeys)" : "Total Price"}</p>
                   </div>
-                  <p className="text-2xl font-semibold text-slate-900">${(booking.groupTotalPrice ?? booking.totalPrice) ? Number(booking.groupTotalPrice ?? booking.totalPrice).toFixed(0) : "0"}</p>
+                  {/* Base/Gratuity breakdown only when THIS booking's own
+                      stored gratuity is actually nonzero - never re-derived
+                      from the current admin gratuity setting, so a booking
+                      already created keeps showing exactly what it was
+                      charged even if gratuity is later toggled/changed. */}
+                  {booking.basePrice != null && booking.gratuity != null && booking.gratuity > 0 && !(booking.legs && booking.legs.length > 1) ? (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm text-slate-600">
+                        <span>Base fare</span>
+                        <span>${booking.basePrice.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-slate-600">
+                        <span>Gratuity</span>
+                        <span>${booking.gratuity.toFixed(2)}</span>
+                      </div>
+                      <p className="text-2xl font-semibold text-slate-900 pt-1">${(booking.groupTotalPrice ?? booking.totalPrice) ? Number(booking.groupTotalPrice ?? booking.totalPrice).toFixed(2) : "0.00"}</p>
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-semibold text-slate-900">${(booking.groupTotalPrice ?? booking.totalPrice) ? Number(booking.groupTotalPrice ?? booking.totalPrice).toFixed(0) : "0"}</p>
+                  )}
                 </div>
               </div>
             </div>

@@ -96,8 +96,19 @@ Separator.displayName = SeparatorPrimitive.Root.displayName;
 import * as SwitchPrimitive from "@radix-ui/react-switch";
 export const Switch = React.forwardRef<React.ElementRef<typeof SwitchPrimitive.Root>, React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>>(
   ({ className, ...props }, ref) => (
-    <SwitchPrimitive.Root ref={ref} className={cn("peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input", className)} {...props}>
-      <SwitchPrimitive.Thumb className={cn("pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0")} />
+    <SwitchPrimitive.Root ref={ref} className={cn("peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[hsl(var(--primary))] data-[state=unchecked]:bg-[hsl(var(--input))]", className)} {...props}>
+      {/* Named theme utilities (bg-primary, bg-input, ring-ring, ...) silently
+          produce no CSS in this project - globals.css's @theme block only
+          defines --color-accent-blue/--color-light-beige/fonts, not
+          --color-primary/--color-input/--color-ring, so Tailwind v4 has no
+          token to generate those shorthand utilities from (confirmed: even
+          plain, variant-free bg-primary on <Button> resolves to a fully
+          transparent computed background). Using the raw CSS custom
+          properties directly via the bg-[hsl(var(--x))] arbitrary-value
+          escape hatch - the same pattern dropdown-menu.tsx already relies on
+          - sidesteps the missing theme-token mapping entirely rather than
+          depending on a sitewide fix. */}
+      <SwitchPrimitive.Thumb className={cn("pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0")} />
     </SwitchPrimitive.Root>
   )
 );

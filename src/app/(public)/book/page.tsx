@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Users, Briefcase, Check, ChevronDown, Shield, Phone, MapPin, Clock, X, Edit2, Save, Car } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
 import type { Service } from "@/types";
 import { serviceService } from "@/lib/services";
+import { snapToNearestDuration, findDurationOption, formatDurationMinutes } from "@/lib/hourlyDuration";
 import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 
@@ -28,14 +29,17 @@ const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] 
 export default function BookingPage() {
   const router = useRouter();
   const { data, update } = useBookingStore();
-  const { pickup, dropoff, isPickupAirport, pickupDate, pickupTime } = data;
+  const { pickup, dropoff, isPickupAirport, pickupDate, pickupTime, bookingMode } = data;
+  const isHourly = bookingMode === "hourly";
 
-  // Redirect to homepage if no pickup/dropoff selected
+  // Redirect to homepage if the trip isn't complete. Hourly bookings have
+  // no dropoff by design (see useBookingStore.ts) so they're valid with
+  // just a pickup; one-way bookings still require both ends of the route.
   useEffect(() => {
-    if (!pickup || !dropoff) {
+    if (!pickup || (!isHourly && !dropoff)) {
       router.push("/");
     }
-  }, [pickup, dropoff, router]);
+  }, [pickup, dropoff, isHourly, router]);
 
   const [currentStep] = useState(0);
   const [selectedVehicle, setSelectedVehicle] = useState<"sedan" | "suv" | null>(data.selectedVehicle);
@@ -107,6 +111,53 @@ export default function BookingPage() {
         ],
       }));
   }, [availableServices]);
+
+  // Hourly-bookable services only (Service.hourlyPricing is null for a
+  // service with no active hourly configuration assigned - see GET
+  // /services' doc comment on the backend). Every listed service is fully
+  // selectable. Duration itself was already chosen on the homepage (a
+  // generic fallback range - see HeroSection.tsx) before any service was
+  // picked, so each card here shows that same requested duration SNAPPED to
+  // the nearest one this specific service's real config actually allows
+  // (snapToNearestDuration) - never a free-floating per-card picker, since
+  // the customer already made their duration choice upstream. The matched
+  // `option` carries the exact price/mileage GET /services already computed
+  // server-side (via calculateHourlyFareCents) for that duration - no rate x
+  // duration math happens on the frontend at all anymore; the actual
+  // signed, locked quote is still fetched at checkout via
+  // pricingService.calculateHourly(), this is just displaying the same
+  // number early.
+  const hourlyVehicles = useMemo(() => {
+    if (!isHourly) return [];
+    return availableServices
+      .filter((s) => s.hourlyPricing !== null)
+      .slice()
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
+      .map((service) => {
+        const hp = service.hourlyPricing!;
+        const snappedDurationMinutes = snapToNearestDuration(data.hourlyDurationMinutes, hp.options);
+        const option = findDurationOption(hp.options, snappedDurationMinutes)!;
+        return {
+          id: service.id,
+          type: service.vehicleType,
+          name: service.name,
+          subtitle: `${service.description || (service.vehicleType === "sedan" ? "Business Class" : "Business SUV")}`,
+          passengers: service.passengerCapacity,
+          luggage: service.luggageCapacity,
+          image: service.imageUrl || (service.vehicleType === "sedan" ? "/assets/sedan-profile.png" : "/assets/suv-profile.png"),
+          features: service.features.length > 0 ? service.features : [
+            service.name,
+            `Seats ${service.passengerCapacity} passengers`,
+            `Fits ${service.luggageCapacity} luggage pieces`,
+            "Professional chauffeur",
+            "Bottled water & amenities",
+          ],
+          hourlyPricing: hp,
+          snappedDurationMinutes,
+          option,
+        };
+      });
+  }, [availableServices, isHourly, data.hourlyDurationMinutes]);
 
   // State for individual vehicle prices
   const [vehiclePrices, setVehiclePrices] = useState<Record<string, FareEstimate | null>>({});
@@ -212,6 +263,30 @@ export default function BookingPage() {
       selectedServiceId,
       selectedServiceName: selectedService?.name ?? null,
       selectedServiceImage: selectedService?.imageUrl ?? null,
+      includedMiles: null,
+    });
+    router.push("/book/details");
+  };
+
+  // Hourly counterpart to handleVehicleContinue - no route/distance check
+  // (there is none for hourly), otherwise the same store update + advance.
+  // Writes the SNAPPED duration for the chosen service (see hourlyVehicles'
+  // doc comment), not the raw homepage value - that's what actually gets
+  // quoted/charged, so it's what every downstream page must display. The
+  // real signed hourly quote is fetched later, at checkout - see
+  // pricingService.calculateHourly's doc comment.
+  const handleHourlyContinue = () => {
+    if (!selectedVehicle || !selectedServiceId) return;
+    const selectedService = availableServices.find((s) => s.id === selectedServiceId);
+    const selectedHourlyVehicle = hourlyVehicles.find((v) => v.id === selectedServiceId);
+    if (!selectedHourlyVehicle) return;
+    update({
+      selectedVehicle,
+      selectedServiceId,
+      selectedServiceName: selectedService?.name ?? null,
+      selectedServiceImage: selectedService?.imageUrl ?? null,
+      hourlyDurationMinutes: selectedHourlyVehicle.snappedDurationMinutes,
+      includedMiles: selectedHourlyVehicle.option.includedMiles,
     });
     router.push("/book/details");
   };
@@ -270,7 +345,7 @@ export default function BookingPage() {
   // hooks: this must never gate which hooks run). The redirect itself is
   // still driven by the useEffect near the top, unconditionally called on
   // every render; this only controls what's rendered while it takes effect.
-  if (!pickup || !dropoff) {
+  if (!pickup || (!isHourly && !dropoff)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -283,6 +358,30 @@ export default function BookingPage() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      {isHourly && currentStep === 0 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6 sm:p-8 mb-6 sm:mb-10 shadow-glass">
+          <p className="text-sm sm:text-base font-display font-semibold text-foreground">
+            {formattedDate && formattedTime ? `${formattedDate} at ${formattedTime} (EST)` : null}
+          </p>
+          <div className="flex items-center gap-1.5 mt-2 text-sm font-body text-primary truncate">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            {pickup}
+          </div>
+          {selectedServiceId && (() => {
+            const selected = hourlyVehicles.find((v) => v.id === selectedServiceId);
+            if (!selected) return null;
+            return (
+              <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs text-muted-foreground font-body">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-primary" />
+                  <span>{formatDurationMinutes(selected.snappedDurationMinutes)} booked · {selected.option.includedMiles} miles included</span>
+                </div>
+              </div>
+            );
+          })()}
+        </motion.div>
+      )}
+
       {route && currentStep === 0 && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-xl p-6 sm:p-8 mb-6 sm:mb-10 shadow-glass hover:shadow-blue transition-all duration-300">
             <div className="flex items-start justify-between mb-2 sm:mb-3">
@@ -454,7 +553,98 @@ export default function BookingPage() {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {currentStep === 0 && gatekeeperStatus !== "emergency" && (
+          {currentStep === 0 && gatekeeperStatus !== "emergency" && isHourly && (
+            <motion.div key="step0-hourly" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
+              {hourlyVehicles.length === 0 && !loadingServices ? (
+                <div className="glass-card rounded-xl p-6 sm:p-8 text-center">
+                  <Clock className="h-10 w-10 text-primary/40 mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-foreground">Hourly pricing isn't configured yet</p>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
+                    No service class has hourly rates set up yet. Please call dispatch to complete this booking for now.
+                  </p>
+                  <a href="tel:+15714351832" className="mt-4 inline-block">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Phone className="h-3.5 w-3.5" />
+                      Call (571) 435-1832
+                    </Button>
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <div className="mb-4 sm:mb-6">
+                    <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Select a service class</h2>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-body mt-1">
+                      {formatDurationMinutes(data.hourlyDurationMinutes)} requested - prices include estimated fees, tolls, and tax
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
+                    {hourlyVehicles.map((v, i) => {
+                      const isSelected = selectedServiceId === v.id;
+                      const isExpanded = expandedServiceId === v.id;
+                      const previewTotal = v.option.priceCents / 100;
+                      const wasAdjusted = v.snappedDurationMinutes !== data.hourlyDurationMinutes;
+                      return (
+                        <div key={v.id}>
+                          <VehiclePricingDisplay
+                            vehicleType={v.type}
+                            name={v.name}
+                            subtitle={v.subtitle}
+                            passengers={v.passengers}
+                            luggage={v.luggage}
+                            image={v.image}
+                            features={v.features}
+                            distance={0}
+                            duration={0}
+                            basePrice={previewTotal}
+                            total={previewTotal}
+                            priceLoading={false}
+                            isSelected={isSelected}
+                            isExpanded={isExpanded}
+                            onSelect={() => {
+                              setSelectedVehicle(v.type);
+                              setSelectedServiceId(v.id);
+                              setExpandedServiceId(v.id);
+                            }}
+                            onToggleExpand={() => setExpandedServiceId(expandedServiceId === v.id ? null : v.id)}
+                            serviceId={v.id}
+                          />
+
+                          {/* Read-only duration summary for this service -
+                              duration itself was already chosen on the
+                              homepage; this just shows how it maps onto this
+                              specific service's real config (see
+                              hourlyVehicles' doc comment). */}
+                          {isSelected && (
+                            <div className="mt-2 rounded-xl border border-primary/20 bg-card/50 p-4 sm:p-5">
+                              <p className="text-xs font-semibold text-foreground mb-1">Duration</p>
+                              <p className="text-sm font-body">
+                                <span className="font-semibold text-foreground">{formatDurationMinutes(v.snappedDurationMinutes)}</span>{" "}
+                                <span className="font-semibold text-foreground">${previewTotal.toFixed(2)}</span>{" "}
+                                <span className="text-muted-foreground">· {v.option.includedMiles} miles included</span>
+                              </p>
+                              {wasAdjusted && (
+                                <p className="text-[11px] text-muted-foreground mt-1.5">
+                                  Adjusted from your {formatDurationMinutes(data.hourlyDurationMinutes)} request to fit this service's available durations.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-4">
+                    <Shield className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground font-body">$95/hr wait-time fee applies for delays beyond 15 minutes</p>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+
+          {currentStep === 0 && gatekeeperStatus !== "emergency" && !isHourly && (
             <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }}>
               <div className="mb-4 sm:mb-6">
                 <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">Select a service class</h2>
@@ -520,16 +710,16 @@ export default function BookingPage() {
           )}
         </AnimatePresence>
 
-      {currentStep === 0 && gatekeeperStatus !== "emergency" && (
+      {currentStep === 0 && gatekeeperStatus !== "emergency" && !isHourly && (
         <div className="fixed bottom-0 left-0 right-0 glass-strong border-t border-primary/20 z-40 shadow-glass">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between">
             <button onClick={() => setShowTerms(true)} className="text-xs sm:text-sm text-muted-foreground font-body hover:text-primary transition-colors underline underline-offset-4 hover:scale-105 transition-all duration-300" type="button">
               Terms & conditions
             </button>
-            <Button 
-              size="lg" 
-              className="gap-2 px-8 sm:px-12 bg-blue-gradient shadow-blue hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
-              disabled={!selectedVehicle || !selectedServiceId || !!routeError || !isPriceLoaded || isPriceLoading} 
+            <Button
+              size="lg"
+              className="gap-2 px-8 sm:px-12 bg-blue-gradient shadow-blue hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              disabled={!selectedVehicle || !selectedServiceId || !!routeError || !isPriceLoaded || isPriceLoading}
               onClick={handleVehicleContinue}
             >
               {isPriceLoading ? (
@@ -543,6 +733,24 @@ export default function BookingPage() {
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}
+            </Button>
+          </div>
+        </div>
+      )}
+      {currentStep === 0 && gatekeeperStatus !== "emergency" && isHourly && hourlyVehicles.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 glass-strong border-t border-primary/20 z-40 shadow-glass">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between">
+            <button onClick={() => setShowTerms(true)} className="text-xs sm:text-sm text-muted-foreground font-body hover:text-primary transition-colors underline underline-offset-4 hover:scale-105 transition-all duration-300" type="button">
+              Terms & conditions
+            </button>
+            <Button
+              size="lg"
+              className="gap-2 px-8 sm:px-12 bg-blue-gradient shadow-blue hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              disabled={!selectedVehicle || !selectedServiceId}
+              onClick={handleHourlyContinue}
+            >
+              Continue
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

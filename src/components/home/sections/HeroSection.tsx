@@ -2,9 +2,20 @@
 
 import Image from "next/image";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { Shield, Clock, Star, ArrowRight } from "lucide-react";
+import { Shield, Clock, Star, ArrowRight, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+// Generic fallback bounds for the homepage's "By the hour" duration field -
+// picked before any service class is chosen, so these can't be sourced from
+// a real per-service HourlyPricingConfiguration the way /book's snapping
+// logic is (see lib/hourlyDuration.ts's snapToNearestDuration). Once a
+// service is picked on /book, this value is snapped to THAT service's real
+// min/max/increment (or nearest custom duration) - it's a starting point,
+// not the final booked duration.
+export const HOURLY_DURATION_MIN_HOURS = 2;
+export const HOURLY_DURATION_MAX_HOURS = 12;
+export const HOURLY_DURATION_DEFAULT_HOURS = 3;
 
 interface HeroSectionProps {
   heroRef: React.RefObject<HTMLDivElement | null>;
@@ -15,6 +26,19 @@ interface HeroSectionProps {
   dropoff: string;
   pickupDate: string;
   pickupTime: string;
+  durationHours: number;
+  setDurationHours: (hours: number) => void;
+  // When false, "By the hour" is not rendered at all - Hourly Booking is
+  // globally disabled (see hourlyBookingAvailabilityService in
+  // lib/services.ts). The real enforcement is server-side; this only
+  // controls whether the toggle is offered.
+  hourlyBookingAvailable: boolean;
+  // Real, server-derived durationMinutes -> includedMiles lookup (see
+  // page.tsx's fetch of GET /services) - a direct read of each active
+  // hourly-bookable service's own configured duration package, never a
+  // per-hour multiplier. A duration is present only when every service
+  // offering it agrees on the mileage; absent otherwise (never guessed).
+  hourlyMileageByDurationMinutes: Map<number, number> | null;
   bookingFormRef: React.RefObject<HTMLDivElement | null>;
   openModal: (type: "pickup" | "dropoff" | "date" | "time", event: React.MouseEvent) => void;
   handleSearch: () => void;
@@ -29,6 +53,10 @@ export default function HeroSection({
   dropoff,
   pickupDate,
   pickupTime,
+  durationHours,
+  setDurationHours,
+  hourlyBookingAvailable,
+  hourlyMileageByDurationMinutes,
   bookingFormRef,
   openModal,
   handleSearch,
@@ -109,27 +137,29 @@ export default function HeroSection({
         </div>
 
         {/* Toggle Buttons */}
-        {/* <motion.div
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="mt-14 mb-4 flex justify-center"
         >
           <div className="inline-flex items-center rounded-full border border-white/15 bg-black/35 p-1 backdrop-blur-md">
-            <button 
+            <button
               onClick={() => setBookingMode("oneway")}
               className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "oneway" ? 'bg-blue-gradient shadow-blue text-white' : 'text-white/85 hover:text-white'}`}
             >
               One way
             </button>
-            <button 
-              onClick={() => setBookingMode("hourly")}
-              className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "hourly" ? 'bg-blue-gradient shadow-blue text-white' : 'text-white/85 hover:text-white'}`}
-            >
-              By the hour
-            </button>
+            {hourlyBookingAvailable && (
+              <button
+                onClick={() => setBookingMode("hourly")}
+                className={`rounded-full px-7 py-2.5 text-sm font-semibold transition-all duration-300 ${bookingMode === "hourly" ? 'bg-blue-gradient shadow-blue text-white' : 'text-white/85 hover:text-white'}`}
+              >
+                By the hour
+              </button>
+            )}
           </div>
-        </motion.div> */}
+        </motion.div>
 
         {/* Booking Form */}
         <motion.div
@@ -172,6 +202,60 @@ export default function HeroSection({
                       </div>
                     </div>
                   </button>
+                  <div className="hidden md:block h-12 w-px bg-white/10" />
+                </>
+              )}
+
+              {/* Generic duration field - a starting point, not tied to any
+                  service's real config yet (different classes can have
+                  different min/max/increment or custom-duration lists, see
+                  HourlyPricingSummary). Once a service is chosen on /book,
+                  this value is auto-snapped to that service's nearest valid
+                  duration - see lib/hourlyDuration.ts's snapToNearestDuration. */}
+              {bookingMode === "hourly" && (
+                <>
+                  <div className="px-5 py-4 flex-1 border-b border-white/8 md:border-b-0 min-h-[56px] flex items-center">
+                    <div className="w-full">
+                      <div className="text-[12px] font-semibold text-white">Duration</div>
+                      <div className="mt-1 flex items-center gap-3">
+                        <button
+                          type="button"
+                          aria-label="Decrease duration"
+                          onClick={() => setDurationHours(Math.max(HOURLY_DURATION_MIN_HOURS, durationHours - 1))}
+                          disabled={durationHours <= HOURLY_DURATION_MIN_HOURS}
+                          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="text-[14px] text-white min-w-[36px] text-center">{durationHours}h</span>
+                        <button
+                          type="button"
+                          aria-label="Increase duration"
+                          onClick={() => setDurationHours(Math.min(HOURLY_DURATION_MAX_HOURS, durationHours + 1))}
+                          disabled={durationHours >= HOURLY_DURATION_MAX_HOURS}
+                          className="flex h-6 w-6 items-center justify-center rounded-full border border-white/25 text-white transition-colors hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {/* Live, plain-text statement of the real configured
+                          mileage allowance for the currently selected
+                          duration - a direct lookup (see page.tsx), never a
+                          per-hour multiplier or an approximation. Re-derives
+                          on every +/- click since it reads durationHours
+                          directly. Renders an empty (but height-reserving)
+                          line rather than inventing a number when no active
+                          service has a configured package for this exact
+                          duration. */}
+                      <p className="mt-1 text-[11px] leading-tight text-white/70 min-h-[14px]">
+                        {(() => {
+                          const miles = hourlyMileageByDurationMinutes?.get(durationHours * 60);
+                          if (miles == null) return null;
+                          return `In ${durationHours} hour${durationHours === 1 ? "" : "s"}, ${miles} mile${miles === 1 ? "" : "s"} ${miles === 1 ? "is" : "are"} included.`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
                   <div className="hidden md:block h-12 w-px bg-white/10" />
                 </>
               )}

@@ -4,6 +4,7 @@ import { ArrowLeft, Pencil, Trash2, History, FileText, Loader2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
@@ -345,12 +346,11 @@ function EditClientModal({ client, onClose, onUpdated }: {
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium">Corporate Client</label>
-            <input
-              type="checkbox"
+            <label htmlFor="corporate-client-toggle" className="text-xs font-medium">Corporate Client</label>
+            <Switch
+              id="corporate-client-toggle"
               checked={form.isCorporate}
-              onChange={e => setForm(f => ({ ...f, isCorporate: e.target.checked }))}
-              className="rounded"
+              onCheckedChange={(checked) => setForm(f => ({ ...f, isCorporate: checked }))}
             />
           </div>
 

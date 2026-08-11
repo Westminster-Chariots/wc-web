@@ -15,12 +15,49 @@ export type VehicleType = "sedan" | "suv";
 // vehicleType, enforced server-side) - never as a link to one specific
 // car. See FleetVehicle below for the separate, internal-only
 // physical-vehicle entity.
+// Redesigned 2026-08-11 around explicit, per-duration PACKAGES - a
+// duration's price and included mileage are independent, admin-set facts
+// (see hourlyPricingOptions on the backend), never derived from a
+// rate x hours multiplier. This is one duration package a customer can
+// actually book: its price already reflects whichever pricing style
+// applies (priceSource tells you which, purely for display - "standard
+// rate" vs "custom package" - the effective price/miles are what to use
+// either way).
+export interface HourlyPricingSummaryOption {
+  durationMinutes: number;
+  includedMiles: number;
+  priceCents: number;
+  priceSource: "rate" | "package";
+}
+
+// Public, display-only subset of an HourlyPricingConfiguration (see
+// HourlyPricingConfiguration below for the full admin shape) - GET
+// /services embeds this per-service specifically so /book's hourly step
+// can show a real, admin-configured price/mileage before login (there is
+// no client-side estimate fallback for hourly the way there is for
+// one-way's fixed constants - see usePricing.ts). null when the service
+// has no active hourly configuration, that configuration is disabled, it
+// has zero active duration options, or Hourly Booking is globally
+// disabled - /book must never show a fabricated number in any of those
+// cases.
+export interface HourlyPricingSummary {
+  baseHourlyRate: number;
+  // Every currently-bookable duration for this service, each already
+  // priced server-side via the exact formula checkout will use - never
+  // computed client-side from baseHourlyRate.
+  options: HourlyPricingSummaryOption[];
+}
+
 export interface Service {
   id: string;
   name: string;
   slug: string;
   vehicleType: VehicleType;
   pricingConfigurationId: string;
+  // Nullable and independent of pricingConfigurationId - a service can
+  // exist (and be booked one-way) with no hourly configuration at all.
+  hourlyPricingConfigurationId: string | null;
+  hourlyPricing: HourlyPricingSummary | null;
   description: string | null;
   imageUrl: string | null;
   passengerCapacity: number;
@@ -63,6 +100,48 @@ export interface PricingConfiguration {
   updatedAt: string;
 }
 
+// One bookable duration package - see hourlyPricingOptions on the backend.
+// customPriceCents null means this duration's price is calculated
+// (baseHourlyRate x duration, rounded); a value means it's an admin-set
+// package override, charged exactly as configured (never re-rounded).
+export interface HourlyPricingOption {
+  id: string;
+  durationMinutes: number;
+  includedMiles: number;
+  customPriceCents: number | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+// Full admin shape of a Service's "by the hour" pricing configuration - see
+// HourlyPricingSummary above for the public, display-only subset GET
+// /services embeds. Owned entirely by the Pricing module's Hourly Pricing
+// section, completely independent of PricingConfiguration above (separate
+// table - see wc-backend-1/src/db/schema/hourlyPricingConfigurations.ts).
+// Redesigned 2026-08-11: serviceId is NOT NULL/UNIQUE (a config belongs to
+// exactly ONE service - the inverse of the old nullable
+// Service.hourlyPricingConfigurationId), and options is the actual list of
+// bookable duration packages - minimumDurationMinutes/maximumDurationMinutes/
+// incrementMinutes are GENERATOR inputs only for interval mode's "Generate"
+// action, never read directly for pricing/validity the way they used to be.
+export interface HourlyPricingConfiguration {
+  id: string;
+  name: string;
+  vehicleType: VehicleType;
+  serviceId: string;
+  enabled: boolean;
+  baseHourlyRate: number;
+  durationMode: "interval" | "custom";
+  minimumDurationMinutes: number;
+  maximumDurationMinutes: number;
+  incrementMinutes: number;
+  customDurationsMinutes: number[] | null;
+  roundingIncrement: number;
+  createdAt: string;
+  updatedAt: string;
+  options: HourlyPricingOption[];
+}
+
 // Request types for API calls
 export interface TripLeg {
   pickup: string;
@@ -74,8 +153,14 @@ export interface TripLeg {
 }
 
 export interface CreateBookingPayload {
+  // "oneway" (default) is unchanged in every way; "hourly" has no dropoff/
+  // distanceMiles/durationMinutes and requires serviceId + hourlyDurationMinutes
+  // instead - see backend routes/bookings.ts's CreateBookingSchema.
+  bookingType?: "oneway" | "hourly";
   pickup: string;
-  dropoff: string;
+  // Required for "oneway"; omitted entirely for "hourly" (no destination by
+  // design - see backend db/schema/bookings.ts).
+  dropoff?: string;
   pickupDate: string;
   pickupTime: string;
   vehicleType?: VehicleType;
@@ -89,8 +174,12 @@ export interface CreateBookingPayload {
   // determines the pricing configuration now (see wc-backend-1
   // lib/servicePricing.ts's resolveServicePricingConfiguration).
   serviceId?: string;
-  distanceMiles: number;
-  durationMinutes: number;
+  // Required for "oneway"; absent for "hourly".
+  distanceMiles?: number;
+  durationMinutes?: number;
+  // Required for "hourly"; absent for "oneway". Minutes, not hours - see
+  // Booking.hourlyDurationMinutes.
+  hourlyDurationMinutes?: number;
   isAirportPickup?: boolean;
   flightNumber?: string;
   specialRequests?: string;
@@ -141,10 +230,31 @@ export interface Booking {
   userId: string | null;
   reservationNumber: string;
   pickupLocation: string;
-  dropoffLocation: string;
+  // Null for an hourly booking (no fixed destination by design - see
+  // useBookingStore.ts's bookingMode doc comment and backend
+  // db/schema/bookings.ts). Every one-way booking still has a real,
+  // non-null value here.
+  dropoffLocation: string | null;
   pickupDate: string;
   pickupTime: string;
   vehicleType: VehicleType;
+  // "oneway" (default, unchanged in every way) or "hourly" - see
+  // CreateBookingPayload.bookingType. Absent on bookings created before this
+  // field existed; treat missing as "oneway".
+  bookingType?: "oneway" | "hourly";
+  // Required and >0 for "hourly"; null for "oneway". In minutes, not hours -
+  // a 2.5h charter is 150, not something the UI has to fake with float
+  // math. Distinct from durationMinutes elsewhere on this type (one-way's
+  // estimated route/drive duration) - the two are unrelated measurements
+  // that happen to share a unit.
+  hourlyDurationMinutes?: number | null;
+  // Snapshotted at booking time from the resolved duration package's own
+  // explicit includedMiles value (never derived from a per-hour
+  // multiplier - see HourlyPricingOption above) - the REAL allowance this
+  // booking was sold under. Null for "oneway". Always prefer this over any
+  // client-side guess, which can silently disagree with what the customer
+  // was actually quoted if that duration's configuration changes later.
+  includedMiles?: number | null;
   // Which Service/Class this booking was priced against - null for every
   // booking created before this field existed (see wc-backend-1's additive
   // bookings.service_id migration). Never rewritten for historical bookings;

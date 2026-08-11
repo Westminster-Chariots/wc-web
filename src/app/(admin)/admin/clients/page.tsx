@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Users, Search, Loader2, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -238,12 +239,11 @@ function CreateClientModal({ onClose, onCreated }: {
           </div>
 
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium">Corporate Client</label>
-            <input
-              type="checkbox"
+            <label htmlFor="corporate-client-toggle" className="text-xs font-medium">Corporate Client</label>
+            <Switch
+              id="corporate-client-toggle"
               checked={form.isCorporate}
-              onChange={e => setForm(f => ({ ...f, isCorporate: e.target.checked }))}
-              className="rounded"
+              onCheckedChange={(checked) => setForm(f => ({ ...f, isCorporate: checked }))}
             />
           </div>
 

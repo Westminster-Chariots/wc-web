@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
@@ -734,15 +735,10 @@ export default function PremiumServicesPage() {
                       : "Hidden from customers. Existing bookings remain unchanged."}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.isActive}
-                  onClick={() => update("isActive", !form.isActive)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${form.isActive ? "bg-primary" : "bg-secondary"}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-6" : "translate-x-1"}`} />
-                </button>
+                <Switch
+                  checked={form.isActive}
+                  onCheckedChange={(checked) => update("isActive", checked)}
+                />
               </div>
 
               <Button onClick={handleSave} disabled={saving || !form.pricingConfigurationId} className="w-full py-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">

@@ -4,19 +4,22 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import axios from "axios";
 import { motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2, ShieldCheck, Calendar, Car, Clock, Route as RouteIcon, Pencil } from "lucide-react";
 import { useBookingStore, type TripLeg } from "@/hooks/useBookingStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouteDetails, fetchRouteDetails } from "@/hooks/useRouteDetails";
 import { usePricing } from "@/hooks/usePricing";
 import type { RouteDetails } from "@/types";
 import { notify } from "@/lib/notify";
-import { bookingService } from "@/lib/services";
+import { bookingService, pricingService } from "@/lib/services";
 import { chargeBooking } from "@/lib/cloverCharge";
-import type { QuotePreviewResponse } from "@/lib/services";
+import type { QuotePreviewResponse, QuoteHourlyPreviewResponse } from "@/lib/services";
+import { format } from "date-fns";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import { Button } from "@/components/ui/button";
 import CheckoutSummary from "@/components/booking/CheckoutSummary";
 import CloverPayment from "@/components/booking/CloverPayment";
+import MapPreview from "@/components/booking/MapPreview";
 import PriceMismatchBanner, { type PriceMismatchLeg } from "@/components/booking/PriceMismatchBanner";
 import type { CreateBookingPayload } from "@/types";
 
@@ -26,6 +29,18 @@ const BOOKING_CREATE_TIMEOUT_MS = 15_000;
 const CHARGE_TIMEOUT_MS = 30_000;
 const PAYMENT_VERIFICATION_POLL_INTERVAL_MS = 3_000;
 const PAYMENT_VERIFICATION_TIMEOUT_MS = 2 * 60_000;
+
+// A full, unambiguous sentence stating the real, locked-in included-mileage
+// allowance for this exact duration (e.g. "In 3 hours, 75 miles are
+// included.") - sourced entirely from the signed hourlyQuote, never a
+// per-hour multiplier, so it can never say something the customer wasn't
+// actually quoted. Returns null until the real quote has loaded (never a
+// pre-quote guess).
+function hourlyMileageSentence(durationMinutes: number, includedMiles: number): string {
+  const hours = durationMinutes / 60;
+  const hourLabel = Number.isInteger(hours) ? `${hours} hour${hours === 1 ? "" : "s"}` : formatDurationMinutes(durationMinutes);
+  return `In ${hourLabel}, ${includedMiles} mile${includedMiles === 1 ? "" : "s"} ${includedMiles === 1 ? "is" : "are"} included.`;
+}
 
 // Polls the booking's own paymentStatus (via the standard authenticated
 // GET /bookings/:id, already used everywhere else) until it resolves to a
@@ -73,6 +88,16 @@ export function computeTripFingerprint(args: {
   selectedVehicle: string | null;
   selectedServiceId: string | null;
   additionalLegs: { pickup: string; dropoff: string; pickupDate: string; pickupTime: string }[];
+  // Hourly-only - omitted (undefined, dropped by JSON.stringify) for every
+  // one-way call site, so the one-way fingerprint shape is byte-identical to
+  // before. Without this, changing durationMinutes (e.g. going back to
+  // /book and picking a different duration) would leave the stored
+  // fingerprint unchanged (pickup/dropoff/date/time/vehicle all stay the
+  // same for hourly), so the stale checkoutAttemptId would be reused and
+  // the idempotent-reuse path would silently return the booking priced for
+  // the OLD duration - exactly the class of bug this fingerprint exists to
+  // catch.
+  durationMinutes?: number;
 }): string {
   return JSON.stringify({
     pickup: args.pickup,
@@ -81,6 +106,7 @@ export function computeTripFingerprint(args: {
     pickupTime: args.pickupTime,
     vehicle: args.selectedServiceId || args.selectedVehicle,
     legs: args.additionalLegs.map((l) => ({ pickup: l.pickup, dropoff: l.dropoff, pickupDate: l.pickupDate, pickupTime: l.pickupTime })),
+    durationMinutes: args.durationMinutes,
   });
 }
 
@@ -111,6 +137,7 @@ export default function BookingCheckoutPage() {
   const { user } = useAuth();
   const { data, addLeg, removeLeg, updateLeg } = useBookingStore();
   const prefersReducedMotion = useReducedMotion();
+  const isHourly = data.bookingMode === "hourly";
 
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [creatingBooking, setCreatingBooking] = useState(false);
@@ -298,9 +325,57 @@ export default function BookingCheckoutPage() {
   }, [route, data.selectedVehicle, data.selectedServiceId, data.additionalLegs, legsReady]);
 
   useEffect(() => {
+    if (isHourly) return;
     fetchQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route, data.selectedVehicle, data.selectedServiceId, data.additionalLegs, legsReady]);
+  }, [isHourly, route, data.selectedVehicle, data.selectedServiceId, data.additionalLegs, legsReady]);
+
+  // Hourly counterpart to quote/fetchQuote above - structurally parallel but
+  // reads pricingService.calculateHourly() (rate x durationMinutes, no
+  // route/distance) instead. Shares quoteRequestIdRef with fetchQuote since
+  // only one of the two paths ever runs for a given booking (isHourly is
+  // fixed for the life of this page), so there is no risk of the two
+  // request-id sequences colliding.
+  const [hourlyQuote, setHourlyQuote] = useState<QuoteHourlyPreviewResponse | null>(null);
+  const [hourlyQuoteLoading, setHourlyQuoteLoading] = useState(false);
+  const [hourlyQuoteError, setHourlyQuoteError] = useState(false);
+
+  const fetchHourlyQuote = useCallback(async (): Promise<QuoteHourlyPreviewResponse | null> => {
+    const requestId = ++quoteRequestIdRef.current;
+    if (!data.selectedServiceId) {
+      if (requestId === quoteRequestIdRef.current) setHourlyQuote(null);
+      return null;
+    }
+    setHourlyQuoteLoading(true);
+    setHourlyQuoteError(false);
+    try {
+      const result = await pricingService.calculateHourly({
+        serviceId: data.selectedServiceId,
+        durationMinutes: data.hourlyDurationMinutes,
+      });
+      if (requestId === quoteRequestIdRef.current) {
+        setHourlyQuote(result);
+        setAcceptedQuoteCents(result.totalCents);
+      }
+      return result;
+    } catch (err) {
+      console.error("Failed to fetch authoritative hourly quote:", err);
+      if (requestId === quoteRequestIdRef.current) {
+        setHourlyQuote(null);
+        setHourlyQuoteError(true);
+      }
+      return null;
+    } finally {
+      if (requestId === quoteRequestIdRef.current) setHourlyQuoteLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.selectedServiceId, data.hourlyDurationMinutes]);
+
+  useEffect(() => {
+    if (!isHourly) return;
+    fetchHourlyQuote();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHourly, data.selectedServiceId, data.hourlyDurationMinutes]);
 
   // Estimate-only display for when the quote endpoint can't be reached -
   // clearly labeled as such in the render below, and never used to gate
@@ -339,9 +414,18 @@ export default function BookingCheckoutPage() {
   // actually labeled for elsewhere on this page: quoteError (the quote
   // endpoint is unreachable). Any other null-quote state is "still
   // loading" and must show nothing rather than an unverified number.
-  const priceReady = quote != null;
-  const showFallback = !priceReady && quoteError;
-  const basePrice = priceReady ? quote!.legs[0]?.basePrice ?? 0 : showFallback ? fallbackEstimate?.basePrice ?? 0 : 0;
+  // Hourly has no offline fallback estimate the way one-way does
+  // (fallbackEstimate above is a pure function of route/calculatePrice,
+  // neither of which apply to hourly) - see hourlyPricing.ts/servicePricing.ts:
+  // there is no independent client-side formula to fall back to, so a
+  // failed hourly quote fetch blocks booking/payment entirely rather than
+  // showing an unverified number. Never invents a number in place of a real
+  // signed quote either way.
+  const priceReady = isHourly ? hourlyQuote != null : quote != null;
+  const showFallback = isHourly ? false : !priceReady && quoteError;
+  const basePrice = isHourly
+    ? hourlyQuote?.basePrice ?? 0
+    : priceReady ? quote!.legs[0]?.basePrice ?? 0 : showFallback ? fallbackEstimate?.basePrice ?? 0 : 0;
   // Gratuity is exclusively a backend-authoritative figure - approved
   // 2026-07-30: a customer must never see a nonzero "Gratuity" line unless
   // it came from a real, signed backend quote. The fallback estimate always
@@ -349,9 +433,13 @@ export default function BookingCheckoutPage() {
   // demandAdjustment happens to be, so an admin turning gratuity off (or a
   // transient quote-endpoint failure) can never result in a phantom
   // gratuity amount reaching the customer.
-  const gratuity = priceReady ? quote!.legs[0]?.gratuity ?? 0 : 0;
-  const legPrices = priceReady ? quote!.legs.slice(1).map((l) => l.totalPrice) : showFallback ? fallbackEstimate?.legPrices ?? [] : [];
-  const grandTotal = priceReady ? quote!.combinedTotal : showFallback ? fallbackEstimate?.grandTotal ?? 0 : 0;
+  const gratuity = isHourly ? hourlyQuote?.gratuity ?? 0 : priceReady ? quote!.legs[0]?.gratuity ?? 0 : 0;
+  const legPrices = isHourly ? [] : priceReady ? quote!.legs.slice(1).map((l) => l.totalPrice) : showFallback ? fallbackEstimate?.legPrices ?? [] : [];
+  const grandTotal = isHourly
+    ? hourlyQuote?.totalPrice ?? 0
+    : priceReady ? quote!.combinedTotal : showFallback ? fallbackEstimate?.grandTotal ?? 0 : 0;
+  const effectiveQuoteError = isHourly ? hourlyQuoteError : quoteError;
+  const effectiveQuoteLoading = isHourly ? hourlyQuoteLoading : quoteLoading;
 
   // Cached on the selected service at /book (see useBookingStore.ts) rather
   // than re-fetched here - the customer's checkout review shows exactly the
@@ -362,28 +450,66 @@ export default function BookingCheckoutPage() {
   useEffect(() => {
     if (!user) {
       router.push("/book/login");
-    } else if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+    } else if (!data.pickup || (!isHourly && !data.dropoff) || !data.selectedVehicle || (isHourly && !data.selectedServiceId)) {
       router.push("/book");
     }
-  }, [user, data.pickup, data.dropoff, data.selectedVehicle, router]);
+  }, [user, data.pickup, data.dropoff, data.selectedVehicle, data.selectedServiceId, isHourly, router]);
 
   const createBooking = async () => {
-    if (!route || !data.selectedVehicle || !user) return;
+    if ((!isHourly && !route) || !data.selectedVehicle || !user) return;
+    if (isHourly && !data.selectedServiceId) return;
 
     setBookingError("");
     setCreatingBooking(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), BOOKING_CREATE_TIMEOUT_MS);
     try {
-      const bookingPayload: CreateBookingPayload = {
+      const bookingPayload: CreateBookingPayload = isHourly ? {
+        bookingType: "hourly",
+        pickup: data.pickup,
+        pickupDate: data.pickupDate,
+        pickupTime: data.pickupTime,
+        vehicleType: data.selectedVehicle,
+        serviceId: data.selectedServiceId || undefined,
+        hourlyDurationMinutes: data.hourlyDurationMinutes,
+        isAirportPickup: data.isPickupAirport,
+        flightNumber: data.flightNumber || undefined,
+        specialRequests: data.specialRequests || undefined,
+        clientName: user.fullName || user.email?.split("@")[0] || "Guest",
+        clientEmail: user.email || "",
+        clientPhone: user.phone || undefined,
+        bookingForSomeoneElse: data.bookingForSomeoneElse,
+        guestFirstName: data.guestFirstName || undefined,
+        guestLastName: data.guestLastName || undefined,
+        guestEmail: data.guestEmail || undefined,
+        guestPhone: data.guestPhone || undefined,
+        checkoutAttemptId: resolveCheckoutAttemptId(
+          computeTripFingerprint({
+            pickup: data.pickup,
+            dropoff: "",
+            pickupDate: data.pickupDate,
+            pickupTime: data.pickupTime,
+            selectedVehicle: data.selectedVehicle,
+            selectedServiceId: data.selectedServiceId,
+            additionalLegs: [],
+            durationMinutes: data.hourlyDurationMinutes,
+          })
+        ),
+        // Locks this booking's base rate to the hourly quote the customer is
+        // currently looking at - same contract as one-way's quoteId below
+        // (see hourlyPricing.ts/quote.ts: validateHourlyQuote re-verifies
+        // this against serviceId+hourlyDurationMinutes server-side, never trusts a
+        // client-submitted amount).
+        quoteId: hourlyQuote?.quoteId,
+      } : {
         pickup: data.pickup,
         dropoff: data.dropoff,
         pickupDate: data.pickupDate,
         pickupTime: data.pickupTime,
         vehicleType: data.selectedVehicle,
         serviceId: data.selectedServiceId || undefined,
-        distanceMiles: route.distance,
-        durationMinutes: route.duration,
+        distanceMiles: route!.distance,
+        durationMinutes: route!.duration,
         isAirportPickup: data.isPickupAirport,
         flightNumber: data.flightNumber || undefined,
         specialRequests: data.specialRequests || undefined,
@@ -461,17 +587,30 @@ export default function BookingCheckoutPage() {
       if (quoteRejectionCode && quoteRejectionCode.startsWith("quote_")) {
         const previousAmountCents = acceptedQuoteCents;
         bookingCreateAttempted.current = false;
-        const fresh = await fetchQuote();
-        if (fresh && previousAmountCents !== null && fresh.combinedTotalCents !== previousAmountCents) {
-          const legsForBanner: PriceMismatchLeg[] = fresh.legs.map((leg, i) => ({
-            legOrder: i + 1,
-            pickupLocation: i === 0 ? data.pickup : data.additionalLegs[i - 1]?.pickup ?? "",
-            dropoffLocation: i === 0 ? data.dropoff : data.additionalLegs[i - 1]?.dropoff ?? "",
-            totalPrice: leg.totalPrice,
-          }));
-          setQuoteInvalidated({ previousAmountCents, newAmountCents: fresh.combinedTotalCents, legs: legsForBanner });
-        } else if (!fresh) {
-          setBookingError("Your price quote expired and a new one could not be retrieved. Please try again.");
+        if (isHourly) {
+          const fresh = await fetchHourlyQuote();
+          if (fresh && previousAmountCents !== null && fresh.totalCents !== previousAmountCents) {
+            setQuoteInvalidated({
+              previousAmountCents,
+              newAmountCents: fresh.totalCents,
+              legs: [{ legOrder: 1, pickupLocation: data.pickup, dropoffLocation: "By the hour (no fixed destination)", totalPrice: fresh.totalPrice }],
+            });
+          } else if (!fresh) {
+            setBookingError("Your price quote expired and a new one could not be retrieved. Please try again.");
+          }
+        } else {
+          const fresh = await fetchQuote();
+          if (fresh && previousAmountCents !== null && fresh.combinedTotalCents !== previousAmountCents) {
+            const legsForBanner: PriceMismatchLeg[] = fresh.legs.map((leg, i) => ({
+              legOrder: i + 1,
+              pickupLocation: i === 0 ? data.pickup : data.additionalLegs[i - 1]?.pickup ?? "",
+              dropoffLocation: i === 0 ? data.dropoff : data.additionalLegs[i - 1]?.dropoff ?? "",
+              totalPrice: leg.totalPrice,
+            }));
+            setQuoteInvalidated({ previousAmountCents, newAmountCents: fresh.combinedTotalCents, legs: legsForBanner });
+          } else if (!fresh) {
+            setBookingError("Your price quote expired and a new one could not be retrieved. Please try again.");
+          }
         }
         // fresh && amount unchanged: the quote token itself needed
         // refreshing (e.g. it simply expired) but the price is identical -
@@ -502,14 +641,16 @@ export default function BookingCheckoutPage() {
     // quoteInvalidated (Gate 0) means the customer must explicitly review
     // the refreshed price first - see handleConfirmRefreshedQuote, the only
     // path that clears it and retries.
-    if (!user || !route || !data.selectedVehicle || bookingId || !legsReady || !quote || quoteInvalidated) return;
+    const currentQuote = isHourly ? hourlyQuote : quote;
+    if (!user || (!isHourly && !route) || !data.selectedVehicle || bookingId || !legsReady || !currentQuote || quoteInvalidated) return;
     bookingCreateAttempted.current = true;
     createBooking();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, route, data.selectedVehicle, bookingId, legsReady, quote, quoteInvalidated]);
+  }, [user, route, data.selectedVehicle, bookingId, legsReady, quote, hourlyQuote, isHourly, quoteInvalidated]);
 
   const handleRetryBookingCreation = () => {
-    if (!legsReady || !quote || quoteInvalidated) return;
+    const currentQuote = isHourly ? hourlyQuote : quote;
+    if (!legsReady || !currentQuote || quoteInvalidated) return;
     bookingCreateAttempted.current = false;
     createBooking();
   };
@@ -735,7 +876,7 @@ export default function BookingCheckoutPage() {
     updateLeg(index, { ...leg, distanceMiles: undefined, durationMinutes: undefined });
   };
 
-  if (!user || !data.pickup || !data.dropoff || !data.selectedVehicle || !route) {
+  if (!user || !data.pickup || (!isHourly && (!data.dropoff || !route)) || !data.selectedVehicle || (isHourly && !data.selectedServiceId)) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
@@ -771,7 +912,7 @@ export default function BookingCheckoutPage() {
         </header>
 
         <div className="space-y-5">
-          {quoteError && (
+          {effectiveQuoteError && (
             <div role="status" className="flex gap-3 p-3 rounded-lg bg-muted/60 border border-border text-xs text-muted-foreground">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div className="space-y-2">
@@ -784,46 +925,182 @@ export default function BookingCheckoutPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchQuote()}
-                  disabled={quoteLoading}
+                  onClick={() => (isHourly ? fetchHourlyQuote() : fetchQuote())}
+                  disabled={effectiveQuoteLoading}
                 >
-                  {quoteLoading ? "Retrying…" : "Try again"}
+                  {effectiveQuoteLoading ? "Retrying…" : "Try again"}
                 </Button>
               </div>
             </div>
           )}
 
-          <CheckoutSummary
-            pickup={data.pickup}
-            dropoff={data.dropoff}
-            pickupDate={data.pickupDate}
-            pickupTime={data.pickupTime}
-            vehicleType={data.selectedVehicle!}
-            serviceName={data.selectedServiceName || undefined}
-            vehicleImage={vehicleImage || undefined}
-            basePrice={basePrice}
-            distanceMiles={route.distance}
-            durationMinutes={route.duration}
-            flightNumber={data.flightNumber}
-            specialRequests={data.specialRequests}
-            additionalLegs={data.additionalLegs || []}
-            legPrices={legPrices || []}
-            gratuity={gratuity}
-            grandTotal={grandTotal}
-            isEstimate={showFallback}
-            loading={quoteLoading || (!priceReady && !showFallback)}
-            bookingForSomeoneElse={data.bookingForSomeoneElse}
-            guestFirstName={data.guestFirstName}
-            guestLastName={data.guestLastName}
-            guestEmail={data.guestEmail}
-            guestPhone={data.guestPhone}
-            onEditVehicle={handleEditVehicle}
-            onEditDetails={handleEditDetails}
-            onAddLeg={handleAddLeg}
-            onRemoveLeg={handleRemoveLeg}
-            onUpdateLeg={handleUpdateLeg}
-            legsLocked={creatingBooking || paymentProcessing}
-          />
+          {isHourly ? (
+            <>
+              {/* Trip recap - hourly has no route to visualize (no dropoff by
+                  design, see useBookingStore.ts), so this is a plain summary
+                  card rather than CheckoutSummary (which is built around
+                  RouteVisualization/MapPreview and multi-leg editing, neither
+                  of which apply here - hourly is always single-leg). */}
+              <div className="rounded-2xl border border-border bg-card shadow-glass overflow-hidden">
+                <div className="p-5 sm:p-6 space-y-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-base font-display font-bold text-foreground">Your charter</h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleEditDetails}
+                      className="h-8 px-2.5 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 active:bg-primary/20 gap-1 shrink-0"
+                    >
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  </div>
+                  {/* Pickup-only map preview - an hourly charter has no
+                      dropoff by design (see useBookingStore.ts), so there is
+                      no route to draw; MapPreview with no `dropoff` just
+                      centers on and marks the pickup point. */}
+                  {data.pickup && (
+                    <MapPreview pickup={data.pickup} className="w-full h-48 rounded-lg overflow-hidden" />
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <Calendar className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground font-body">Date &amp; time</p>
+                        <p className="text-sm font-body text-foreground font-medium truncate">
+                          {data.pickupDate ? format(new Date(data.pickupDate + "T00:00:00"), "EEE, MMM d, yyyy") : ""} ·{" "}
+                          {data.pickupTime ? format(new Date(`2000-01-01T${data.pickupTime}`), "h:mm a") : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground font-body">Service</p>
+                        <p className="text-sm font-body text-foreground font-medium capitalize">
+                          {data.selectedServiceName || `Business ${data.selectedVehicle === "suv" ? "SUV" : "Class"}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Clock className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground font-body">Duration</p>
+                        <p className="text-sm font-body text-foreground font-medium">
+                          {formatDurationMinutes(data.hourlyDurationMinutes)}
+                          {hourlyQuote ? ` · ${hourlyQuote.includedMiles} miles included` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <RouteIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground font-body">Pickup</p>
+                        <p className="text-sm font-body text-foreground font-medium truncate">{data.pickup}</p>
+                      </div>
+                    </div>
+                    {data.flightNumber && (
+                      <div className="flex items-start gap-2.5">
+                        <div className="min-w-0">
+                          <p className="text-[11px] text-muted-foreground font-body">Flight</p>
+                          <p className="text-sm font-body text-foreground font-medium">{data.flightNumber}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Solid-text statement of the real, locked-in mileage
+                      allowance - stated plainly rather than left to a
+                      compact "3h · 75 mi" abbreviation, sourced from the
+                      signed hourlyQuote (never a per-hour multiplier). */}
+                  {hourlyQuote && (
+                    <div className="flex items-start gap-2.5 rounded-lg bg-primary/5 border border-primary/15 px-3.5 py-3">
+                      <RouteIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
+                      <p className="text-sm font-body text-foreground">
+                        {hourlyMileageSentence(data.hourlyDurationMinutes, hourlyQuote.includedMiles)}
+                      </p>
+                    </div>
+                  )}
+                  {data.specialRequests && (
+                    <div className="pt-1 border-t border-border">
+                      <p className="text-[11px] text-muted-foreground font-body mb-1 mt-3">Special requests</p>
+                      <p className="text-sm text-foreground font-body">{data.specialRequests}</p>
+                    </div>
+                  )}
+                  {data.bookingForSomeoneElse && data.guestFirstName && (
+                    <div className="pt-3 border-t border-border space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground font-body font-semibold uppercase tracking-wide">Booking for guest</p>
+                      <p className="text-sm font-body text-foreground">{data.guestFirstName} {data.guestLastName}</p>
+                      {data.guestEmail && <p className="text-xs font-body text-muted-foreground">{data.guestEmail}</p>}
+                      {data.guestPhone && <p className="text-xs font-body text-muted-foreground">{data.guestPhone}</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Price breakdown - structurally parallel to CheckoutSummary's
+                  own price card, but flat rate x duration instead of
+                  fare+legs. */}
+              <div className="rounded-2xl border border-border bg-card shadow-glass p-5 sm:p-6">
+                <h2 className="text-base font-display font-bold text-foreground mb-4">Price breakdown</h2>
+                {effectiveQuoteLoading || (!priceReady && !effectiveQuoteError) ? (
+                  <div className="space-y-2.5" role="status" aria-label="Calculating price">
+                    <div className="h-4 w-32 animate-pulse bg-muted rounded" />
+                    <div className="h-8 w-40 animate-pulse bg-muted rounded mt-2" />
+                  </div>
+                ) : (
+                  <>
+                    <dl className="space-y-2.5 text-sm font-body">
+                      <div className="flex justify-between">
+                        <dt className="text-muted-foreground">{formatDurationMinutes(data.hourlyDurationMinutes)} charter</dt>
+                        <dd className="text-foreground font-medium">${basePrice.toFixed(2)}</dd>
+                      </div>
+                      {gratuity > 0 && (
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Gratuity</dt>
+                          <dd className="text-foreground font-medium">${gratuity.toFixed(2)}</dd>
+                        </div>
+                      )}
+                    </dl>
+                    <div className="flex justify-between items-baseline pt-4 mt-4 border-t border-border">
+                      <dt className="text-foreground font-semibold">Total due</dt>
+                      <dd className="text-primary font-display font-bold text-2xl">${Number(grandTotal || 0).toFixed(2)}</dd>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
+          ) : (
+            <CheckoutSummary
+              pickup={data.pickup}
+              dropoff={data.dropoff}
+              pickupDate={data.pickupDate}
+              pickupTime={data.pickupTime}
+              vehicleType={data.selectedVehicle!}
+              serviceName={data.selectedServiceName || undefined}
+              vehicleImage={vehicleImage || undefined}
+              basePrice={basePrice}
+              distanceMiles={route!.distance}
+              durationMinutes={route!.duration}
+              flightNumber={data.flightNumber}
+              specialRequests={data.specialRequests}
+              additionalLegs={data.additionalLegs || []}
+              legPrices={legPrices || []}
+              gratuity={gratuity}
+              grandTotal={grandTotal}
+              isEstimate={showFallback}
+              loading={quoteLoading || (!priceReady && !showFallback)}
+              bookingForSomeoneElse={data.bookingForSomeoneElse}
+              guestFirstName={data.guestFirstName}
+              guestLastName={data.guestLastName}
+              guestEmail={data.guestEmail}
+              guestPhone={data.guestPhone}
+              onEditVehicle={handleEditVehicle}
+              onEditDetails={handleEditDetails}
+              onAddLeg={handleAddLeg}
+              onRemoveLeg={handleRemoveLeg}
+              onUpdateLeg={handleUpdateLeg}
+              legsLocked={creatingBooking || paymentProcessing}
+            />
+          )}
 
           {/* Secure payment card */}
           <div className="rounded-2xl border border-border bg-card shadow-glass p-5 sm:p-6">
@@ -875,7 +1152,7 @@ export default function BookingCheckoutPage() {
                 booking creation cannot proceed (gated on `quote`, see the
                 auto-create effect) so this is the terminal state for the
                 Secure payment card until a retry succeeds. */}
-            {!creatingBooking && !bookingError && !bookingId && legsReady && quoteError && (
+            {!creatingBooking && !bookingError && !bookingId && legsReady && effectiveQuoteError && (
               <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center text-center">
                 Waiting for a confirmed price before payment can be enabled.
               </div>
@@ -963,7 +1240,7 @@ export default function BookingCheckoutPage() {
               </PriceMismatchBanner>
             )}
 
-            {!creatingBooking && !bookingError && bookingId && paymentVerification === "idle" && !priceMismatch && !creationMismatch && !quoteInvalidated && quote && (
+            {!creatingBooking && !bookingError && bookingId && paymentVerification === "idle" && !priceMismatch && !creationMismatch && !quoteInvalidated && (isHourly ? hourlyQuote : quote) && (
               <CloverPayment
                 amount={grandTotal}
                 onSuccess={handlePaymentSuccess}

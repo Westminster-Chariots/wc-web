@@ -34,6 +34,19 @@ export interface UIBooking {
   isUrgent: boolean;
   distanceMiles?: number;
   durationMinutes?: number;
+  // "hourly" bookings have no dropoffLocation/distanceMiles/durationMinutes
+  // by design - hourlyDurationMinutes/includedMiles (an explicit snapshot of
+  // the matching hourly_pricing_options row, never a per-hour multiplier)
+  // are what the admin detail page shows instead. See db/schema/bookings.ts.
+  bookingType?: "oneway" | "hourly";
+  hourlyDurationMinutes?: number | null;
+  includedMiles?: number | null;
+  // Raw fare/tip split behind `price` above (price is basePrice + gratuity).
+  // Used to show a Base/Gratuity breakdown on the admin detail page, gated
+  // on gratuity > 0 so a $0.00 line never appears for a booking gratuity
+  // wasn't charged on (see lib/gratuity.ts - off by default).
+  basePrice?: number | null;
+  gratuity?: number | null;
   groupId?: string;
   legOrder?: number;
   // Authoritative combined total for the whole trip - identical to `price`

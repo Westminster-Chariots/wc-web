@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import MapPreview from "@/components/booking/MapPreview";
 import RouteVisualization from "@/components/booking/RouteVisualization";
 import type { Booking } from "@/types";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 import { format, parseISO, differenceInHours } from "date-fns";
 import { useState, useMemo, useEffect } from "react";
 
@@ -511,7 +512,7 @@ export default function BookingsListResponsive({ bookings, loading, page, pageSi
                 <>
                   <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
                     <div className="rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
-                      <MapPreview pickup={selectedBooking.pickupLocation} dropoff={selectedBooking.dropoffLocation} />
+                      <MapPreview pickup={selectedBooking.pickupLocation} dropoff={selectedBooking.dropoffLocation ?? undefined} />
                     </div>
                     <div className="space-y-4 rounded-3xl bg-slate-50 p-4 ring-1 ring-slate-200">
                       <div>
@@ -519,8 +520,10 @@ export default function BookingsListResponsive({ bookings, loading, page, pageSi
                         <p className="mt-2 text-sm text-slate-900">{selectedBooking.pickupLocation}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Drop-off</p>
-                        <p className="mt-2 text-sm text-slate-900">{selectedBooking.dropoffLocation}</p>
+                        <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{selectedBooking.dropoffLocation ? "Drop-off" : "Duration"}</p>
+                        <p className="mt-2 text-sm text-slate-900">
+                          {selectedBooking.dropoffLocation || (selectedBooking.hourlyDurationMinutes ? `${formatDurationMinutes(selectedBooking.hourlyDurationMinutes)} charter (by the hour)` : "By the hour")}
+                        </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div>
@@ -552,8 +555,14 @@ export default function BookingsListResponsive({ bookings, loading, page, pageSi
                       )}
                     </div>
                     <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
-                      <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Distance</p>
-                      <p className="mt-2 text-sm text-slate-900">{selectedBooking.distanceMiles || "—"} mi</p>
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">
+                        {selectedBooking.dropoffLocation ? "Distance" : "Included Miles"}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-900">
+                        {selectedBooking.dropoffLocation
+                          ? `${selectedBooking.distanceMiles || "—"} mi`
+                          : selectedBooking.includedMiles != null ? `${selectedBooking.includedMiles} mi` : "—"}
+                      </p>
                     </div>
                     <div className="rounded-3xl bg-white p-4 ring-1 ring-slate-200">
                       <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Total</p>

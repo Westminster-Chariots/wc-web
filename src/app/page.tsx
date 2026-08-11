@@ -8,10 +8,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { seedBookingStore } from "@/hooks/useBookingStore";
 import { structuredData } from "@/lib/metadata";
 import { notify } from "@/lib/notify";
+import { hourlyBookingAvailabilityService, serviceService } from "@/lib/services";
 
 // Import Components
 import Navigation from "@/components/home/navigation/Navigation";
-import HeroSection from "@/components/home/sections/HeroSection";
+import HeroSection, { HOURLY_DURATION_DEFAULT_HOURS } from "@/components/home/sections/HeroSection";
 import ServicesSection from "@/components/home/sections/ServicesSection";
 import WhyWestminsterSection from "@/components/home/sections/WhyWestminsterSection";
 import FleetSection from "@/components/home/sections/FleetSection";
@@ -37,7 +38,68 @@ export default function Home() {
   const [pickupDate, setPickupDate] = useState("");
   const [pickupTime, setPickupTime] = useState("");
   const [bookingMode, setBookingMode] = useState<"oneway" | "hourly">("oneway");
-  
+  const [durationHours, setDurationHours] = useState(HOURLY_DURATION_DEFAULT_HOURS);
+  // Optimistic default (true, matching hourly_booking_settings' own
+  // default-enabled seed) so the common case - hourly actually enabled -
+  // never flashes "One way only" before the fetch below resolves. In the
+  // rare case it's actually disabled, "By the hour" briefly appears then is
+  // removed once GET /pricing/hourly-availability responds - the real gate
+  // is server-side (resolveHourlyPricingConfiguration rejects the request
+  // regardless of what this flag shows), so this can never be bypassed by
+  // racing the fetch.
+  const [hourlyBookingAvailable, setHourlyBookingAvailable] = useState(true);
+
+  useEffect(() => {
+    hourlyBookingAvailabilityService
+      .getAvailability()
+      .then(({ enabled }) => {
+        setHourlyBookingAvailable(enabled);
+        // A customer whose persisted booking mode was "hourly" from an
+        // earlier session must not be left on a mode that's no longer
+        // offered.
+        if (!enabled) setBookingMode((mode) => (mode === "hourly" ? "oneway" : mode));
+      })
+      .catch(() => setHourlyBookingAvailable(false));
+  }, []);
+
+  // The homepage's pre-service duration stepper needs to show the real,
+  // configured included-mileage allowance for whichever duration is
+  // currently selected - never a per-hour multiplier (includedMilesPerHour
+  // was removed from the pricing model on purpose - see
+  // HourlyPricingSummaryOption's doc comment). Built as a durationMinutes ->
+  // includedMiles lookup, straight from each active hourly-bookable
+  // service's own hourlyPricing.options (the same server-computed data
+  // /book uses) - a direct read, no arithmetic. A duration only gets an
+  // entry when every service offering that exact duration agrees on the
+  // mileage, since showing one service's number while another's differs
+  // would misrepresent the offer before a vehicle is even chosen; durations
+  // with no agreement (or no service offering them at all) are simply
+  // absent from the map, and the caption stays silent rather than guessing.
+  const [hourlyMileageByDurationMinutes, setHourlyMileageByDurationMinutes] = useState<Map<number, number> | null>(null);
+  useEffect(() => {
+    serviceService
+      .getAll()
+      .then((services) => {
+        const byDuration = new Map<number, number[]>();
+        for (const s of services) {
+          if (!s.hourlyPricing) continue;
+          for (const opt of s.hourlyPricing.options) {
+            const list = byDuration.get(opt.durationMinutes) ?? [];
+            list.push(opt.includedMiles);
+            byDuration.set(opt.durationMinutes, list);
+          }
+        }
+        const agreed = new Map<number, number>();
+        for (const [minutes, milesList] of byDuration) {
+          if (milesList.every((m) => Math.abs(m - milesList[0]) < 0.01)) {
+            agreed.set(minutes, milesList[0]);
+          }
+        }
+        setHourlyMileageByDurationMinutes(agreed);
+      })
+      .catch(() => setHourlyMileageByDurationMinutes(null));
+  }, []);
+
   // Load persisted booking data on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -50,6 +112,8 @@ export default function Home() {
           if (data.isPickupAirport) setIsPickupAirport(data.isPickupAirport);
           if (data.pickupDate) setPickupDate(data.pickupDate);
           if (data.pickupTime) setPickupTime(data.pickupTime);
+          if (data.bookingMode) setBookingMode(data.bookingMode);
+          if (data.hourlyDurationMinutes) setDurationHours(Math.round(data.hourlyDurationMinutes / 60));
         }
       } catch (e) {
         console.error('Failed to load booking data:', e);
@@ -70,13 +134,15 @@ export default function Home() {
           isPickupAirport,
           pickupDate,
           pickupTime,
+          bookingMode,
+          hourlyDurationMinutes: durationHours * 60,
         };
         sessionStorage.setItem("wc_booking", JSON.stringify(updated));
       } catch (e) {
         console.error('Failed to save booking data:', e);
       }
     }
-  }, [pickup, dropoff, isPickupAirport, pickupDate, pickupTime]);
+  }, [pickup, dropoff, isPickupAirport, pickupDate, pickupTime, bookingMode, durationHours]);
   
   // UI state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -255,8 +321,15 @@ export default function Home() {
       return;
     }
     
-    const finalDropoff = bookingMode === "hourly" ? pickup : dropoff;
-    const bookingData = { pickup, dropoff: finalDropoff, isPickupAirport, pickupDate, pickupTime };
+    const bookingData = {
+      pickup,
+      dropoff: bookingMode === "hourly" ? "" : dropoff,
+      isPickupAirport,
+      pickupDate,
+      pickupTime,
+      bookingMode,
+      hourlyDurationMinutes: bookingMode === "hourly" ? durationHours * 60 : 0,
+    };
     seedBookingStore(bookingData);
     router.push("/book");
   };
@@ -315,6 +388,10 @@ export default function Home() {
         dropoff={dropoff}
         pickupDate={pickupDate}
         pickupTime={pickupTime}
+        durationHours={durationHours}
+        setDurationHours={setDurationHours}
+        hourlyBookingAvailable={hourlyBookingAvailable}
+        hourlyMileageByDurationMinutes={hourlyMileageByDurationMinutes}
         bookingFormRef={bookingFormRef}
         openModal={openModal}
         handleSearch={handleSearch}

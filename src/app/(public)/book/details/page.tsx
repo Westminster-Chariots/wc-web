@@ -10,19 +10,24 @@ import { Input, Label, Textarea } from "@/components/ui";
 import { useBookingStore } from "@/hooks/useBookingStore";
 import { format } from "date-fns";
 import { notify } from "@/lib/notify";
+import { formatDurationMinutes } from "@/lib/hourlyDuration";
 
 const STEPS = ["Service Class", "Pickup Info", "Log In", "Payment", "Checkout"] as const;
 
 export default function BookingDetailsPage() {
   const router = useRouter();
   const { data, update } = useBookingStore();
+  const isHourly = data.bookingMode === "hourly";
 
-  // Redirect if no vehicle selected
+  // Redirect if no vehicle selected - hourly has no dropoff by design (see
+  // useBookingStore.ts's bookingMode doc comment), so the dropoff check is
+  // skipped for it rather than stranding every hourly booking in a redirect
+  // loop back to /book.
   useEffect(() => {
-    if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+    if (!data.pickup || (!isHourly && !data.dropoff) || !data.selectedVehicle) {
       router.push("/book");
     }
-  }, [data.pickup, data.dropoff, data.selectedVehicle, router]);
+  }, [data.pickup, data.dropoff, data.selectedVehicle, isHourly, router]);
 
   const [flightNumber, setFlightNumber] = useState(data.flightNumber);
   const [specialRequests, setSpecialRequests] = useState(data.specialRequests);
@@ -72,7 +77,7 @@ export default function BookingDetailsPage() {
   // hooks: this must never gate which hooks run). The redirect itself is
   // still driven by the useEffect near the top, unconditionally called on
   // every render; this only controls what's rendered while it takes effect.
-  if (!data.pickup || !data.dropoff || !data.selectedVehicle) {
+  if (!data.pickup || (!isHourly && !data.dropoff) || !data.selectedVehicle) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -113,13 +118,26 @@ export default function BookingDetailsPage() {
               <p className="text-foreground truncate">{data.pickup}</p>
             </div>
           </div>
-          <div className="flex items-start gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">Dropoff</p>
-              <p className="text-foreground truncate">{data.dropoff}</p>
+          {isHourly ? (
+            <div className="flex items-start gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">Duration</p>
+                <p className="text-foreground truncate">
+                  {formatDurationMinutes(data.hourlyDurationMinutes)} charter
+                  {data.includedMiles != null ? ` · ${data.includedMiles} miles included` : ""}
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-[10px] uppercase tracking-wide mb-0.5">Dropoff</p>
+                <p className="text-foreground truncate">{data.dropoff}</p>
+              </div>
+            </div>
+          )}
           {formattedDate && formattedTime && (
             <div className="flex items-center gap-2 pt-1">
               <Calendar className="h-4 w-4 text-primary shrink-0" />

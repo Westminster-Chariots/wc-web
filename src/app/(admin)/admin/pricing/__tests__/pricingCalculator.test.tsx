@@ -28,6 +28,31 @@ vi.mock("@/lib/services", () => ({
   fleetService: {
     getAll: () => getAllVehiclesMock(),
   },
+  // Loaded on mount now that Hourly Pricing lives in the same "config" tab
+  // instead of its own separately-activated tab (see admin/pricing/page.tsx) -
+  // these tests never navigate to the hourly section, so an empty list is
+  // all that's needed to satisfy the effect.
+  serviceService: {
+    getAllAdmin: vi.fn().mockResolvedValue([]),
+  },
+  hourlyPricingConfigurationService: {
+    getAllAdmin: vi.fn().mockResolvedValue([]),
+    getById: vi.fn(),
+    getByService: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    generateOptions: vi.fn(),
+    addOption: vi.fn(),
+    updateOption: vi.fn(),
+    removeOption: vi.fn(),
+  },
+  // The global master toggle now loads on mount alongside the rest of the
+  // "config" tab's data - these tests never open the Hourly Pricing
+  // section, so a resolved default is all that's needed to satisfy the effect.
+  hourlyBookingAvailabilityService: {
+    getSettingsAdmin: vi.fn().mockResolvedValue({ id: "settings-1", isEnabled: true, updatedBy: null, updatedAt: null }),
+    updateSettingsAdmin: vi.fn(),
+  },
 }));
 
 // A stable object reference (not a fresh literal per call) is required: the

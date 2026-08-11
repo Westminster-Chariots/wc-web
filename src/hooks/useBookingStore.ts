@@ -19,6 +19,27 @@ export interface BookingData {
   isPickupAirport: boolean;
   pickupDate: string;
   pickupTime: string;
+  // Which homepage tab produced this booking. "hourly" bookings have no
+  // dropoff (dropoff stays "") and are priced by hourlyDurationMinutes
+  // instead of route distance/duration.
+  bookingMode: "oneway" | "hourly";
+  // Chosen on the homepage (see HeroSection.tsx) using a generic fallback
+  // range, since no service is picked yet there. /book then snaps this to
+  // the nearest duration the actually-selected service's real config
+  // allows (interval step or explicit custom list, see HourlyPricingSummary
+  // in @/types and snapToNearestDuration in lib/hourlyDuration.ts) before
+  // it's used for pricing - so this raw homepage value is a starting point,
+  // not necessarily what the customer is ultimately charged for. 0 for
+  // one-way bookings.
+  hourlyDurationMinutes: number;
+  // Snapshotted from the selected duration's own HourlyPricingSummaryOption
+  // at selection time (/book's handleHourlyContinue) - the actual configured
+  // allowance for that exact duration, never derived from a per-hour
+  // multiplier. null until a service/duration has been picked. checkout
+  // still prefers the real signed hourlyQuote's own includedMiles once that
+  // loads (the quote-locked, authoritative value); this is only what the
+  // pre-quote summary pages (details/login) show.
+  includedMiles: number | null;
   selectedVehicle: "sedan" | "suv" | null;
   // Which Service/Class (see @/types' Service interface) the customer
   // selected on /book - the customer-facing identifier that flows into
@@ -48,6 +69,7 @@ export interface BookingData {
 const EMPTY: BookingData = {
   pickup: "", dropoff: "", isPickupAirport: false,
   pickupDate: "", pickupTime: "", selectedVehicle: null,
+  bookingMode: "oneway", hourlyDurationMinutes: 0, includedMiles: null,
   selectedServiceId: null,
   selectedServiceName: null,
   selectedServiceImage: null,
@@ -85,7 +107,12 @@ export function clearBookingStore() {
 export function seedBookingStore(state: Partial<BookingData>) {
   if (!state?.pickup) return;
   const current = read();
-  const changed = !current.pickup || current.pickup !== state.pickup || current.dropoff !== state.dropoff;
+  const changed =
+    !current.pickup ||
+    current.pickup !== state.pickup ||
+    current.dropoff !== state.dropoff ||
+    current.bookingMode !== state.bookingMode ||
+    current.hourlyDurationMinutes !== state.hourlyDurationMinutes;
   if (changed) write({ ...EMPTY, ...state, selectedVehicle: null, flightNumber: "", specialRequests: "", additionalLegs: [] });
 }
 
