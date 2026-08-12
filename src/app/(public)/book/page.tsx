@@ -18,7 +18,7 @@ import VehiclePricingDisplay from "@/components/booking/VehiclePricingDisplay";
 import { notify } from "@/lib/notify";
 import type { Service } from "@/types";
 import { serviceService } from "@/lib/services";
-import { snapToNearestDuration, findDurationOption, formatDurationMinutes } from "@/lib/hourlyDuration";
+import { findDurationOption, formatDurationMinutes } from "@/lib/hourlyDuration";
 import { useLoadScript } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 
@@ -112,15 +112,16 @@ export default function BookingPage() {
       }));
   }, [availableServices]);
 
-  // Hourly-bookable services only (Service.hourlyPricing is null for a
-  // service with no active hourly configuration assigned - see GET
-  // /services' doc comment on the backend). Every listed service is fully
-  // selectable. Duration itself was already chosen on the homepage (a
-  // generic fallback range - see HeroSection.tsx) before any service was
-  // picked, so each card here shows that same requested duration SNAPPED to
-  // the nearest one this specific service's real config actually allows
-  // (snapToNearestDuration) - never a free-floating per-card picker, since
-  // the customer already made their duration choice upstream. The matched
+  // Hourly-bookable services offering the EXACT requested duration only
+  // (approved 2026-08-12: the requested duration is a filter on which
+  // Service Classes are eligible, never something a Service can be
+  // "snapped" onto). Service.hourlyPricing is null for a service with no
+  // active hourly configuration assigned at all (see GET /services' doc
+  // comment on the backend); hp.options is already server-filtered to
+  // active durations only. A service whose active options don't include
+  // data.hourlyDurationMinutes exactly is not eligible for this search and
+  // is dropped from the list entirely - it must never appear showing a
+  // different duration than what the customer asked for. The matched
   // `option` carries the exact price/mileage GET /services already computed
   // server-side (via calculateHourlyFareCents) for that duration - no rate x
   // duration math happens on the frontend at all anymore; the actual
@@ -131,12 +132,11 @@ export default function BookingPage() {
     if (!isHourly) return [];
     return availableServices
       .filter((s) => s.hourlyPricing !== null)
-      .slice()
-      .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
-      .map((service) => {
+      .map((service) => ({ service, option: findDurationOption(service.hourlyPricing!.options, data.hourlyDurationMinutes) }))
+      .filter((entry): entry is { service: Service; option: NonNullable<ReturnType<typeof findDurationOption>> } => entry.option !== undefined)
+      .sort((a, b) => a.service.displayOrder - b.service.displayOrder || a.service.name.localeCompare(b.service.name))
+      .map(({ service, option }) => {
         const hp = service.hourlyPricing!;
-        const snappedDurationMinutes = snapToNearestDuration(data.hourlyDurationMinutes, hp.options);
-        const option = findDurationOption(hp.options, snappedDurationMinutes)!;
         return {
           id: service.id,
           type: service.vehicleType,
@@ -153,7 +153,6 @@ export default function BookingPage() {
             "Bottled water & amenities",
           ],
           hourlyPricing: hp,
-          snappedDurationMinutes,
           option,
         };
       });
@@ -285,7 +284,7 @@ export default function BookingPage() {
       selectedServiceId,
       selectedServiceName: selectedService?.name ?? null,
       selectedServiceImage: selectedService?.imageUrl ?? null,
-      hourlyDurationMinutes: selectedHourlyVehicle.snappedDurationMinutes,
+      hourlyDurationMinutes: data.hourlyDurationMinutes,
       includedMiles: selectedHourlyVehicle.option.includedMiles,
     });
     router.push("/book/details");
@@ -374,7 +373,7 @@ export default function BookingPage() {
               <div className="flex items-center gap-3 sm:gap-4 mt-2 text-xs text-muted-foreground font-body">
                 <div className="flex items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 text-primary" />
-                  <span>{formatDurationMinutes(selected.snappedDurationMinutes)} booked · {selected.option.includedMiles} miles included</span>
+                  <span>{formatDurationMinutes(selected.option.durationMinutes)} booked · {selected.option.includedMiles} miles included</span>
                 </div>
               </div>
             );
@@ -583,7 +582,6 @@ export default function BookingPage() {
                       const isSelected = selectedServiceId === v.id;
                       const isExpanded = expandedServiceId === v.id;
                       const previewTotal = v.option.priceCents / 100;
-                      const wasAdjusted = v.snappedDurationMinutes !== data.hourlyDurationMinutes;
                       return (
                         <div key={v.id}>
                           <VehiclePricingDisplay
@@ -610,26 +608,25 @@ export default function BookingPage() {
                             serviceId={v.id}
                           />
 
-                          {/* Read-only duration summary for this service -
-                              duration itself was already chosen on the
-                              homepage; this just shows how it maps onto this
-                              specific service's real config (see
-                              hourlyVehicles' doc comment). */}
-                          {isSelected && (
-                            <div className="mt-2 rounded-xl border border-primary/20 bg-card/50 p-4 sm:p-5">
-                              <p className="text-xs font-semibold text-foreground mb-1">Duration</p>
-                              <p className="text-sm font-body">
-                                <span className="font-semibold text-foreground">{formatDurationMinutes(v.snappedDurationMinutes)}</span>{" "}
-                                <span className="font-semibold text-foreground">${previewTotal.toFixed(2)}</span>{" "}
-                                <span className="text-muted-foreground">· {v.option.includedMiles} miles included</span>
-                              </p>
-                              {wasAdjusted && (
-                                <p className="text-[11px] text-muted-foreground mt-1.5">
-                                  Adjusted from your {formatDurationMinutes(data.hourlyDurationMinutes)} request to fit this service's available durations.
-                                </p>
-                              )}
-                            </div>
-                          )}
+                          {/* Read-only duration summary for this service.
+                              hourlyVehicles only ever contains services that
+                              have an ACTIVE option at exactly
+                              data.hourlyDurationMinutes (see hourlyVehicles'
+                              doc comment) - so v.option.durationMinutes here
+                              always equals the customer's requested duration
+                              exactly, never a substituted one. Shown for
+                              every card unconditionally (not gated on
+                              selection) so a customer browsing the list sees
+                              the real price/mileage for their exact request
+                              before clicking in. */}
+                          <div className={`mt-2 rounded-xl border p-4 sm:p-5 ${isSelected ? "border-primary/20 bg-card/50" : "border-border bg-card/30"}`}>
+                            <p className="text-xs font-semibold text-foreground mb-1">Duration</p>
+                            <p className="text-sm font-body">
+                              <span className="font-semibold text-foreground">{formatDurationMinutes(v.option.durationMinutes)}</span>{" "}
+                              <span className="font-semibold text-foreground">${previewTotal.toFixed(2)}</span>{" "}
+                              <span className="text-muted-foreground">· {v.option.includedMiles} miles included</span>
+                            </p>
+                          </div>
                         </div>
                       );
                     })}

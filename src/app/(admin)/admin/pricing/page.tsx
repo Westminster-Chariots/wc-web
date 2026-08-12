@@ -697,23 +697,23 @@ export default function AdminPricingPage() {
         <button
           onClick={() => setActiveTab("config")}
           className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-            activeTab === "config" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            activeTab === "config" ? "text-[hsl(var(--primary))]" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Configuration
           {activeTab === "config" && (
-            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[hsl(var(--primary))]" />
           )}
         </button>
         <button
           onClick={() => setActiveTab("calculator")}
           className={`px-4 py-2 text-sm font-medium transition-colors relative ${
-            activeTab === "calculator" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            activeTab === "calculator" ? "text-[hsl(var(--primary))]" : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Pricing Calculator
           {activeTab === "calculator" && (
-            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[hsl(var(--primary))]" />
           )}
         </button>
       </div>
